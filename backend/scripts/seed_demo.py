@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from sqlmodel import Session, select
 
-from app.database import engine
-from app.models import Offer
+from src.database import engine
+from src.models import Offer
 
 
 def run() -> None:
