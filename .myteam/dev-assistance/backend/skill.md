@@ -1,6 +1,6 @@
 ---
-name: ""
-description: ""
+name: Backend
+description: When implementing a new feature involving the backend, you MUST use this skill.
 ---
 
 The skill content goes here.

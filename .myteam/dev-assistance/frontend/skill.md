@@ -1,6 +1,6 @@
 ---
-name: ""
-description: ""
+name: Frontend
+description: When implementing a new feature involing in the frontend, you MUST use this skill.
 ---
 
 The skill content goes here.
