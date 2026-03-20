@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 from logging.config import fileConfig
 from pathlib import Path
 import sys
@@ -13,7 +14,8 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
-from app import models  # noqa: F401
+# Import model modules so SQLModel metadata is fully registered for Alembic autogenerate.
+importlib.import_module("app.models")
 
 config = context.config
 if config.config_file_name is not None:
