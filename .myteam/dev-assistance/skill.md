@@ -1,6 +1,6 @@
 ---
 name: Developer Assistance
-description: This skill provides specific instructions for implementing a feature. When implementing any new feature, you MUST use this skill.
+description: This skill provides specific instructions for implementing **non-myteam** related features. When implementing any new non-myteam feature, you MUST use this skill.
 ---
 
 1. Call `Frontend` and/or `Backend` depending on feature requirements. 
