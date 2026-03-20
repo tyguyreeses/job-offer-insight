@@ -1,16 +1,26 @@
 from __future__ import annotations
 
-from datetime import datetime
+from contextlib import asynccontextmanager
+from datetime import UTC, datetime
+from typing import Any, cast
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Response, status
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import desc
 from sqlmodel import Session, select
 
 from .database import create_db_and_tables, get_session
 from .models import CompareResponse, Offer, OfferCompareItem, OfferCreate, OfferRead, OfferUpdate
 from .services import compute_metrics
 
-app = FastAPI(title="Job Offer Insight API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    create_db_and_tables()
+    yield
+
+
+app = FastAPI(title="Job Offer Insight API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,12 +30,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-@app.on_event("startup")
-def on_startup() -> None:
-    create_db_and_tables()
-
-
 @app.get("/health")
 def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
@@ -33,7 +37,7 @@ def healthcheck() -> dict[str, str]:
 
 @app.get("/offers", response_model=list[OfferRead])
 def list_offers(session: Session = Depends(get_session)) -> list[Offer]:
-    statement = select(Offer).order_by(Offer.created_at.desc())
+    statement = select(Offer).order_by(desc(cast(Any, Offer.created_at)))
     return list(session.exec(statement))
 
 
@@ -56,7 +60,7 @@ def update_offer(offer_id: int, payload: OfferUpdate, session: Session = Depends
     for key, value in update_data.items():
         setattr(offer, key, value)
 
-    offer.updated_at = datetime.utcnow()
+    offer.updated_at = datetime.now(UTC)
     session.add(offer)
     session.commit()
     session.refresh(offer)
@@ -145,7 +149,7 @@ def seed_demo_data(session: Session = Depends(get_session)) -> list[Offer]:
         session.add(offer)
 
     session.commit()
-    return list(session.exec(select(Offer).order_by(Offer.created_at.desc())))
+    return list(session.exec(select(Offer).order_by(desc(str(Offer.created_at)))))
 
 
 @app.get("/offers/{offer_id}", response_model=OfferRead)
