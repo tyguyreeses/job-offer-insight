@@ -1,1 +1,19 @@
+# Assignment notes
 hw3c.md
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+backend/.venv/
+backend/test_job_offer_insight.db
+backend/data/job_offer_insight.db
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# OS/editor
+.DS_Store
+.vscode/
