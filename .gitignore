@@ -1,5 +1,6 @@
 # Assignment notes
 hw3c.md
+hw3e.md
 
 # Python
 __pycache__/
@@ -9,6 +10,12 @@ __pycache__/
 backend/.venv/
 backend/test_job_offer_insight.db
 backend/data/job_offer_insight.db
+
+# Environment variables / secrets
+.env
+.env.*
+backend/.env
+frontend/.env
 
 # Node
 frontend/node_modules/
