@@ -15,10 +15,15 @@ description: This skill provides specific instructions for implementing **non-my
 
 5. Implement the feature based on the gathered information.
 
-    - Prioritize 
+    - Prioritize injection dependencies and modular design to ensure the new feature is maintainable and testable. Follow existing code patterns and best practices observed in the codebase.
 
-6. Test the implemented feature to ensure it works as expected.
+6. Review the implementation to ensure it meets the requirements and does not introduce any bugs or issues.
 
-7. Update documentation if necessary to reflect the new feature and its implementation details.
+    - Does the implementation meet the requirements?
+    - Are there any duplicated code or opportunities for refactoring?
+    - Are there any potential edge cases or error handling that needs to be addressed?
+    - Implement changes as needed based on the review.
+
+7. Update documentation to reflect the new feature and its implementation details.
 
     - README.md, CHANGELOG.md, DOCS.md, and any relevant code comments should be updated to provide brief and clear information about the new feature.
