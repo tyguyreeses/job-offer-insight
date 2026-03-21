@@ -91,3 +91,13 @@ def test_compare_endpoint_returns_computed_fields_and_sorting(client):
 def test_compare_rejects_invalid_sort(client):
     response = client.get("/offers/compare?sort_by=unknown")
     assert response.status_code == 400
+
+
+def test_seed_endpoint_uses_config_seed_offers(client):
+    response = client.post("/dev/seed")
+    assert response.status_code == 200
+
+    seeded = response.json()
+    assert len(seeded) == 3
+    companies = {offer["company"] for offer in seeded}
+    assert companies == {"Nimbus Labs", "Atlas Analytics", "Summit AI"}

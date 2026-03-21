@@ -1,0 +1,81 @@
+{
+    "tests": [
+        {
+            "score": 0,
+            "max_score": 0,
+            "name": "test_config_loader.py::test_load_app_config_uses_yaml_database_url",
+            "output": "\n",
+            "visibility": "visible"
+        },
+        {
+            "score": 0,
+            "max_score": 0,
+            "name": "test_config_loader.py::test_load_app_config_prefers_database_url_env",
+            "output": "\n",
+            "visibility": "visible"
+        },
+        {
+            "score": 0,
+            "max_score": 0,
+            "name": "test_config_loader.py::test_resolve_config_path_prefers_app_config_path_env",
+            "output": "\n",
+            "visibility": "visible"
+        },
+        {
+            "score": 0,
+            "max_score": 0,
+            "name": "test_config_loader.py::test_load_app_config_fails_for_missing_file",
+            "output": "\n",
+            "visibility": "visible"
+        },
+        {
+            "score": 0,
+            "max_score": 0,
+            "name": "test_config_loader.py::test_load_app_config_fails_for_invalid_schema",
+            "output": "\n",
+            "visibility": "visible"
+        },
+        {
+            "score": 0,
+            "max_score": 0,
+            "name": "test_offers_api.py::test_create_read_update_delete_offer",
+            "output": "\n",
+            "visibility": "visible"
+        },
+        {
+            "score": 0,
+            "max_score": 0,
+            "name": "test_offers_api.py::test_validation_rejects_invalid_values",
+            "output": "\n",
+            "visibility": "visible"
+        },
+        {
+            "score": 0,
+            "max_score": 0,
+            "name": "test_offers_api.py::test_compare_endpoint_returns_computed_fields_and_sorting",
+            "output": "\n",
+            "visibility": "visible"
+        },
+        {
+            "score": 0,
+            "max_score": 0,
+            "name": "test_offers_api.py::test_compare_uses_config_defaults_when_query_is_missing",
+            "output": "\n",
+            "visibility": "visible"
+        },
+        {
+            "score": 0,
+            "max_score": 0,
+            "name": "test_offers_api.py::test_compare_rejects_invalid_sort",
+            "output": "\n",
+            "visibility": "visible"
+        },
+        {
+            "score": 0,
+            "max_score": 0,
+            "name": "test_offers_api.py::test_seed_endpoint_uses_config_seed_offers",
+            "output": "\n",
+            "visibility": "visible"
+        }
+    ]
+}

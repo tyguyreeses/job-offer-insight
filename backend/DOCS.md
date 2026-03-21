@@ -8,6 +8,8 @@ FastAPI service for offer CRUD + comparison metrics.
 - `src/models.py`: request/response + DB models
 - `src/services.py`: compensation math
 - `src/database.py`: engine/session setup
+- `configs/config.yaml`: runtime configuration source of truth
+- `configs/config_loader.py`: typed config loading and env precedence
 - `tests/test_offers_api.py`: expected API behavior
 - `alembic/versions/0001_create_offer_table.py`: schema baseline
 
@@ -16,4 +18,5 @@ FastAPI service for offer CRUD + comparison metrics.
 - Endpoint logic is defined in `src/main.py`.
 - Payload and field constraints are defined in `src/models.py`.
 - Metric formulas are implemented in `src/services.py` and exposed by `/offers/compare` in `src/main.py`.
+- Runtime behavior for DB/CORS and seed data is set in `configs/config.yaml`.
 - Schema history lives in `alembic/versions/` and corresponds to `src/models.py`.

@@ -1,0 +1,13 @@
+pyproject.toml
+src/__init__.py
+src/database.py
+src/main.py
+src/models.py
+src/services.py
+src/job_offer_insight_backend.egg-info/PKG-INFO
+src/job_offer_insight_backend.egg-info/SOURCES.txt
+src/job_offer_insight_backend.egg-info/dependency_links.txt
+src/job_offer_insight_backend.egg-info/requires.txt
+src/job_offer_insight_backend.egg-info/top_level.txt
+tests/test_config_loader.py
+tests/test_offers_api.py

@@ -4,11 +4,11 @@ Core app code.
 
 ## Key Files
 
-- `main.py`: route handlers and status codes
+- `main.py`: app factory, dependency providers, and route handlers
 - `models.py`: validation + schema contracts
 - `services.py`: computed metric formulas
-- `database.py`: DB URL, engine, and session dependency
+- `database.py`: engine construction and session dependency factories
 
 ## Key Contract
 
-- `/offers/compare` allows `sort_by` values: `total_comp_annual`, `total_comp_year1`, `total_comp_col_adjusted`
+- `/dev/seed` records are config-driven via `configs/config.yaml` (from repo root: `backend/configs/config.yaml`).

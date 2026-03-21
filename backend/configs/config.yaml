@@ -1,0 +1,40 @@
+database:
+  url: sqlite:///./data/job_offer_insight.db
+  echo: false
+
+server:
+  cors:
+    allow_origins:
+      - http://localhost:5173
+    allow_credentials: true
+    allow_methods:
+      - "*"
+    allow_headers:
+      - "*"
+
+dev:
+  seed_offers:
+    - company: Nimbus Labs
+      role: Software Engineer I
+      location: Denver, CO
+      base_salary: 132000
+      annual_bonus: 10000
+      annual_equity: 18000
+      sign_on_bonus: 15000
+      col_index: 1.06
+    - company: Atlas Analytics
+      role: Data Engineer
+      location: Austin, TX
+      base_salary: 140000
+      annual_bonus: 8000
+      annual_equity: 12000
+      sign_on_bonus: 10000
+      col_index: 0.98
+    - company: Summit AI
+      role: ML Engineer
+      location: San Francisco, CA
+      base_salary: 170000
+      annual_bonus: 15000
+      annual_equity: 35000
+      sign_on_bonus: 20000
+      col_index: 1.35

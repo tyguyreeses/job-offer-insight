@@ -9,8 +9,7 @@ from sqlmodel import Session, SQLModel, create_engine
 
 os.environ["DATABASE_URL"] = "sqlite:///./test_job_offer_insight.db"
 
-from src.database import get_session  # noqa: E402
-from src.main import app  # noqa: E402
+from src.main import app, get_session  # noqa: E402
 
 
 test_engine = create_engine("sqlite:///./test_job_offer_insight.db", connect_args={"check_same_thread": False})

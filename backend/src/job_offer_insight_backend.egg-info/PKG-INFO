@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: job-offer-insight-backend
+Version: 0.1.0
+Summary: FastAPI backend for Job Offer Insight
+Requires-Python: >=3.10
+Requires-Dist: fastapi==0.116.1
+Requires-Dist: uvicorn[standard]==0.35.0
+Requires-Dist: sqlmodel==0.0.24
+Requires-Dist: alembic==1.16.5
+Requires-Dist: pyyaml==6.0.2
+Provides-Extra: dev
+Requires-Dist: pytest==8.4.2; extra == "dev"
+Requires-Dist: httpx==0.28.1; extra == "dev"
