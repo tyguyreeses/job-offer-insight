@@ -8,10 +8,8 @@ from dataclasses import dataclass
 from fastapi import Depends, Request
 
 from .domain.services.interfaces import ComparisonService, OfferService
-from .domain.services.placeholders import (
-    UnimplementedComparisonService,
-    UnimplementedOfferService,
-)
+from .domain.services.offer_service import Stage4OfferService
+from .domain.services.placeholders import UnimplementedComparisonService
 from .storage.db import SQLiteDatabase, build_sqlite_database
 from .storage.repositories.comparison_repository import SQLiteComparisonRepository
 from .storage.repositories.interfaces import ComparisonRepository, OfferRepository
@@ -34,7 +32,7 @@ class RuntimeContainer:
 
 
 def build_runtime_container(config: RuntimeConfig, logger: logging.Logger) -> RuntimeContainer:
-    """Build Stage 3 runtime dependencies with SQLite-backed repositories."""
+    """Build Stage 4 runtime dependencies with SQLite-backed repositories."""
     database = build_sqlite_database(config.database)
     database.initialize()
     offer_repository = SQLiteOfferRepository(database=database)
@@ -47,7 +45,7 @@ def build_runtime_container(config: RuntimeConfig, logger: logging.Logger) -> Ru
         database=database,
         offer_repository=offer_repository,
         comparison_repository=comparison_repository,
-        offer_service=UnimplementedOfferService(offer_repository=offer_repository),
+        offer_service=Stage4OfferService(offer_repository=offer_repository),
         comparison_service=UnimplementedComparisonService(
             comparison_repository=comparison_repository,
             offer_repository=offer_repository,
