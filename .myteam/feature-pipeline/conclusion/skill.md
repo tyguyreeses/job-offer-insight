@@ -25,9 +25,10 @@ instruction updates.
 If changes have been made by this point, commit them.
 Follow guidance in the `git-commit` skill.
 
-### Version bump
+### Version bump (if applicable)
 
-If runtime behavior changed, ensure `pyproject.toml` version is bumped
+If runtime behavior changed and this repo uses package versioning
+(for example, a tracked `pyproject.toml`), bump the version
 appropriately.
 
 Because the project is in 0.x:
@@ -38,17 +39,18 @@ Because the project is in 0.x:
 Check branch history before deciding whether a bump already happened.
 Do not bump twice in one branch unless explicitly requested.
 
-### Changelog
+### Changelog (if present)
 
-Update `CHANGELOG.md` with the feature summary and user-visible impact.
+If `CHANGELOG.md` exists, update it with the feature summary and
+user-visible impact.
 
 ### Documentation
 
 Update documentation for changed behavior, especially:
 
 - `README.md`
-- `docs/application_interface.md`
-- `docs/getting-started.md` (if setup/run flow changed)
+- `src/docs/application_interface.md`
+- `docs/getting-started.md` (if setup/run flow changed and file exists)
 
 ### Final commit
 

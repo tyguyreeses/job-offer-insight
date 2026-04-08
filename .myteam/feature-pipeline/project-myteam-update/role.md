@@ -27,7 +27,7 @@ Audit `.myteam` role/skill content for stale references such as:
 
 ### Define migration notes
 
-Create or update a migration note in `docs/plans/` that records:
+Create or update a migration note in `src/docs/plans/` that records:
 
 - what `.myteam` instruction assumptions were outdated
 - what was changed

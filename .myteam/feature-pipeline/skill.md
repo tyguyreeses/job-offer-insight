@@ -17,7 +17,7 @@ If you are on `main`, ask the user to create a feature branch before proceeding.
 
 ### Understand the feature and update the interface document
 
-First read `docs/application_interface.md` to understand the current
+First read `src/docs/application_interface.md` to understand the current
 black-box contract.
 
 Then confirm the requested behavior change:
@@ -25,7 +25,7 @@ Then confirm the requested behavior change:
 - what behavior should change
 - what behavior should remain unchanged
 
-Update `docs/application_interface.md` to reflect the intended contract.
+Update `src/docs/application_interface.md` to reflect the intended contract.
 Review the changes with the user before moving on.
 
 When this step is complete, commit changes before continuing.
@@ -45,7 +45,7 @@ Prefer the simplest design that fits existing project conventions.
 
 Create a plan document at:
 
-- `docs/plans/<branch_name>.md`
+- `src/docs/plans/<branch_name>.md`
 
 Plan sections:
 

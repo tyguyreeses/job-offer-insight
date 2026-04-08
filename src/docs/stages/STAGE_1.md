@@ -2,11 +2,11 @@
 
 ## Metadata
 - Stage ID: `1`
-- Status: `Not Started`
-- Completed: `false`
-- Started On: ``
-- Completed On: ``
-- Branch: ``
+- Status: `Completed`
+- Completed: `true`
+- Started On: `2026-04-08`
+- Completed On: `2026-04-08`
+- Branch: `stage_1`
 - Depends On: `None`
 - Primary Docs: `end-goal.md`, `src/docs/application_interface.md`, `PLAN.md`
 
@@ -29,11 +29,11 @@ Lock the external contract and establish configuration as the first implementati
 - `end-goal.md` includes agreed required fields and comparison placeholder behavior
 
 ## Implementation Checklist
-- [ ] Confirm interface contract fields and behavior are complete
-- [ ] Define full runtime config structure (app/logging/database/openai/workflow toggles)
-- [ ] Specify required/optional config keys and defaults
-- [ ] Specify config validation error behavior
-- [ ] Record any unresolved config decisions in `PLAN.md`
+- [x] Confirm interface contract fields and behavior are complete
+- [x] Define full runtime config structure (app/logging/database/openai/workflow toggles)
+- [x] Specify required/optional config keys and defaults
+- [x] Specify config validation error behavior
+- [x] Record any unresolved config decisions in `PLAN.md`
 
 ## Deliverables
 - Updated `src/docs/application_interface.md` (if needed)
@@ -41,8 +41,8 @@ Lock the external contract and establish configuration as the first implementati
 - Completed config type and loader design notes (or stubs)
 
 ## Test Gate
-- [ ] Add/plan config-loading tests for valid and invalid config shapes
-- [ ] Verify interface doc and config assumptions are aligned
+- [x] Add/plan config-loading tests for valid and invalid config shapes
+- [x] Verify interface doc and config assumptions are aligned
 
 ## Exit Criteria
 - Config contract is explicit and reviewable
@@ -58,5 +58,7 @@ Lock the external contract and establish configuration as the first implementati
 
 
 ### Final Decisions for This Stage
-
+- Configuration is validated strictly at startup from `src/config.yaml`.
+- The top-level runtime config sections are locked to `app`, `logging`, `database`, `openai`, and `workflow`.
+- Unknown config keys are rejected to prevent silent misconfiguration.
 
