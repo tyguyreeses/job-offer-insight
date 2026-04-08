@@ -13,7 +13,7 @@ ERROR_FORMAT = "%(levelname)s: %(message)s"
 
 def setup_error_logger() -> logging.Logger:
     """Configure and return an error-only bootstrap logger."""
-    logging.basicConfig(level=logging.ERROR, format=ERROR_FORMAT)
+    logging.basicConfig(level=logging.ERROR, format=ERROR_FORMAT, force=True)
     return logging.getLogger(BOOTSTRAP_LOGGER_NAME)
 
 
@@ -23,6 +23,7 @@ def setup_logger(debug: bool, configured_level: str) -> logging.Logger:
     logging.basicConfig(
         level=effective_level,
         format=BOOTSTRAP_FORMAT,
+        force=True,
     )
     return logging.getLogger(BOOTSTRAP_LOGGER_NAME)
 

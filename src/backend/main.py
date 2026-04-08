@@ -1,16 +1,22 @@
-"""Backend bootstrap entrypoint for local smoke checks."""
+"""Backend bootstrap and FastAPI application wiring for Stage 2."""
 
 from __future__ import annotations
 
 import argparse
+import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
-try:
-    from .utils.config_loader import ConfigLoadError, load_config
-    from .utils.logging import log_config_payload, setup_error_logger, setup_logger
-except ImportError:  # Allows direct execution via `python src/backend/main.py`
-    from utils.config_loader import ConfigLoadError, load_config
-    from utils.logging import log_config_payload, setup_error_logger, setup_logger
+from fastapi import FastAPI
+
+from src.backend.api.router import build_api_router
+from src.backend.dependencies import RuntimeContainer, build_runtime_container
+from src.backend.utils.config_loader import ConfigLoadError, load_config
+from src.backend.utils.logging import (
+    log_config_payload,
+    setup_error_logger,
+    setup_logger,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -25,6 +31,11 @@ def parse_args() -> argparse.Namespace:
         "--debug",
         action="store_true",
         help="Force debug logging regardless of configured logging level.",
+    )
+    parser.add_argument(
+        "--serve",
+        action="store_true",
+        help="Start the HTTP server after successful bootstrap validation.",
     )
     return parser.parse_args()
 
@@ -42,20 +53,73 @@ def resolve_config_path(config_path: Path) -> Path:
     return config_path
 
 
+def _build_lifespan(container: RuntimeContainer):
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        container.logger.info("Backend startup complete")
+        yield
+        container.logger.info("Backend shutdown complete")
+
+    return lifespan
+
+
+def create_app(container: RuntimeContainer) -> FastAPI:
+    app = FastAPI(title=container.config.app.name, lifespan=_build_lifespan(container))
+    app.state.runtime_container = container
+    app.include_router(build_api_router())
+
+    @app.get("/")
+    def root() -> dict[str, str]:
+        return {"service": container.config.app.name, "status": "running"}
+
+    return app
+
+
+def build_app_from_config_path(config_path: Path, debug: bool) -> FastAPI:
+    config = load_config(config_path)
+    logger = setup_logger(
+        debug=debug,
+        configured_level=config.logging.level,
+    )
+    log_config_payload(logger, config.model_dump())
+    container = build_runtime_container(config=config, logger=logger)
+    return create_app(container)
+
+
+def _run_uvicorn(app: FastAPI, config_path: Path, logger: logging.Logger) -> int:
+    try:
+        import uvicorn
+    except ImportError as exc:
+        logger.error("Cannot serve app because uvicorn is not installed: %s", exc)
+        return 1
+
+    app_config = app.state.runtime_container.config.app
+    logger.info("Serving app using config at %s", config_path)
+    uvicorn.run(
+        app,
+        host=app_config.host,
+        port=app_config.port,
+        log_level="debug" if app.state.runtime_container.debug else "info",
+    )
+    return 0
+
+
 def main() -> int:
     args = parse_args()
     config_path = resolve_config_path(args.config)
 
     try:
-        config = load_config(config_path)
+        app = build_app_from_config_path(config_path=config_path, debug=args.debug)
     except ConfigLoadError as exc:
         logger = setup_error_logger()
         logger.error("Failed to load config: %s", exc)
         return 1
 
-    logger = setup_logger(debug=args.debug, configured_level=config.logging.level)
+    logger = app.state.runtime_container.logger
     logger.info("Loaded config from %s", config_path)
-    log_config_payload(logger, config.model_dump())
+    if args.serve:
+        return _run_uvicorn(app, config_path, logger)
+    logger.info("Bootstrap completed without --serve; exiting.")
     return 0
 
 

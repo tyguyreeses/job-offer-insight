@@ -13,12 +13,16 @@ Before a feature branch is ready to merge, the following must be complete.
 ### Run `code-linter`
 
 Delegate to the `code-linter` role and address any concerns.
+If role delegation tooling (for example, `spawn-agent`) is unavailable in the
+current environment, run an equivalent direct review and address concerns.
 Repeat until no actionable concerns remain.
 
 ### Run `.myteam` update check
 
 Delegate to the `project-myteam-update` role and incorporate required
 instruction updates.
+If role delegation tooling (for example, `spawn-agent`) is unavailable in the
+current environment, run the `.myteam` migration audit directly.
 
 ### Semi-final commit
 
@@ -50,7 +54,7 @@ Update documentation for changed behavior, especially:
 
 - `README.md`
 - `src/docs/application_interface.md`
-- `docs/getting-started.md` (if setup/run flow changed and file exists)
+- `src/docs/getting-started.md` (if setup/run flow changed and file exists)
 
 ### Final commit
 
