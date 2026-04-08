@@ -1,6 +1,6 @@
 # Implementation Plan (Suggested Order of Operations)
 
-Branch: `project-skeleton`
+Branch: `stage_1`
 
 This plan follows the `myteam` feature-pipeline/testing guidance while staying within current scope:
 - define and lock the external interface first
@@ -10,7 +10,7 @@ This plan follows the `myteam` feature-pipeline/testing guidance while staying w
 
 ## Phase 0 - Process Setup
 
-1. Confirm branch is not `main` (done: `project-skeleton`).
+1. Confirm branch is not `main` (done: `stage_1`).
 2. Treat `src/docs/application_interface.md` as contract source for feature behavior and tests.
 3. Keep commits phase-based so framework prep, tests, and implementation are separated.
 
@@ -18,7 +18,7 @@ This plan follows the `myteam` feature-pipeline/testing guidance while staying w
 
 1. Finalize `src/docs/application_interface.md` from `end-goal.md`.
 2. Finalize this `PLAN.md` as execution order and acceptance checklist.
-3. Optionally mirror this plan into `src/docs/plans/project-skeleton.md` to align with feature-pipeline convention.
+3. Optionally mirror this plan into `src/docs/plans/stage_1.md` to align with feature-pipeline convention.
 
 Deliverable:
 - documented, decision-complete contract and implementation order.
@@ -201,3 +201,23 @@ Based on current `myteam` configuration:
 6. Saved comparison includes IDs, placeholder summary, optional note display.
 7. Test suite demonstrates black-box contract coverage.
 8. Comparison ranking logic remains intentionally unimplemented.
+
+## Stage 1 Config Decisions and Test Plan
+
+### Locked Config Shape (Stage 1)
+
+1. Top-level sections are fixed to `app`, `logging`, `database`, `openai`, and `workflow`.
+2. Unknown keys are validation errors.
+3. Missing optional keys are allowed only when a backend default exists.
+
+### Planned Config Loading Tests (Stage 1 Gate)
+
+1. Valid config loads and produces typed runtime model.
+2. Missing required top-level section fails with clear validation error.
+3. Wrong scalar type (example: string for numeric port) fails with clear validation error.
+4. Unknown key fails with explicit field rejection error.
+5. Invalid YAML fails with parse error and file context.
+
+### Unresolved Decisions
+
+1. OpenAI model IDs are placeholders until Stage 4 audio/text intake integration finalizes exact model choices.

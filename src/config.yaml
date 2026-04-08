@@ -1,4 +1,31 @@
-database:
-  # SQLite database info
+app:
+  name: "job-offer-insight"
+  env: "dev"
+  host: "127.0.0.1"
+  port: 8000
+  request_timeout_seconds: 30
 
-agents:
+logging:
+  level: "INFO"
+  json_logs: false
+  include_timestamps: true
+
+database:
+  provider: "sqlite"
+  path: "data/job_offer_insight.db"
+  enable_wal: true
+  timeout_seconds: 5
+
+openai:
+  api_key_env_var: "OPENAI_API_KEY"
+  model: "gpt-5.2"
+  transcription_model: "gpt-4o-mini-transcribe"
+  timeout_seconds: 45
+  max_retries: 2
+
+workflow:
+  enable_audio_intake: true
+  enable_text_intake: true
+  enable_missing_info_followups: true
+  enable_non_monetary_summary: true
+  allow_placeholder_comparisons: true

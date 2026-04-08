@@ -142,6 +142,24 @@ Endpoint paths may evolve, but external behavior must remain equivalent.
 1. Application exposes health/readiness endpoint(s).
 2. Runtime log level is selectable via app startup debug flag (`--debug` toggles debug vs info level).
 
+## Runtime Configuration Contract
+
+Runtime startup reads `src/config.yaml` and validates the config shape before serving requests.
+
+The config contract includes five required top-level sections:
+
+1. `app`
+2. `logging`
+3. `database`
+4. `openai`
+5. `workflow`
+
+Validation behavior:
+
+1. Missing required section or invalid value type results in startup failure with explicit error details.
+2. Unknown/extra keys are treated as config errors.
+3. Optional keys may use defaults defined by backend config types.
+
 ## Persistence Contract
 
 SQLite is the system of record.
