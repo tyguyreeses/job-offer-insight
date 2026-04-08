@@ -163,3 +163,106 @@
 - Use OpenAI's python library and client for all AI services
 - Use `reference-audio-material/README.md` to explore that folder for guidance on how the audio system should be
   designed.
+
+## Suggested Project Directory Tree
+
+```text
+job-offer-insight/
+├── AGENTS.md
+├── README.md
+├── PLAN.md
+├── end-goal.md
+├── reference-audio-material/                     # Existing reference only, not runtime code
+├── src/
+│   ├── config.yaml                               # Runtime configuration source of truth
+│   ├── backend/
+│   │   ├── main.py                               # FastAPI app setup, DI wiring, logger, startup/shutdown
+│   │   ├── api/
+│   │   │   ├── router.py                         # Top-level API router composition
+│   │   │   └── v1/
+│   │   │       ├── offers.py                     # Create/read/update offer endpoints
+│   │   │       ├── comparisons.py                # Compare endpoint + saved comparisons CRUD
+│   │   │       └── health.py                     # Health/readiness endpoints
+│   │   ├── domain/
+│   │   │   ├── models/
+│   │   │   │   ├── offer.py                      # Domain offer model
+│   │   │   │   └── comparison.py                 # Domain comparison model
+│   │   │   ├── services/
+│   │   │   │   ├── offer_service.py              # Offer orchestration + validation rules
+│   │   │   │   ├── compare_service.py            # Compare-mode orchestration + placeholder summary
+│   │   │   │   └── ai_intake_service.py          # Transcript extraction + missing-info Q flow
+│   │   │   └── rules/
+│   │   │       ├── required_fields.py            # Hard required field checks
+│   │   │       └── annualization.py              # hourly_rate * hours_per_week * 52
+│   │   ├── gen_ai/
+│   │   │   ├── client.py                         # OpenAI client factory
+│   │   │   ├── prompts/
+│   │   │   │   ├── extract_offer.md              # Extract structured offer JSON
+│   │   │   │   ├── ask_missing_fields.md         # Clarifying questions prompt
+│   │   │   │   └── summarize_non_monetary.md     # Bullet-point summary prompt
+│   │   │   └── mappers/
+│   │   │       └── offer_mapper.py               # LLM output -> typed schema mapping
+│   │   ├── prompts/                              # Keep for compatibility if needed
+│   │   ├── storage/
+│   │   │   ├── db.py                             # SQLite engine/session setup
+│   │   │   ├── schema.sql                        # Initial schema DDL
+│   │   │   ├── repositories/
+│   │   │   │   ├── offer_repository.py
+│   │   │   │   └── comparison_repository.py
+│   │   │   └── migrations/
+│   │   │       └── 0001_init.sql
+│   │   ├── schemas/
+│   │   │   ├── offer.py                          # Pydantic API schemas
+│   │   │   └── comparison.py
+│   │   └── utils/
+│   │       ├── config_loader.py                  # Load + validate config.yaml
+│   │       ├── config_types.py                   # Typed config models
+│   │       └── logging.py                        # Logger configuration
+│   ├── frontend/
+│   │   ├── index.html
+│   │   ├── package.json
+│   │   ├── vite.config.ts
+│   │   └── src/
+│   │       ├── main.tsx
+│   │       ├── App.tsx
+│   │       ├── styles/
+│   │       │   ├── tokens.css                    # Typography/colors/spacing/motion tokens
+│   │       │   └── global.css                    # Global style + layout
+│   │       ├── pages/
+│   │       │   ├── AddEntryPage.tsx              # Audio/text intake + missing-field form flow
+│   │       │   ├── DashboardPage.tsx             # Card list + max-two selection behavior
+│   │       │   ├── ComparePage.tsx               # Left/right cards + placeholder summary region
+│   │       │   └── SavedComparisonsPage.tsx      # List/view saved comparisons
+│   │       ├── components/
+│   │       │   ├── Navbar.tsx
+│   │       │   ├── OfferCard.tsx
+│   │       │   ├── ComparisonPlaceholder.tsx
+│   │       │   ├── OfferForm.tsx                 # Edit existing offer in structured form
+│   │       │   ├── AudioInputPanel.tsx
+│   │       │   └── WarningBanner.tsx             # Soft validation warnings
+│   │       ├── services/
+│   │       │   ├── apiClient.ts
+│   │       │   ├── offersApi.ts
+│   │       │   └── comparisonsApi.ts
+│   │       ├── state/
+│   │       │   ├── selectionStore.ts             # Deselect oldest when selecting a third
+│   │       │   └── offersStore.ts
+│   │       └── types/
+│   │           ├── offer.ts
+│   │           └── comparison.ts
+│   └── docs/
+│       ├── application_interface.md              # Black-box contract, request/response behavior
+│       ├── plans/
+│       │   └── <feature-branch>.md
+│       └── decisions/
+│           └── 0001-offer-schema.md              # Optional architecture decision records
+└── tests/
+    ├── backend/
+    │   ├── api/
+    │   ├── domain/
+    │   └── storage/
+    ├── frontend/
+    │   ├── pages/
+    │   └── components/
+    └── e2e/
+```
