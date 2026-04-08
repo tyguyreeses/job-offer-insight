@@ -4,8 +4,8 @@ Stage-based implementation of a job-offer review app.
 
 ## Current Stage
 
-- Active branch: `stage_2`
-- Stage 2 focus: backend framework skeleton, DI wiring boundaries, and logging/health surfaces
+- Active branch: `stage_3`
+- Stage 3 focus: SQLite persistence foundations, migrations, and offer/comparison repository CRUD boundaries
 
 ## Backend Config Foundation (Stage 1)
 
@@ -26,3 +26,13 @@ Stage-based implementation of a job-offer review app.
 - Serve mode: `python -m src.backend.main --serve`
 - API health endpoint: `GET /api/v1/health`
 - API readiness endpoint: `GET /api/v1/readiness`
+
+## Persistence Layer (Stage 3)
+
+- SQLite bootstrap and migration runner: `src/backend/storage/db.py`
+- Initial schema artifacts:
+  - `src/backend/storage/schema.sql`
+  - `src/backend/storage/migrations/0001_init.sql`
+- Repository implementations:
+  - `src/backend/storage/repositories/offer_repository.py`
+  - `src/backend/storage/repositories/comparison_repository.py`

@@ -2,11 +2,11 @@
 
 ## Metadata
 - Stage ID: `3`
-- Status: `Not Started`
-- Completed: `false`
-- Started On: ``
-- Completed On: ``
-- Branch: ``
+- Status: `Completed`
+- Completed: `true`
+- Started On: `2026-04-08`
+- Completed On: `2026-04-08`
+- Branch: `stage_3`
 - Depends On: `Stage 2`
 - Primary Docs: `src/docs/application_interface.md`, `end-goal.md`
 
@@ -28,20 +28,20 @@ Build SQLite persistence foundations and model boundaries for offers and saved c
 - Required fields + blank-value rules are finalized in docs
 
 ## Implementation Checklist
-- [ ] Define offer persistence schema (including timestamps)
-- [ ] Define comparison persistence schema (IDs, placeholder summary, optional note)
-- [ ] Add migration path for initial DB setup
-- [ ] Implement repository interfaces for CRUD operations
-- [ ] Confirm blank values are handled as "not included", not errors
+- [x] Define offer persistence schema (including timestamps)
+- [x] Define comparison persistence schema (IDs, placeholder summary, optional note)
+- [x] Add migration path for initial DB setup
+- [x] Implement repository interfaces for CRUD operations
+- [x] Confirm blank values are handled as "not included", not errors
 
 ## Deliverables
 - Working DB initialization and schema artifacts
 - Repository layer contracts/implementations for offers and comparisons
 
 ## Test Gate
-- [ ] Offer create/read/update persistence tests
-- [ ] Comparison save/list/detail persistence tests
-- [ ] Omitted/blank field persistence semantics tests
+- [x] Offer create/read/update persistence tests
+- [x] Comparison save/list/detail persistence tests
+- [x] Omitted/blank field persistence semantics tests
 
 ## Exit Criteria
 - Data contracts can be persisted and retrieved consistently
@@ -57,5 +57,4 @@ Build SQLite persistence foundations and model boundaries for offers and saved c
 
 
 ### Final Decisions for This Stage
-
 

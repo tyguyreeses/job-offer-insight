@@ -12,11 +12,10 @@ from .domain.services.placeholders import (
     UnimplementedComparisonService,
     UnimplementedOfferService,
 )
+from .storage.db import SQLiteDatabase, build_sqlite_database
+from .storage.repositories.comparison_repository import SQLiteComparisonRepository
 from .storage.repositories.interfaces import ComparisonRepository, OfferRepository
-from .storage.repositories.placeholders import (
-    InMemoryPlaceholderComparisonRepository,
-    InMemoryPlaceholderOfferRepository,
-)
+from .storage.repositories.offer_repository import SQLiteOfferRepository
 from .utils.config_types import RuntimeConfig
 
 
@@ -27,6 +26,7 @@ class RuntimeContainer:
     config: RuntimeConfig
     logger: logging.Logger
     debug: bool
+    database: SQLiteDatabase
     offer_repository: OfferRepository
     comparison_repository: ComparisonRepository
     offer_service: OfferService
@@ -34,14 +34,17 @@ class RuntimeContainer:
 
 
 def build_runtime_container(config: RuntimeConfig, logger: logging.Logger) -> RuntimeContainer:
-    """Build placeholder dependency graph for Stage 2 wiring."""
-    offer_repository = InMemoryPlaceholderOfferRepository()
-    comparison_repository = InMemoryPlaceholderComparisonRepository()
+    """Build Stage 3 runtime dependencies with SQLite-backed repositories."""
+    database = build_sqlite_database(config.database)
+    database.initialize()
+    offer_repository = SQLiteOfferRepository(database=database)
+    comparison_repository = SQLiteComparisonRepository(database=database)
 
     return RuntimeContainer(
         config=config,
         logger=logger,
         debug=logger.getEffectiveLevel() <= logging.DEBUG,
+        database=database,
         offer_repository=offer_repository,
         comparison_repository=comparison_repository,
         offer_service=UnimplementedOfferService(offer_repository=offer_repository),
