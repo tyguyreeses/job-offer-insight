@@ -2,11 +2,11 @@
 
 ## Metadata
 - Stage ID: `4`
-- Status: `Not Started`
-- Completed: `false`
-- Started On: ``
-- Completed On: ``
-- Branch: ``
+- Status: `Completed`
+- Completed: `true`
+- Started On: `2026-04-08`
+- Completed On: `2026-04-08`
+- Branch: `stage_4`
 - Depends On: `Stage 3`
 - Primary Docs: `src/docs/application_interface.md`, `end-goal.md`
 
@@ -30,22 +30,22 @@ Implement core text-based offer intake and enforce required-vs-soft validation b
 - Storage layer can persist offer payloads
 
 ## Implementation Checklist
-- [ ] Implement text intake endpoint/handler
-- [ ] Implement extraction-to-schema mapping flow
-- [ ] Implement missing-field decision prompts
-- [ ] Implement required field enforcement and soft warnings
-- [ ] Implement hourly annualization formula
-- [ ] Persist accepted offer data with omission semantics
+- [x] Implement text intake endpoint/handler
+- [x] Implement extraction-to-schema mapping flow
+- [x] Implement missing-field decision prompts
+- [x] Implement required field enforcement and soft warnings
+- [x] Implement hourly annualization formula
+- [x] Persist accepted offer data with omission semantics
 
 ## Deliverables
 - End-to-end text offer intake behavior per contract
 - Observable missing-field prompt/decision behavior
 
 ## Test Gate
-- [ ] Required field failure cases block save
-- [ ] Non-required missing fields produce warnings only
-- [ ] Confirmed omitted fields store as blanks
-- [ ] Hourly annualization formula test coverage
+- [x] Required field failure cases block save
+- [x] Non-required missing fields produce warnings only
+- [x] Confirmed omitted fields store as blanks
+- [x] Hourly annualization formula test coverage
 
 ## Exit Criteria
 - Text intake path is contract-complete and reviewable
@@ -61,5 +61,4 @@ Implement core text-based offer intake and enforce required-vs-soft validation b
 
 
 ### Final Decisions for This Stage
-
 

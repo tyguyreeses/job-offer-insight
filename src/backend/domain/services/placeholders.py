@@ -1,10 +1,13 @@
-"""Stage 2 placeholder service implementations."""
+"""Placeholder service implementations."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
+from ...domain.models import OfferRecord
 from ...storage.repositories.interfaces import ComparisonRepository, OfferRepository
+from .offer_service import FieldPrompt, IntakeResult
 
 
 @dataclass(frozen=True)
@@ -17,6 +20,49 @@ class UnimplementedOfferService:
             "status": "placeholder",
             "message": "Offer behavior will be implemented in later stages.",
         }
+
+    def intake_text_offer(
+        self,
+        *,
+        text: str,
+        omission_confirmations: dict[str, bool] | None = None,
+        extracted_offer_overrides: dict[str, Any] | None = None,
+    ) -> IntakeResult:
+        return IntakeResult(
+            status="not_implemented",
+            errors=["Offer intake is not implemented."],
+            warnings=[],
+            missing_field_prompts=[
+                FieldPrompt(
+                    path="company_name",
+                    required=True,
+                    message="Offer intake is not implemented.",
+                )
+            ],
+            offer=None,
+        )
+
+    def list_offers(self) -> list[OfferRecord]:
+        return self.offer_repository.list_all()
+
+    def get_offer(self, offer_id: str) -> OfferRecord | None:
+        return self.offer_repository.get_by_id(offer_id)
+
+    def update_offer(self, *, offer_id: str, payload: dict[str, Any]) -> IntakeResult:
+        return IntakeResult(
+            status="not_implemented",
+            errors=["Offer update is not implemented."],
+            warnings=[],
+            missing_field_prompts=[],
+            offer=None,
+        )
+
+    def render_offer_payload(self, record: OfferRecord) -> dict[str, Any]:
+        payload = dict(record.payload)
+        payload["id"] = record.id
+        payload["company_name"] = record.company_name
+        payload["role_title"] = record.role_title
+        return payload
 
 
 @dataclass(frozen=True)

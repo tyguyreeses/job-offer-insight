@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Any, Protocol
+
+from .offer_service import IntakeResult
+from ..models import OfferRecord
 
 
 class OfferService(Protocol):
@@ -10,6 +13,27 @@ class OfferService(Protocol):
 
     def describe_capabilities(self) -> dict[str, str]:
         """Return high-level service status/capabilities."""
+
+    def intake_text_offer(
+        self,
+        *,
+        text: str,
+        omission_confirmations: dict[str, bool] | None = None,
+        extracted_offer_overrides: dict[str, Any] | None = None,
+    ) -> IntakeResult:
+        """Intake offer text and return save/missing/blocked outcomes."""
+
+    def list_offers(self) -> list[OfferRecord]:
+        """Return all saved offers."""
+
+    def get_offer(self, offer_id: str) -> OfferRecord | None:
+        """Return one saved offer."""
+
+    def update_offer(self, *, offer_id: str, payload: dict[str, Any]) -> IntakeResult:
+        """Update one offer and return save/blocked outcomes."""
+
+    def render_offer_payload(self, record: OfferRecord) -> dict[str, Any]:
+        """Return API-shaped payload for one offer record."""
 
 
 class ComparisonService(Protocol):

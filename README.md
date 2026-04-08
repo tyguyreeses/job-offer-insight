@@ -4,8 +4,8 @@ Stage-based implementation of a job-offer review app.
 
 ## Current Stage
 
-- Active branch: `stage_3`
-- Stage 3 focus: SQLite persistence foundations, migrations, and offer/comparison repository CRUD boundaries
+- Active branch: `stage_4`
+- Stage 4 focus: text offer intake, missing-info confirmations, required-vs-soft validation, and annualization behavior
 
 ## Backend Config Foundation (Stage 1)
 
@@ -36,3 +36,15 @@ Stage-based implementation of a job-offer review app.
 - Repository implementations:
   - `src/backend/storage/repositories/offer_repository.py`
   - `src/backend/storage/repositories/comparison_repository.py`
+
+## Offer Intake (Stage 4)
+
+- Offer endpoints:
+  - `POST /api/v1/offers/intake/text`
+  - `GET /api/v1/offers`
+  - `GET /api/v1/offers/{offer_id}`
+  - `PUT /api/v1/offers/{offer_id}`
+- Stage 4 offer service:
+  - `src/backend/domain/services/offer_service.py`
+- Stage 4 API tests:
+  - `tests/backend/test_offer_intake_stage4.py`
