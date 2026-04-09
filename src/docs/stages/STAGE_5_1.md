@@ -2,11 +2,11 @@
 
 ## Metadata
 - Stage ID: `5.1`
-- Status: `Planned`
+- Status: `Implemented (Pending Manual QA + User Sign-off)`
 - Completed: `false`
-- Started On: ``
+- Started On: `2026-04-09`
 - Completed On: ``
-- Branch: `agent-conversation`
+- Branch: `stage-5.1`
 - Depends On: `Stage 5`
 - Primary Docs: `src/docs/application_interface.md`, `end-goal.md`
 
@@ -66,20 +66,20 @@ Implement the Main Page UX for creating an offer and replace one-shot text intak
   - save outcome when complete
 
 ## Implementation Checklist
-- [ ] Update `src/docs/application_interface.md` to conversational text-intake contract
-- [ ] Add in-memory intake session store
-- [ ] Add/modify service orchestration for conversation step machine
-- [ ] Replace old one-shot text-intake response shape on `/offers/intake/text`
-- [ ] Add mixed omission handling (`skip_current` + typed omission)
-- [ ] Build `src/frontend` scaffold with Vite React TypeScript
-- [ ] Implement main page layout with large centered heading and large centered round mode buttons
-- [ ] Implement custom CSS styling for a clean, minimal, mostly empty first screen
-- [ ] Implement soft blue glow hover treatment for selectable interactive elements
-- [ ] Implement loading/reveal animation sequence (top-to-bottom and left-to-right fade choreography)
-- [ ] Create shared animation tokens/utilities for fade enter/exit and reuse them for all Stage 5.1 motion
-- [ ] Implement elegant navbar shell aligned with end-goal navigation expectations
-- [ ] Wire frontend conversation UI to new text-intake contract
-- [ ] Keep audio button visually present and non-functional (no state change on click)
+- [x] Update `src/docs/application_interface.md` to conversational text-intake contract
+- [x] Add in-memory intake session store
+- [x] Add/modify service orchestration for conversation step machine
+- [x] Replace old one-shot text-intake response shape on `/offers/intake/text`
+- [x] Add mixed omission handling (`skip_current` + typed omission)
+- [x] Build `src/frontend` scaffold with Vite React TypeScript
+- [x] Implement main page layout with large centered heading and large centered round mode buttons
+- [x] Implement custom CSS styling for a clean, minimal, mostly empty first screen
+- [x] Implement soft blue glow hover treatment for selectable interactive elements
+- [x] Implement loading/reveal animation sequence (top-to-bottom and left-to-right fade choreography)
+- [x] Create shared animation tokens/utilities for fade enter/exit and reuse them for all Stage 5.1 motion
+- [x] Implement elegant navbar shell aligned with end-goal navigation expectations
+- [x] Wire frontend conversation UI to new text-intake contract
+- [x] Keep audio button visually present and non-functional (no state change on click)
 
 ## Deliverables
 - Runnable frontend main page for end-to-end "create offer" UX testing
@@ -87,21 +87,40 @@ Implement the Main Page UX for creating an offer and replace one-shot text intak
 - Updated interface documentation reflecting the new text intake contract
 
 ## Test Gate
-- [ ] Backend test: conversation start returns required-fields prompt bundle
-- [ ] Backend test: finish blocked until required fields complete with natural-language missing-required message
-- [ ] Backend test: incremental parse/merge across turns saves correct payload
-- [ ] Backend test: `skip_current` omission behavior is applied correctly
-- [ ] Backend test: prompt sequence order is deterministic
-- [ ] Frontend test: initial page renders title + two large round buttons
-- [ ] Frontend test: text click triggers fade transition and input reveal
-- [ ] Frontend test: assistant message region appears/updates above input
-- [ ] Frontend test: finish behavior follows backend state (`can_finish` / blocked)
-- [ ] Frontend test: audio button click causes no state change
-- [ ] Frontend test: selectable controls apply blue-glow hover style
-- [ ] Frontend test: staged fade/reveal sequence order is deterministic (header -> controls -> conversation region)
-- [ ] Frontend test: Stage 5.1 fade transitions consume shared motion utilities/tokens (no page-specific fade keyframes)
+- [x] Backend test: conversation start returns required-fields prompt bundle
+- [x] Backend test: finish blocked until required fields complete with natural-language missing-required message
+- [x] Backend test: incremental parse/merge across turns saves correct payload
+- [x] Backend test: `skip_current` omission behavior is applied correctly
+- [x] Backend test: prompt sequence order is deterministic
+- [x] Frontend test: initial page renders title + two large round buttons
+- [x] Frontend test: text click triggers fade transition and input reveal
+- [x] Frontend test: assistant message region appears/updates above input
+- [x] Frontend test: finish behavior follows backend state (`can_finish` / blocked)
+- [x] Frontend test: audio button click causes no state change
+- [x] Frontend test: selectable controls apply blue-glow hover style
+- [x] Frontend test: staged fade/reveal sequence order is deterministic (header -> controls -> conversation region)
+- [x] Frontend test: Stage 5.1 fade transitions consume shared motion utilities/tokens (no page-specific fade keyframes)
 - [ ] Manual QA: first screen visually matches end-goal styling constraints (large centered text, clean minimal layout, elegant navbar)
 - [ ] Manual QA: full conversational flow to saved offer
+
+## Progress Snapshot (2026-04-09)
+
+- Implemented conversational backend contract and state machine on `/api/v1/offers/intake/text`.
+- Implemented frontend scaffold and Add Entry page UX/styling/motion for Stage 5.1.
+- Added automated backend and frontend tests for Stage 5.1 behavior.
+- Applied follow-up fixes from code-linter review:
+  - hardened typed omission detection to avoid substring false positives
+  - refreshed `README.md` stage status
+  - removed tracked `tsbuildinfo` artifact and ignored `*.tsbuildinfo`
+- Ran second-pass parallel agent review:
+  - `Code Linter`: no actionable findings remain
+  - `Project-scope .myteam update`: no additional migrations required
+
+Validation results:
+- `PYTHONPATH=. pytest -q tests/backend` -> pass
+- `PYTHONPATH=. pytest -q tests/backend/test_offer_intake_stage4.py tests/backend/test_offer_intake_stage5_audio.py` -> pass
+- `cd src/frontend && npm test` -> pass
+- `cd src/frontend && npm run build` -> pass
 
 ## Exit Criteria
 - Main Page matches intended UX behavior for creating an offer
