@@ -39,6 +39,8 @@ Are modules too large? Should additional modules be created?
 
 Are packages too large? Should sub-packages be created?
 
+How well does the code follow the principles in the `feature-pipeline/framework-oriented-design` skill?
+
 ### README.md
 
 Does the README.md reflect the current state of the code?
