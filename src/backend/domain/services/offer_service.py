@@ -262,7 +262,7 @@ class Stage4OfferService:
     def describe_capabilities(self) -> dict[str, str]:
         return {
             "service": "offer",
-            "status": "stage_4_ready",
+            "status": "stage_4_1_ready",
             "message": "Text intake, validation, missing-field prompts, and persistence are active.",
         }
 

@@ -189,3 +189,55 @@ def test_parser_failure_returns_extraction_failed_status(tmp_path: Path) -> None
     assert payload["status"] == "extraction_failed"
     assert payload["offer"] is None
     assert "Unable to extract structured offer data" in payload["errors"][0]
+
+
+def test_extracted_schema_groups_and_offer_meta_are_persisted(tmp_path: Path) -> None:
+    class RichDeterministicParser:
+        def parse(self, text: str) -> dict[str, Any]:
+            assert "Luma Systems" in text
+            return {
+                "company_name": "Luma Systems",
+                "role_title": "Staff Backend Engineer",
+                "compensation": {
+                    "annual_base_salary_usd": 180000,
+                    "annualized_total_cash_usd": 198000,
+                    "signing_bonus_usd": 15000,
+                    "target_bonus_percent": 10,
+                },
+                "monetary_benefits": {
+                    "retirement_match_percent": 5,
+                    "other_monetary_benefits": ["Phone stipend"],
+                },
+                "non_monetary_benefits": {
+                    "culture_notes": "Low-ego engineering culture",
+                    "other_non_monetary_benefits": ["Strong mentorship"],
+                },
+            }
+
+    config = load_default_config()
+    database_section = config.database.model_copy(
+        update={
+            "path": str(tmp_path / "stage4_offer_intake_schema_groups.db"),
+            "enable_wal": False,
+        }
+    )
+    config = config.model_copy(update={"database": database_section})
+    logger = setup_logger(debug=False, configured_level=config.logging.level)
+    container = build_runtime_container(config=config, logger=logger)
+    service = Stage4OfferService(
+        offer_repository=container.offer_repository,
+        text_parser_agent=RichDeterministicParser(),
+    )
+    app = create_app(replace(container, offer_service=service))
+    client = TestClient(app)
+
+    saved = _intake_until_saved(
+        client,
+        {"text": "Offer from Luma Systems for Staff Backend Engineer"},
+    )
+    offer = saved["offer"]
+    assert offer is not None
+    assert offer["compensation"]["annualized_total_cash_usd"] == 198000
+    assert offer["monetary_benefits"]["retirement_match_percent"] == 5
+    assert offer["non_monetary_benefits"]["culture_notes"] == "Low-ego engineering culture"
+    assert offer["offer_meta"]["source_input_type"] == "text"

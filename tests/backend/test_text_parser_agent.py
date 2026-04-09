@@ -31,12 +31,13 @@ def test_parser_accepts_valid_json_input_without_agent_call() -> None:
     parser = _build_agent(enabled=False)
 
     payload = parser.parse(
-        '{"company_name":"Acme","role_title":"Software Engineer II","compensation":{"annual_base_salary_usd":145000}}'
+        '{"company_name":"Acme","role_title":"Software Engineer II","compensation":{"annual_base_salary_usd":145000,"annualized_total_cash_usd":157000}}'
     )
 
     assert payload["company_name"] == "Acme"
     assert payload["role_title"] == "Software Engineer II"
     assert payload["compensation"]["annual_base_salary_usd"] == 145000
+    assert payload["compensation"]["annualized_total_cash_usd"] == 157000
 
 
 def test_parser_rejects_non_json_input_when_agent_disabled() -> None:
