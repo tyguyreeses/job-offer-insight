@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from ...dependencies import get_offer_service
 from ...domain.services.interfaces import OfferService
+from ...domain.services.offer_service import ConversationSessionNotFound
 
 router = APIRouter(prefix="/offers")
 
@@ -21,9 +22,16 @@ class MissingFieldPromptResponse(BaseModel):
 
 
 class TextIntakeRequest(BaseModel):
-    text: str = Field(min_length=1)
-    omission_confirmations: dict[str, bool] = Field(default_factory=dict)
-    extracted_offer_overrides: dict[str, Any] = Field(default_factory=dict)
+    session_id: str | None = None
+    action: Literal["submit", "skip_current", "finish"]
+    message_text: str | None = None
+
+    @model_validator(mode="after")
+    def validate_for_action(self) -> "TextIntakeRequest":
+        if self.action == "submit":
+            if self.message_text is None or self.message_text.strip() == "":
+                raise ValueError("message_text is required for action=submit.")
+        return self
 
 
 class OfferResponse(BaseModel):
@@ -39,6 +47,19 @@ class OfferIntakeResponse(BaseModel):
     errors: list[str]
     warnings: list[str]
     missing_field_prompts: list[MissingFieldPromptResponse]
+    offer: dict[str, Any] | None
+
+
+class TextConversationResponse(BaseModel):
+    session_id: str
+    status: str
+    assistant_message: str
+    step: str
+    can_finish: bool
+    missing_required_fields: list[str]
+    current_prompt_key: str | None
+    errors: list[str]
+    warnings: list[str]
     offer: dict[str, Any] | None
 
 
@@ -75,24 +96,33 @@ def _parse_omission_confirmations(raw_value: str) -> dict[str, bool]:
     return confirmations
 
 
-@router.post("/intake/text", response_model=OfferIntakeResponse)
+@router.post("/intake/text", response_model=TextConversationResponse)
 def intake_offer_from_text(
     request: TextIntakeRequest,
     offer_service: OfferService = Depends(get_offer_service),
-) -> OfferIntakeResponse:
-    result = offer_service.intake_text_offer(
-        text=request.text,
-        omission_confirmations=request.omission_confirmations,
-        extracted_offer_overrides=request.extracted_offer_overrides,
-    )
+) -> TextConversationResponse:
+    try:
+        result = offer_service.intake_text_offer(
+            session_id=request.session_id,
+            action=request.action,
+            message_text=request.message_text,
+        )
+    except ConversationSessionNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
     offer_payload = (
         offer_service.render_offer_payload(result.offer) if result.offer is not None else None
     )
-    return OfferIntakeResponse(
+    return TextConversationResponse(
+        session_id=result.session_id,
         status=result.status,
+        assistant_message=result.assistant_message,
+        step=result.step,
+        can_finish=result.can_finish,
+        missing_required_fields=result.missing_required_fields,
+        current_prompt_key=result.current_prompt_key,
         errors=result.errors,
         warnings=result.warnings,
-        missing_field_prompts=[MissingFieldPromptResponse(**prompt.__dict__) for prompt in result.missing_field_prompts],
         offer=offer_payload,
     )
 

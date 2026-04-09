@@ -5,3 +5,5 @@ data/*.db
 data/*.db-*
 
 reference-audio-material
+src/frontend/node_modules/
+src/frontend/dist/

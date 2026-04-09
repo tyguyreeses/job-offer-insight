@@ -7,7 +7,7 @@ from typing import Any
 
 from ...domain.models import OfferRecord
 from ...storage.repositories.interfaces import ComparisonRepository, OfferRepository
-from .offer_service import FieldPrompt, IntakeResult
+from .offer_service import FieldPrompt, IntakeResult, TextConversationResult
 
 
 @dataclass(frozen=True)
@@ -24,21 +24,22 @@ class UnimplementedOfferService:
     def intake_text_offer(
         self,
         *,
-        text: str,
-        omission_confirmations: dict[str, bool] | None = None,
-        extracted_offer_overrides: dict[str, Any] | None = None,
-    ) -> IntakeResult:
-        return IntakeResult(
+        session_id: str | None,
+        action: str,
+        message_text: str | None = None,
+    ) -> TextConversationResult:
+        _ = action
+        _ = message_text
+        return TextConversationResult(
+            session_id=session_id or "unimplemented",
             status="not_implemented",
+            assistant_message="Offer intake is not implemented.",
+            step="collect_required",
+            can_finish=False,
+            missing_required_fields=["company_name", "role_title"],
+            current_prompt_key="required_fields_bundle",
             errors=["Offer intake is not implemented."],
             warnings=[],
-            missing_field_prompts=[
-                FieldPrompt(
-                    path="company_name",
-                    required=True,
-                    message="Offer intake is not implemented.",
-                )
-            ],
             offer=None,
         )
 
