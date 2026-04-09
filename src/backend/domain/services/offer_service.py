@@ -7,7 +7,8 @@ from datetime import UTC, datetime
 from typing import Any
 
 from ...domain.models import OfferRecord
-from ...gen_ai.text_parser_agent import TextParserAgent, TextParserError
+from ...gen_ai.protocols import Agent
+from ...gen_ai.text_parser_agent import TextParserError
 from ...storage.repositories.interfaces import OfferRepository
 
 _REQUIRED_COMPENSATION_PATHS = (
@@ -256,7 +257,7 @@ def _record_to_payload(record: OfferRecord) -> dict[str, Any]:
 @dataclass(frozen=True)
 class Stage4OfferService:
     offer_repository: OfferRepository
-    text_parser_agent: TextParserAgent
+    text_parser_agent: Agent
 
     def describe_capabilities(self) -> dict[str, str]:
         return {

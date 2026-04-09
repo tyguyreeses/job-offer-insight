@@ -118,7 +118,31 @@ def test_hourly_offer_is_annualized_before_save(tmp_path: Path) -> None:
 
 
 def test_open_ended_text_is_parsed_into_required_fields(tmp_path: Path) -> None:
-    client = _build_client(tmp_path)
+    class DeterministicParser:
+        def parse(self, text: str) -> dict[str, Any]:
+            assert "Elevation Labs" in text
+            return {
+                "company_name": "Elevation Labs",
+                "role_title": "Platform Engineer",
+                "compensation": {"annual_base_salary_usd": 150000},
+            }
+
+    config = load_default_config()
+    database_section = config.database.model_copy(
+        update={
+            "path": str(tmp_path / "stage4_offer_intake_open_ended.db"),
+            "enable_wal": False,
+        }
+    )
+    config = config.model_copy(update={"database": database_section})
+    logger = setup_logger(debug=False, configured_level=config.logging.level)
+    container = build_runtime_container(config=config, logger=logger)
+    service = Stage4OfferService(
+        offer_repository=container.offer_repository,
+        text_parser_agent=DeterministicParser(),
+    )
+    app = create_app(replace(container, offer_service=service))
+    client = TestClient(app)
 
     saved = _intake_until_saved(
         client,

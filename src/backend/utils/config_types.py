@@ -57,10 +57,10 @@ class WorkflowSection(BaseModel):
 class AgentConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    type: Literal["structured-output", "non-structured"] = "structured-output"
     enabled: bool = True
     model: str = Field(min_length=1)
-    system_prompt: str = Field(min_length=1)
-    temperature: float = Field(default=0.0, ge=0.0, le=2.0)
+    prompt: str = Field(min_length=1)
     max_output_tokens: int = Field(default=1200, ge=1)
 
 

@@ -32,12 +32,8 @@ workflow:
 
 agents:
   text_parser:
+    type: structured-output
     enabled: true
     model: "gpt-5.2"
-    temperature: 0
     max_output_tokens: 1200
-    system_prompt: >
-      You extract structured job offer data from user text.
-      Return only a JSON object matching the offer schema keys used by this app.
-      Do not include markdown, explanation, or prose.
-      Use USD numeric values when possible and omit unknown fields.
+    prompt: "extract_offer.md"
