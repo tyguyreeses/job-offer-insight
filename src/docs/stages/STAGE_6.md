@@ -7,7 +7,7 @@
 - Started On: ``
 - Completed On: ``
 - Branch: ``
-- Depends On: `Stage 5`
+- Depends On: `Stage 5.1`
 - Primary Docs: `src/docs/application_interface.md`, `end-goal.md`
 
 ## Goal
@@ -25,7 +25,7 @@ Implement dashboard presentation and enforce the two-selection comparison rule.
 - Saved comparison persistence behavior
 
 ## Entry Criteria
-- Stage 5 completed and approved
+- Stage 5.1 completed and approved
 - Offer retrieval APIs available
 
 ## Implementation Checklist
@@ -57,5 +57,4 @@ Implement dashboard presentation and enforce the two-selection comparison rule.
 
 
 ### Final Decisions for This Stage
-
 

@@ -66,6 +66,14 @@ If user note exists, it is displayed below all other comparison page content.
 
 ## UI Contract
 
+### Styling and Motion Baseline
+
+1. Frontend uses custom CSS styling for primary pages and controls.
+2. Add Entry main screen is mostly empty with a large, centered primary heading.
+3. Selectable interactive elements use a soft blue glow hover effect.
+4. Loading/reveal motion uses smooth fades with staged sequencing (top-to-bottom and left-to-right).
+5. Navbar styling should present an elegant, clean, minimal look across routes.
+
 ## Navbar Behavior
 
 1. `Dashboard` is default when at least one offer entry exists.
@@ -77,14 +85,17 @@ If user note exists, it is displayed below all other comparison page content.
 
 ## Add Entry Page
 
-1. Displays large primary prompt to add a job.
+1. Displays large, centered primary prompt: `Create a Job Entry`.
 2. Provides two input modes:
    - Audio input
    - Text input
-3. Audio input is transcribed to text.
-4. AI extracts structured offer data.
-5. System asks clarifying follow-up questions for missing fields.
-6. User can confirm omitted fields as "not part of offer."
+3. Main entry controls appear as two large, centered round buttons.
+4. On text-mode selection, mode buttons fade out and text input fades in.
+5. Assistant follow-up messages fade in above the text box.
+6. Under the submit control, display a notice that users can edit information later.
+7. AI extracts structured offer data.
+8. System asks clarifying follow-up questions for missing fields.
+9. User can confirm omitted fields as "not part of offer."
 
 ## Edit Offer Flow
 
