@@ -2,7 +2,7 @@
 
 ## Metadata
 - Stage ID: `4.1`
-- Status: `In Progress`
+- Status: `Awaiting Sign-off`
 - Completed: `false`
 - Started On: `2026-04-08`
 - Completed On: ``
@@ -76,13 +76,15 @@ Replace Stage 4 heuristic text parsing with AI-assisted extraction that converts
 1. Enforce hard-required save constraints:
    - `company_name`
    - `role_title`
-   - base pay path (`annual_base_salary_usd` OR hourly+hours/week)
+   - base pay path (`compensation.annual_base_salary_usd` OR both `compensation.hourly_rate_usd` and `compensation.hours_per_week`)
 2. For missing optional fields, return guided prompts so user can either provide values or confirm omission.
 3. Persist offer only when required fields pass and omission confirmations are resolved.
 
 ### Persistence
 1. Save final normalized payload through existing repository path.
-2. Preserve `offer_meta` semantics from Stage 4 (`source_input_type`, timestamps, status).
+2. For Stage 4.1 text intake, persist `offer_meta.source_input_type = "text"`.
+3. Preserve `offer_meta` timestamp and status semantics from Stage 4.
+4. Stage 5 may pass transcript text through the same parser path, but audio-origin offers must persist `offer_meta.source_input_type = "audio"`.
 
 ## Implementation Checklist
 - [x] Add backend `gen_ai` agent framework interfaces and runtime wiring
@@ -96,6 +98,8 @@ Replace Stage 4 heuristic text parsing with AI-assisted extraction that converts
 - [x] Preserve Stage 4 required/optional validation and omission confirmation behavior
 - [x] Add explicit extraction error response behavior for invalid/unusable model output
 - [x] Add tests for open-ended text extraction success and failure paths
+- [x] Align extraction payload model with canonical Stage 4.1 schema fields from `end-goal.md` (including optional compensation fields)
+- [x] Add test coverage for representative `monetary_benefits`, `non_monetary_benefits`, and `offer_meta.source_input_type` persistence behavior
 
 ## Deliverables
 - Reliable AI-assisted text intake that converts unstructured text into schema-ready offer payloads
@@ -109,6 +113,9 @@ Replace Stage 4 heuristic text parsing with AI-assisted extraction that converts
 - [x] Invalid model output: observable extraction failure response without corrupt persistence
 - [x] Pydantic contract test: malformed parser output fails validation and does not save
 - [x] Config contract test: startup fails clearly for invalid/missing required `agents.text_parser` configuration
+- [x] Schema coverage: extraction payload accepts canonical optional compensation fields (for example `compensation.annualized_total_cash_usd`)
+- [x] Schema group coverage: representative fields from `monetary_benefits` and `non_monetary_benefits` persist correctly from extracted payloads
+- [x] Metadata coverage: text intake persists `offer_meta.source_input_type = "text"`
 
 ## Exit Criteria
 - Raw text intake no longer depends on Stage 4 regex fallback for core extraction behavior
@@ -117,6 +124,8 @@ Replace Stage 4 heuristic text parsing with AI-assisted extraction that converts
 - Extracted payloads conform to documented schema semantics in `end-goal.md`
 - Behavior remains consistent with existing Stage 4 validation and omission-confirmation contract
 - User approves stage outputs before Stage 5 implementation continues
+
+All technical gates for Stage 4.1 are passing; stage remains open pending user sign-off and any final doc refinements.
 
 ## Feedback and Revisions
 

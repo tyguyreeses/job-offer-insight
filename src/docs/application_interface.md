@@ -33,6 +33,7 @@ An offer is valid for save only if all required constraints are met:
 2. If hourly compensation is provided, annualized base salary defaults to:
    `hourly_rate_usd * hours_per_week * 52`
 3. Non-required compensation/benefit fields may be blank.
+4. `compensation.annualized_total_cash_usd` is an optional field and may be provided directly.
 
 ### Missing Information Behavior
 
@@ -41,6 +42,12 @@ When a field is missing during intake:
 1. System asks user explicitly whether the field should be provided or is not part of this offer.
 2. If user confirms it is not part of the offer, system stores blank representation (`null`, empty string, or empty array based on field type).
 3. Blank fields are treated as "not included in offer," not as an error state.
+
+### Offer Metadata Semantics
+
+1. `offer_meta.source_input_type` reflects intake origin.
+2. Text intake saves `offer_meta.source_input_type = "text"`.
+3. Audio intake (Stage 5) may reuse text parsing internally but must persist `offer_meta.source_input_type = "audio"` for audio-origin offers.
 
 ### Validation Behavior
 
