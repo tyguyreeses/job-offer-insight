@@ -23,6 +23,17 @@ class OfferService(Protocol):
     ) -> IntakeResult:
         """Intake offer text and return save/missing/blocked outcomes."""
 
+    def intake_audio_offer(
+        self,
+        *,
+        audio_bytes: bytes,
+        filename: str,
+        content_type: str | None = None,
+        omission_confirmations: dict[str, bool] | None = None,
+        extracted_offer_overrides: dict[str, Any] | None = None,
+    ) -> IntakeResult:
+        """Intake offer audio and return save/missing/blocked outcomes."""
+
     def list_offers(self) -> list[OfferRecord]:
         """Return all saved offers."""
 

@@ -14,6 +14,17 @@ from src.backend.utils.config_loader import load_default_config
 from src.backend.utils.logging import setup_logger
 
 
+class _UnusedAudioTranscriber:
+    def transcribe(
+        self,
+        *,
+        audio_bytes: bytes,
+        filename: str,
+        content_type: str | None = None,
+    ) -> str:
+        raise AssertionError("Audio transcriber should not be called in Stage 4 text tests.")
+
+
 def _build_client(tmp_path: Path) -> TestClient:
     config = load_default_config()
     database_section = config.database.model_copy(
@@ -140,6 +151,7 @@ def test_open_ended_text_is_parsed_into_required_fields(tmp_path: Path) -> None:
     service = Stage4OfferService(
         offer_repository=container.offer_repository,
         text_parser_agent=DeterministicParser(),
+        audio_transcriber=_UnusedAudioTranscriber(),
     )
     app = create_app(replace(container, offer_service=service))
     client = TestClient(app)
@@ -176,6 +188,7 @@ def test_parser_failure_returns_extraction_failed_status(tmp_path: Path) -> None
     failing_service = Stage4OfferService(
         offer_repository=container.offer_repository,
         text_parser_agent=BrokenParser(),
+        audio_transcriber=_UnusedAudioTranscriber(),
     )
     app = create_app(replace(container, offer_service=failing_service))
     client = TestClient(app)
@@ -227,6 +240,7 @@ def test_extracted_schema_groups_and_offer_meta_are_persisted(tmp_path: Path) ->
     service = Stage4OfferService(
         offer_repository=container.offer_repository,
         text_parser_agent=RichDeterministicParser(),
+        audio_transcriber=_UnusedAudioTranscriber(),
     )
     app = create_app(replace(container, offer_service=service))
     client = TestClient(app)

@@ -10,3 +10,16 @@ class Agent(Protocol):
 
     def parse(self, text: str) -> dict[str, Any]:
         """Parse intake text and return a schema-aligned payload object."""
+
+
+class AudioTranscriber(Protocol):
+    """Protocol for audio -> transcript adapters used by intake flows."""
+
+    def transcribe(
+        self,
+        *,
+        audio_bytes: bytes,
+        filename: str,
+        content_type: str | None = None,
+    ) -> str:
+        """Transcribe uploaded audio and return transcript text."""

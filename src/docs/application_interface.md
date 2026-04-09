@@ -132,10 +132,16 @@ Endpoint paths may evolve, but external behavior must remain equivalent.
 ### Offer Intake and CRUD
 
 1. Create offer from text/audio-derived payload.
-2. Return missing-field prompts when required for completion decisions.
-3. Save accepted blanks as omitted fields.
-4. Retrieve offer list and single offer details.
-5. Update offer by ID via structured form payload.
+2. Text intake endpoint accepts JSON body at `POST /api/v1/offers/intake/text`.
+3. Audio intake endpoint accepts multipart upload at `POST /api/v1/offers/intake/audio` with:
+   - `audio_file` upload (`.wav`, `.mp3`, `.m4a`, `.mp4`, `.mpeg`, `.mpga`, `.webm`)
+   - optional `omission_confirmations_json` object text
+   - optional `extracted_offer_overrides_json` object text
+4. Return missing-field prompts when required for completion decisions.
+5. Save accepted blanks as omitted fields.
+6. Retrieve offer list and single offer details.
+7. Update offer by ID via structured form payload.
+8. Audio transcription failures are returned as observable intake status `transcription_failed`.
 
 ### Comparison
 

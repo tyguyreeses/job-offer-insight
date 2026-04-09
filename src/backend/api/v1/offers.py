@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
 from ...dependencies import get_offer_service
@@ -45,6 +46,35 @@ class OfferUpdateRequest(BaseModel):
     payload: dict[str, Any]
 
 
+def _parse_form_json_dict(raw_value: str, field_name: str) -> dict[str, Any]:
+    try:
+        parsed = json.loads(raw_value)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"{field_name} must be valid JSON object text.",
+        ) from exc
+    if not isinstance(parsed, dict):
+        raise HTTPException(status_code=422, detail=f"{field_name} must be a JSON object.")
+    return parsed
+
+
+def _parse_omission_confirmations(raw_value: str) -> dict[str, bool]:
+    parsed = _parse_form_json_dict(raw_value, "omission_confirmations_json")
+    confirmations: dict[str, bool] = {}
+    for key, value in parsed.items():
+        if not isinstance(key, str) or not isinstance(value, bool):
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "omission_confirmations_json values must be a JSON object "
+                    "with string keys and boolean values."
+                ),
+            )
+        confirmations[key] = value
+    return confirmations
+
+
 @router.post("/intake/text", response_model=OfferIntakeResponse)
 def intake_offer_from_text(
     request: TextIntakeRequest,
@@ -54,6 +84,37 @@ def intake_offer_from_text(
         text=request.text,
         omission_confirmations=request.omission_confirmations,
         extracted_offer_overrides=request.extracted_offer_overrides,
+    )
+    offer_payload = (
+        offer_service.render_offer_payload(result.offer) if result.offer is not None else None
+    )
+    return OfferIntakeResponse(
+        status=result.status,
+        errors=result.errors,
+        warnings=result.warnings,
+        missing_field_prompts=[MissingFieldPromptResponse(**prompt.__dict__) for prompt in result.missing_field_prompts],
+        offer=offer_payload,
+    )
+
+
+@router.post("/intake/audio", response_model=OfferIntakeResponse)
+def intake_offer_from_audio(
+    audio_file: UploadFile = File(...),
+    omission_confirmations_json: str = Form(default="{}"),
+    extracted_offer_overrides_json: str = Form(default="{}"),
+    offer_service: OfferService = Depends(get_offer_service),
+) -> OfferIntakeResponse:
+    omission_confirmations = _parse_omission_confirmations(omission_confirmations_json)
+    extracted_offer_overrides = _parse_form_json_dict(
+        extracted_offer_overrides_json, "extracted_offer_overrides_json"
+    )
+    audio_bytes = audio_file.file.read()
+    result = offer_service.intake_audio_offer(
+        audio_bytes=audio_bytes,
+        filename=audio_file.filename or "",
+        content_type=audio_file.content_type,
+        omission_confirmations=omission_confirmations,
+        extracted_offer_overrides=extracted_offer_overrides,
     )
     offer_payload = (
         offer_service.render_offer_payload(result.offer) if result.offer is not None else None

@@ -7,7 +7,8 @@ from datetime import UTC, datetime
 from typing import Any
 
 from ...domain.models import OfferRecord
-from ...gen_ai.protocols import Agent
+from ...gen_ai.audio_transcriber import AudioTranscriptionError
+from ...gen_ai.protocols import Agent, AudioTranscriber
 from ...gen_ai.text_parser_agent import TextParserError
 from ...storage.repositories.interfaces import OfferRepository
 
@@ -258,12 +259,15 @@ def _record_to_payload(record: OfferRecord) -> dict[str, Any]:
 class Stage4OfferService:
     offer_repository: OfferRepository
     text_parser_agent: Agent
+    audio_transcriber: AudioTranscriber
 
     def describe_capabilities(self) -> dict[str, str]:
         return {
             "service": "offer",
-            "status": "stage_4_1_ready",
-            "message": "Text intake, validation, missing-field prompts, and persistence are active.",
+            "status": "stage_5_ready",
+            "message": (
+                "Text/audio intake, validation, missing-field prompts, and persistence are active."
+            ),
         }
 
     def intake_text_offer(
@@ -272,6 +276,52 @@ class Stage4OfferService:
         text: str,
         omission_confirmations: dict[str, bool] | None = None,
         extracted_offer_overrides: dict[str, Any] | None = None,
+    ) -> IntakeResult:
+        return self._intake_offer_from_text(
+            text=text,
+            omission_confirmations=omission_confirmations,
+            extracted_offer_overrides=extracted_offer_overrides,
+            source_input_type="text",
+        )
+
+    def intake_audio_offer(
+        self,
+        *,
+        audio_bytes: bytes,
+        filename: str,
+        content_type: str | None = None,
+        omission_confirmations: dict[str, bool] | None = None,
+        extracted_offer_overrides: dict[str, Any] | None = None,
+    ) -> IntakeResult:
+        try:
+            transcript = self.audio_transcriber.transcribe(
+                audio_bytes=audio_bytes,
+                filename=filename,
+                content_type=content_type,
+            )
+        except AudioTranscriptionError as exc:
+            return IntakeResult(
+                status="transcription_failed",
+                errors=[f"Unable to transcribe audio input: {exc}"],
+                warnings=[],
+                missing_field_prompts=[],
+                offer=None,
+            )
+
+        return self._intake_offer_from_text(
+            text=transcript,
+            omission_confirmations=omission_confirmations,
+            extracted_offer_overrides=extracted_offer_overrides,
+            source_input_type="audio",
+        )
+
+    def _intake_offer_from_text(
+        self,
+        *,
+        text: str,
+        omission_confirmations: dict[str, bool] | None,
+        extracted_offer_overrides: dict[str, Any] | None,
+        source_input_type: str,
     ) -> IntakeResult:
         try:
             extracted_payload = self.text_parser_agent.parse(text)
@@ -317,7 +367,7 @@ class Stage4OfferService:
         offer_meta = merged_payload["offer_meta"]
         if isinstance(offer_meta, dict):
             offer_meta.setdefault("status", "active")
-            offer_meta.setdefault("source_input_type", "text")
+            offer_meta["source_input_type"] = source_input_type
             offer_meta.setdefault("created_at", now)
             offer_meta["updated_at"] = now
 
