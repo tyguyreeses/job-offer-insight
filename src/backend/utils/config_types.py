@@ -54,6 +54,22 @@ class WorkflowSection(BaseModel):
     allow_placeholder_comparisons: bool = True
 
 
+class AgentConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = True
+    model: str = Field(min_length=1)
+    system_prompt: str = Field(min_length=1)
+    temperature: float = Field(default=0.0, ge=0.0, le=2.0)
+    max_output_tokens: int = Field(default=1200, ge=1)
+
+
+class AgentsSection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    text_parser: AgentConfig
+
+
 class RuntimeConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -62,3 +78,4 @@ class RuntimeConfig(BaseModel):
     database: DatabaseSection
     openai: OpenAISection
     workflow: WorkflowSection
+    agents: AgentsSection

@@ -146,19 +146,21 @@ Endpoint paths may evolve, but external behavior must remain equivalent.
 
 Runtime startup reads `src/config.yaml` and validates the config shape before serving requests.
 
-The config contract includes five required top-level sections:
+The config contract includes six required top-level sections:
 
 1. `app`
 2. `logging`
 3. `database`
 4. `openai`
 5. `workflow`
+6. `agents`
 
 Validation behavior:
 
 1. Missing required section or invalid value type results in startup failure with explicit error details.
 2. Unknown/extra keys are treated as config errors.
 3. Optional keys may use defaults defined by backend config types.
+4. `agents.text_parser` must be configured for AI text-intake parsing behavior.
 
 ## Persistence Contract
 

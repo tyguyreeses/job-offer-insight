@@ -39,6 +39,14 @@ workflow:
   enable_missing_info_followups: true
   enable_non_monetary_summary: true
   allow_placeholder_comparisons: true
+
+agents:
+  text_parser:
+    enabled: true
+    model: "gpt-5.2"
+    temperature: 0
+    max_output_tokens: 1200
+    system_prompt: "Return only a JSON object."
 """
 
 
@@ -58,6 +66,15 @@ def test_app_builds_with_valid_config(tmp_path: Path) -> None:
 def test_app_build_fails_with_invalid_config(tmp_path: Path) -> None:
     config_path = tmp_path / "invalid_config.yaml"
     invalid_config = VALID_CONFIG.replace("openai:\n", "")
+    _write_config(config_path, invalid_config)
+
+    with pytest.raises(ConfigLoadError):
+        build_app_from_config_path(config_path=config_path, debug=False)
+
+
+def test_app_build_fails_when_agents_section_missing(tmp_path: Path) -> None:
+    config_path = tmp_path / "missing_agents_config.yaml"
+    invalid_config = VALID_CONFIG.replace("\nagents:\n  text_parser:\n    enabled: true\n    model: \"gpt-5.2\"\n    temperature: 0\n    max_output_tokens: 1200\n    system_prompt: \"Return only a JSON object.\"\n", "")
     _write_config(config_path, invalid_config)
 
     with pytest.raises(ConfigLoadError):

@@ -29,3 +29,15 @@ workflow:
   enable_missing_info_followups: true
   enable_non_monetary_summary: true
   allow_placeholder_comparisons: true
+
+agents:
+  text_parser:
+    enabled: true
+    model: "gpt-5.2"
+    temperature: 0
+    max_output_tokens: 1200
+    system_prompt: >
+      You extract structured job offer data from user text.
+      Return only a JSON object matching the offer schema keys used by this app.
+      Do not include markdown, explanation, or prose.
+      Use USD numeric values when possible and omit unknown fields.

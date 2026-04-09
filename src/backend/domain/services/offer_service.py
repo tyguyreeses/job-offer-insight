@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import json
-import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
 from ...domain.models import OfferRecord
+from ...gen_ai.text_parser_agent import TextParserAgent, TextParserError
 from ...storage.repositories.interfaces import OfferRepository
 
 _REQUIRED_COMPENSATION_PATHS = (
@@ -83,63 +82,6 @@ def _coerce_float(value: Any) -> float | None:
         except ValueError:
             return None
     return None
-
-
-def _extract_json_payload(text: str) -> dict[str, Any]:
-    stripped = text.strip()
-    if not stripped:
-        return {}
-    try:
-        decoded = json.loads(stripped)
-    except json.JSONDecodeError:
-        return {}
-    if not isinstance(decoded, dict):
-        return {}
-    return decoded
-
-
-def _extract_fallback_payload(text: str) -> dict[str, Any]:
-    payload: dict[str, Any] = {}
-
-    company_match = re.search(r"(?:company(?: name)?)[\\s:=-]+(.+)", text, flags=re.IGNORECASE)
-    if company_match:
-        payload["company_name"] = company_match.group(1).strip()
-
-    role_match = re.search(r"(?:role|title|role title)[\\s:=-]+(.+)", text, flags=re.IGNORECASE)
-    if role_match:
-        payload["role_title"] = role_match.group(1).strip()
-
-    annual_match = re.search(
-        r"(?:annual(?: base)? salary|base salary)[^0-9$]*([$]?[0-9][0-9,]*(?:\\.[0-9]+)?)",
-        text,
-        flags=re.IGNORECASE,
-    )
-    hourly_match = re.search(
-        r"(?:hourly(?: rate)?|hourly pay)[^0-9$]*([$]?[0-9][0-9,]*(?:\\.[0-9]+)?)",
-        text,
-        flags=re.IGNORECASE,
-    )
-    hours_match = re.search(
-        r"(?:hours\\s*/\\s*week|hours per week)[^0-9]*([0-9]+(?:\\.[0-9]+)?)",
-        text,
-        flags=re.IGNORECASE,
-    )
-
-    compensation: dict[str, Any] = {}
-    annual_value = _coerce_float(annual_match.group(1)) if annual_match else None
-    hourly_value = _coerce_float(hourly_match.group(1)) if hourly_match else None
-    hours_value = _coerce_float(hours_match.group(1)) if hours_match else None
-
-    if annual_value is not None:
-        compensation["annual_base_salary_usd"] = annual_value
-    if hourly_value is not None:
-        compensation["hourly_rate_usd"] = hourly_value
-    if hours_value is not None:
-        compensation["hours_per_week"] = hours_value
-    if compensation:
-        payload["compensation"] = compensation
-
-    return payload
 
 
 def _merge_payloads(*parts: dict[str, Any]) -> dict[str, Any]:
@@ -314,6 +256,7 @@ def _record_to_payload(record: OfferRecord) -> dict[str, Any]:
 @dataclass(frozen=True)
 class Stage4OfferService:
     offer_repository: OfferRepository
+    text_parser_agent: TextParserAgent
 
     def describe_capabilities(self) -> dict[str, str]:
         return {
@@ -329,9 +272,18 @@ class Stage4OfferService:
         omission_confirmations: dict[str, bool] | None = None,
         extracted_offer_overrides: dict[str, Any] | None = None,
     ) -> IntakeResult:
-        json_payload = _extract_json_payload(text)
-        fallback_payload = _extract_fallback_payload(text)
-        merged_payload = _merge_payloads(json_payload, fallback_payload, extracted_offer_overrides or {})
+        try:
+            extracted_payload = self.text_parser_agent.parse(text)
+        except TextParserError as exc:
+            return IntakeResult(
+                status="extraction_failed",
+                errors=[f"Unable to extract structured offer data: {exc}"],
+                warnings=[],
+                missing_field_prompts=[],
+                offer=None,
+            )
+
+        merged_payload = _merge_payloads(extracted_payload, extracted_offer_overrides or {})
 
         _normalize_compensation(merged_payload)
 
