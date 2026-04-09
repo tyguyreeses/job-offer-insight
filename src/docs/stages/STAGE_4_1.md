@@ -2,10 +2,10 @@
 
 ## Metadata
 - Stage ID: `4.1`
-- Status: `Awaiting Sign-off`
-- Completed: `false`
+- Status: `Completed`
+- Completed: `true`
 - Started On: `2026-04-08`
-- Completed On: ``
+- Completed On: `2026-04-09`
 - Branch: `stage-4.1-gen-ai`
 - Depends On: `Stage 4`
 - Primary Docs: `end-goal.md`, `src/docs/application_interface.md`
@@ -125,7 +125,7 @@ Replace Stage 4 heuristic text parsing with AI-assisted extraction that converts
 - Behavior remains consistent with existing Stage 4 validation and omission-confirmation contract
 - User approves stage outputs before Stage 5 implementation continues
 
-All technical gates for Stage 4.1 are passing; stage remains open pending user sign-off and any final doc refinements.
+All technical gates for Stage 4.1 are passing and user sign-off is complete.
 
 ## Feedback and Revisions
 
