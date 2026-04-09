@@ -177,6 +177,50 @@ def test_prompt_sequence_order_is_deterministic(tmp_path: Path) -> None:
     ]
 
 
+def test_typed_omission_detection_does_not_false_trigger_on_substrings(tmp_path: Path) -> None:
+    client = _build_client(tmp_path)
+
+    first = _post_text_turn(
+        client,
+        session_id=None,
+        action="submit",
+        message_text=(
+            '{"company_name":"Acme Robotics","role_title":"Platform Engineer",'
+            '"compensation":{"annual_base_salary_usd":150000}}'
+        ),
+    )
+    assert first["step"] == "collect_monetary_extras"
+
+    second = _post_text_turn(
+        client,
+        session_id=first["session_id"],
+        action="submit",
+        message_text=(
+            '{"monetary_benefits":{"other_monetary_benefits":["innovation stipend"]}}'
+        ),
+    )
+
+    assert second["step"] == "collect_non_monetary_extras"
+    assert second["warnings"] == []
+
+    third = _post_text_turn(
+        client,
+        session_id=first["session_id"],
+        action="skip_current",
+    )
+    assert third["step"] == "anything_else"
+
+    saved = _post_text_turn(
+        client,
+        session_id=first["session_id"],
+        action="finish",
+    )
+    assert saved["status"] == "saved"
+    offer = saved["offer"]
+    assert offer is not None
+    assert offer["monetary_benefits"]["other_monetary_benefits"] == ["innovation stipend"]
+
+
 def test_unknown_session_returns_404(tmp_path: Path) -> None:
     client = _build_client(tmp_path)
 

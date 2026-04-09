@@ -4,8 +4,11 @@ Stage-based implementation of a job-offer review app.
 
 ## Current Stage
 
-- Active branch: `stage-4.1-gen-ai`
-- Stage 4.1 focus: AI text extraction to schema, config-driven agents, omission confirmations, required-vs-soft validation, and annualization behavior
+- Active branch: `stage-5.1`
+- Stage 5.1 focus:
+  - Conversational text intake flow (`submit`, `skip_current`, `finish`) with in-memory session state
+  - Required-field-first assistant prompting and finish gating
+  - Frontend Add Entry page scaffold (Vite + React + TypeScript) with Stage 5.1 styling and shared fade animation utilities
 
 ## Backend Config Foundation (Stage 1)
 
@@ -41,10 +44,23 @@ Stage-based implementation of a job-offer review app.
 
 - Offer endpoints:
   - `POST /api/v1/offers/intake/text`
+    - Stage 5.1 request: `session_id`, `action`, `message_text`
+    - Stage 5.1 response: conversational step/status fields plus optional saved offer
+  - `POST /api/v1/offers/intake/audio`
   - `GET /api/v1/offers`
   - `GET /api/v1/offers/{offer_id}`
   - `PUT /api/v1/offers/{offer_id}`
-- Stage 4 offer service:
+- Offer service:
   - `src/backend/domain/services/offer_service.py`
-- Stage 4 API tests:
+- Offer intake tests:
   - `tests/backend/test_offer_intake_stage4.py`
+  - `tests/backend/test_offer_intake_stage5_audio.py`
+
+## Frontend (Stage 5.1)
+
+- Frontend root: `src/frontend`
+- Start dev server:
+  - `cd src/frontend && npm install`
+  - `npm run dev`
+- Frontend tests:
+  - `cd src/frontend && npm test`

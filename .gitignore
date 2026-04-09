@@ -4,6 +4,7 @@ __pycache__/
 data/*.db
 data/*.db-*
 
-reference-audio-material
+reference-audio-material/
 src/frontend/node_modules/
 src/frontend/dist/
+*.tsbuildinfo

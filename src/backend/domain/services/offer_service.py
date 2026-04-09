@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -346,7 +347,21 @@ def _is_typed_omission(message_text: str) -> bool:
     lowered = message_text.strip().lower()
     if not lowered:
         return False
-    return any(phrase in lowered for phrase in _TYPED_OMISSION_PHRASES)
+
+    if re.search(r"\bn\s*/\s*a\b", lowered):
+        return True
+
+    for phrase in _TYPED_OMISSION_PHRASES:
+        if phrase == "n/a":
+            continue
+        if " " in phrase or "'" in phrase:
+            pattern = r"\b" + re.escape(phrase).replace(r"\ ", r"\s+") + r"\b"
+            if re.search(pattern, lowered):
+                return True
+            continue
+        if re.search(r"\b" + re.escape(phrase) + r"\b", lowered):
+            return True
+    return False
 
 
 def _current_prompt_key_for_step(step: str) -> str | None:
