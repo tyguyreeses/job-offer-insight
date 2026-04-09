@@ -4,8 +4,8 @@ Stage-based implementation of a job-offer review app.
 
 ## Current Stage
 
-- Active branch: `stage_4`
-- Stage 4 focus: text offer intake, missing-info confirmations, required-vs-soft validation, and annualization behavior
+- Active branch: `stage-4.1-gen-ai`
+- Stage 4.1 focus: AI text extraction to schema, config-driven agents, omission confirmations, required-vs-soft validation, and annualization behavior
 
 ## Backend Config Foundation (Stage 1)
 

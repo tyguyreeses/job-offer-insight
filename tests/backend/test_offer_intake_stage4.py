@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
 from fastapi.testclient import TestClient
 
 from src.backend.dependencies import build_runtime_container
+from src.backend.domain.services.offer_service import Stage4OfferService
+from src.backend.gen_ai.text_parser_agent import TextParserError
 from src.backend.main import create_app
 from src.backend.utils.config_loader import load_default_config
 from src.backend.utils.logging import setup_logger
@@ -19,7 +22,12 @@ def _build_client(tmp_path: Path) -> TestClient:
             "enable_wal": False,
         }
     )
-    config = config.model_copy(update={"database": database_section})
+    agents_section = config.agents.model_copy(
+        update={
+            "text_parser": config.agents.text_parser.model_copy(update={"enabled": False})
+        }
+    )
+    config = config.model_copy(update={"database": database_section, "agents": agents_section})
     logger = setup_logger(debug=False, configured_level=config.logging.level)
     container = build_runtime_container(config=config, logger=logger)
     app = create_app(container)
@@ -107,3 +115,129 @@ def test_hourly_offer_is_annualized_before_save(tmp_path: Path) -> None:
     offer = saved["offer"]
     assert offer is not None
     assert offer["compensation"]["annual_base_salary_usd"] == 208000
+
+
+def test_open_ended_text_is_parsed_into_required_fields(tmp_path: Path) -> None:
+    class DeterministicParser:
+        def parse(self, text: str) -> dict[str, Any]:
+            assert "Elevation Labs" in text
+            return {
+                "company_name": "Elevation Labs",
+                "role_title": "Platform Engineer",
+                "compensation": {"annual_base_salary_usd": 150000},
+            }
+
+    config = load_default_config()
+    database_section = config.database.model_copy(
+        update={
+            "path": str(tmp_path / "stage4_offer_intake_open_ended.db"),
+            "enable_wal": False,
+        }
+    )
+    config = config.model_copy(update={"database": database_section})
+    logger = setup_logger(debug=False, configured_level=config.logging.level)
+    container = build_runtime_container(config=config, logger=logger)
+    service = Stage4OfferService(
+        offer_repository=container.offer_repository,
+        text_parser_agent=DeterministicParser(),
+    )
+    app = create_app(replace(container, offer_service=service))
+    client = TestClient(app)
+
+    saved = _intake_until_saved(
+        client,
+        {
+            "text": "Company: Elevation Labs\nRole: Platform Engineer\nAnnual base salary: $150,000"
+        },
+    )
+
+    offer = saved["offer"]
+    assert offer is not None
+    assert offer["company_name"] == "Elevation Labs"
+    assert offer["role_title"] == "Platform Engineer"
+    assert offer["compensation"]["annual_base_salary_usd"] == 150000
+
+
+def test_parser_failure_returns_extraction_failed_status(tmp_path: Path) -> None:
+    class BrokenParser:
+        def parse(self, text: str) -> dict[str, Any]:
+            raise TextParserError("parser output did not match schema")
+
+    config = load_default_config()
+    database_section = config.database.model_copy(
+        update={
+            "path": str(tmp_path / "stage4_offer_intake_parser_failure.db"),
+            "enable_wal": False,
+        }
+    )
+    config = config.model_copy(update={"database": database_section})
+    logger = setup_logger(debug=False, configured_level=config.logging.level)
+    container = build_runtime_container(config=config, logger=logger)
+    failing_service = Stage4OfferService(
+        offer_repository=container.offer_repository,
+        text_parser_agent=BrokenParser(),
+    )
+    app = create_app(replace(container, offer_service=failing_service))
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/v1/offers/intake/text",
+        json={"text": "Some raw input text"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "extraction_failed"
+    assert payload["offer"] is None
+    assert "Unable to extract structured offer data" in payload["errors"][0]
+
+
+def test_extracted_schema_groups_and_offer_meta_are_persisted(tmp_path: Path) -> None:
+    class RichDeterministicParser:
+        def parse(self, text: str) -> dict[str, Any]:
+            assert "Luma Systems" in text
+            return {
+                "company_name": "Luma Systems",
+                "role_title": "Staff Backend Engineer",
+                "compensation": {
+                    "annual_base_salary_usd": 180000,
+                    "annualized_total_cash_usd": 198000,
+                    "signing_bonus_usd": 15000,
+                    "target_bonus_percent": 10,
+                },
+                "monetary_benefits": {
+                    "retirement_match_percent": 5,
+                    "other_monetary_benefits": ["Phone stipend"],
+                },
+                "non_monetary_benefits": {
+                    "culture_notes": "Low-ego engineering culture",
+                    "other_non_monetary_benefits": ["Strong mentorship"],
+                },
+            }
+
+    config = load_default_config()
+    database_section = config.database.model_copy(
+        update={
+            "path": str(tmp_path / "stage4_offer_intake_schema_groups.db"),
+            "enable_wal": False,
+        }
+    )
+    config = config.model_copy(update={"database": database_section})
+    logger = setup_logger(debug=False, configured_level=config.logging.level)
+    container = build_runtime_container(config=config, logger=logger)
+    service = Stage4OfferService(
+        offer_repository=container.offer_repository,
+        text_parser_agent=RichDeterministicParser(),
+    )
+    app = create_app(replace(container, offer_service=service))
+    client = TestClient(app)
+
+    saved = _intake_until_saved(
+        client,
+        {"text": "Offer from Luma Systems for Staff Backend Engineer"},
+    )
+    offer = saved["offer"]
+    assert offer is not None
+    assert offer["compensation"]["annualized_total_cash_usd"] == 198000
+    assert offer["monetary_benefits"]["retirement_match_percent"] == 5
+    assert offer["non_monetary_benefits"]["culture_notes"] == "Low-ego engineering culture"
+    assert offer["offer_meta"]["source_input_type"] == "text"

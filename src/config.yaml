@@ -29,3 +29,11 @@ workflow:
   enable_missing_info_followups: true
   enable_non_monetary_summary: true
   allow_placeholder_comparisons: true
+
+agents:
+  text_parser:
+    type: structured-output
+    enabled: true
+    model: "gpt-5.2"
+    max_output_tokens: 1200
+    prompt: "extract_offer.md"

@@ -10,6 +10,9 @@ from fastapi import Depends, Request
 from .domain.services.interfaces import ComparisonService, OfferService
 from .domain.services.offer_service import Stage4OfferService
 from .domain.services.placeholders import UnimplementedComparisonService
+from .gen_ai.agent_registry import AgentRegistry, build_agent_registry
+from .gen_ai.protocols import Agent
+from .gen_ai.text_parser_agent import ConfiguredTextParserAgent
 from .storage.db import SQLiteDatabase, build_sqlite_database
 from .storage.repositories.comparison_repository import SQLiteComparisonRepository
 from .storage.repositories.interfaces import ComparisonRepository, OfferRepository
@@ -27,6 +30,8 @@ class RuntimeContainer:
     database: SQLiteDatabase
     offer_repository: OfferRepository
     comparison_repository: ComparisonRepository
+    agent_registry: AgentRegistry
+    text_parser_agent: Agent
     offer_service: OfferService
     comparison_service: ComparisonService
 
@@ -37,6 +42,11 @@ def build_runtime_container(config: RuntimeConfig, logger: logging.Logger) -> Ru
     database.initialize()
     offer_repository = SQLiteOfferRepository(database=database)
     comparison_repository = SQLiteComparisonRepository(database=database)
+    agent_registry = build_agent_registry(config.agents)
+    text_parser_agent = ConfiguredTextParserAgent(
+        registry=agent_registry,
+        openai_config=config.openai,
+    )
 
     return RuntimeContainer(
         config=config,
@@ -45,7 +55,12 @@ def build_runtime_container(config: RuntimeConfig, logger: logging.Logger) -> Ru
         database=database,
         offer_repository=offer_repository,
         comparison_repository=comparison_repository,
-        offer_service=Stage4OfferService(offer_repository=offer_repository),
+        agent_registry=agent_registry,
+        text_parser_agent=text_parser_agent,
+        offer_service=Stage4OfferService(
+            offer_repository=offer_repository,
+            text_parser_agent=text_parser_agent,
+        ),
         comparison_service=UnimplementedComparisonService(
             comparison_repository=comparison_repository,
             offer_repository=offer_repository,

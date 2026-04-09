@@ -54,6 +54,22 @@ class WorkflowSection(BaseModel):
     allow_placeholder_comparisons: bool = True
 
 
+class AgentConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["structured-output", "non-structured"] = "structured-output"
+    enabled: bool = True
+    model: str = Field(min_length=1)
+    prompt: str = Field(min_length=1)
+    max_output_tokens: int = Field(default=1200, ge=1)
+
+
+class AgentsSection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    text_parser: AgentConfig
+
+
 class RuntimeConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -62,3 +78,4 @@ class RuntimeConfig(BaseModel):
     database: DatabaseSection
     openai: OpenAISection
     workflow: WorkflowSection
+    agents: AgentsSection
