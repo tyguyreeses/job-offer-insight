@@ -76,6 +76,111 @@ body {
   gap: 1.5rem;
 }
 
+.dashboard-panel {
+  align-items: stretch;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 1rem;
+}
+
+.dashboard-title {
+  font-size: clamp(1.8rem, 4vw, 2.9rem);
+}
+
+.dashboard-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.dashboard-sort-label {
+  font-size: 1rem;
+}
+
+.dashboard-sort-control {
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.dashboard-status {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.dashboard-scroll-row {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 0.35rem 0.25rem 0.7rem;
+  min-height: 360px;
+}
+
+.dashboard-card {
+  min-width: min(340px, 88vw);
+  max-width: min(360px, 88vw);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.dashboard-card-selected {
+  border-color: rgba(35, 100, 201, 0.58);
+  box-shadow: 0 0 0 2px rgba(35, 100, 201, 0.18);
+}
+
+.dashboard-card-company {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.22rem;
+  line-height: 1.2;
+}
+
+.dashboard-card-role {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+}
+
+.dashboard-card-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dashboard-card-section h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-muted);
+}
+
+.dashboard-card-section p {
+  margin: 0;
+}
+
+.dashboard-card-section ul {
+  margin: 0;
+  padding-left: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.24rem;
+}
+
+.dashboard-select-button {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
 .main-title {
   margin: 0;
   font-family: var(--font-display);

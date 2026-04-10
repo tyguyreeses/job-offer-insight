@@ -1,6 +1,12 @@
-const NAV_ITEMS = ["Dashboard", "Add Entry", "Compare"];
+const NAV_ITEMS = ["Dashboard", "Add Entry", "Compare"] as const;
+type NavItem = (typeof NAV_ITEMS)[number];
 
-export function Navbar(): JSX.Element {
+interface NavbarProps {
+  activeItem: NavItem;
+  onNavigate: (item: NavItem) => void;
+}
+
+export function Navbar({ activeItem, onNavigate }: NavbarProps): JSX.Element {
   return (
     <header className="app-navbar motion-fade-enter" style={{ ["--motion-delay" as string]: "0ms" }}>
       <div className="brand">Job Offer Insight</div>
@@ -10,7 +16,8 @@ export function Navbar(): JSX.Element {
             <li key={item}>
               <button
                 type="button"
-                className={item === "Add Entry" ? "nav-link nav-link-active selectable" : "nav-link selectable"}
+                className={item === activeItem ? "nav-link nav-link-active selectable" : "nav-link selectable"}
+                onClick={() => onNavigate(item)}
               >
                 {item}
               </button>
