@@ -1,18 +1,28 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { vi } from "vitest";
 
-import { createDemoOffers, deleteOffer, fetchOffers } from "../services/offersApi";
+import {
+  createDemoOffers,
+  deleteOffer,
+  fetchOfferById,
+  fetchOffers,
+  updateOffer
+} from "../services/offersApi";
 import { DashboardPage } from "./DashboardPage";
 
 vi.mock("../services/offersApi", () => ({
   fetchOffers: vi.fn(),
   deleteOffer: vi.fn(),
-  createDemoOffers: vi.fn()
+  createDemoOffers: vi.fn(),
+  fetchOfferById: vi.fn(),
+  updateOffer: vi.fn()
 }));
 
 const mockedFetchOffers = vi.mocked(fetchOffers);
 const mockedDeleteOffer = vi.mocked(deleteOffer);
 const mockedCreateDemoOffers = vi.mocked(createDemoOffers);
+const mockedFetchOfferById = vi.mocked(fetchOfferById);
+const mockedUpdateOffer = vi.mocked(updateOffer);
 
 const defaultOffers = [
   {
@@ -56,6 +66,9 @@ describe("DashboardPage", () => {
     mockedFetchOffers.mockReset();
     mockedDeleteOffer.mockReset();
     mockedCreateDemoOffers.mockReset();
+    mockedFetchOfferById.mockReset();
+    mockedUpdateOffer.mockReset();
+    vi.restoreAllMocks();
   });
 
   it("loads with default newest-first sort and renders cards left-to-right", async () => {
@@ -195,6 +208,131 @@ describe("DashboardPage", () => {
         sortBy: "created_at",
         sortDirection: "desc"
       });
+    });
+  });
+
+  it("opens edit panel and pre-fills offer fields", async () => {
+    mockedFetchOffers.mockResolvedValueOnce({ offers: defaultOffers });
+    mockedFetchOfferById.mockResolvedValueOnce({
+      ...defaultOffers[0],
+      location: "Denver, CO",
+      employment_type: "full_time",
+      work_model: "hybrid"
+    });
+
+    render(<DashboardPage />);
+    await screen.findByText("Zenith Labs");
+
+    fireEvent.click(screen.getByTestId("offer-card-offer-3"));
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    await waitFor(() => {
+      expect(mockedFetchOfferById).toHaveBeenCalledWith("offer-3");
+      expect(screen.getByRole("dialog", { name: "Edit offer" })).toBeInTheDocument();
+      expect(screen.getByDisplayValue("Zenith Labs")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("Denver, CO")).toBeInTheDocument();
+    });
+  });
+
+  it("saves edits, closes panel, and updates card content", async () => {
+    mockedFetchOffers.mockResolvedValueOnce({ offers: defaultOffers });
+    mockedFetchOfferById.mockResolvedValueOnce({
+      ...defaultOffers[0],
+      location: "Denver, CO"
+    });
+    mockedUpdateOffer.mockResolvedValueOnce({
+      status: "saved",
+      errors: [],
+      warnings: [],
+      missing_field_prompts: [],
+      offer: {
+        ...defaultOffers[0],
+        company_name: "Zenith Labs Updated",
+        location: "Boulder, CO"
+      }
+    });
+
+    render(<DashboardPage />);
+    await screen.findByText("Zenith Labs");
+
+    fireEvent.click(screen.getByTestId("offer-card-offer-3"));
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    await screen.findByRole("dialog", { name: "Edit offer" });
+
+    fireEvent.change(screen.getByLabelText("Company name*"), {
+      target: { value: "Zenith Labs Updated" }
+    });
+    fireEvent.change(screen.getByLabelText("Location*"), {
+      target: { value: "Boulder, CO" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    await waitFor(() => {
+      expect(mockedUpdateOffer).toHaveBeenCalledWith(
+        "offer-3",
+        expect.objectContaining({
+          company_name: "Zenith Labs Updated",
+          location: "Boulder, CO"
+        })
+      );
+      expect(screen.queryByRole("dialog", { name: "Edit offer" })).not.toBeInTheDocument();
+      expect(screen.getByText("Zenith Labs Updated")).toBeInTheDocument();
+    });
+  });
+
+  it("prompts before closing dirty edit panel and keeps open if discard is canceled", async () => {
+    mockedFetchOffers.mockResolvedValueOnce({ offers: defaultOffers });
+    mockedFetchOfferById.mockResolvedValueOnce({
+      ...defaultOffers[0],
+      location: "Denver, CO"
+    });
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValueOnce(false);
+
+    render(<DashboardPage />);
+    await screen.findByText("Zenith Labs");
+
+    fireEvent.click(screen.getByTestId("offer-card-offer-3"));
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    await screen.findByRole("dialog", { name: "Edit offer" });
+
+    fireEvent.change(screen.getByLabelText("Location*"), {
+      target: { value: "Austin, TX" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(confirmSpy).toHaveBeenCalledWith("Discard unsaved edits?");
+    expect(screen.getByRole("dialog", { name: "Edit offer" })).toBeInTheDocument();
+  });
+
+  it("shows update errors inline and keeps edit panel open", async () => {
+    mockedFetchOffers.mockResolvedValueOnce({ offers: defaultOffers });
+    mockedFetchOfferById.mockResolvedValueOnce({
+      ...defaultOffers[0],
+      location: "Denver, CO"
+    });
+    mockedUpdateOffer.mockResolvedValueOnce({
+      status: "blocked_required_fields",
+      errors: ["Provide company_name to save this offer."],
+      warnings: [],
+      missing_field_prompts: [],
+      offer: null
+    });
+
+    render(<DashboardPage />);
+    await screen.findByText("Zenith Labs");
+
+    fireEvent.click(screen.getByTestId("offer-card-offer-3"));
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    await screen.findByRole("dialog", { name: "Edit offer" });
+
+    fireEvent.change(screen.getByLabelText("Company name*"), {
+      target: { value: "" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Provide company_name to save this offer.").length).toBeGreaterThan(0);
+      expect(screen.getByRole("dialog", { name: "Edit offer" })).toBeInTheDocument();
     });
   });
 });

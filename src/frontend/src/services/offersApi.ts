@@ -1,5 +1,12 @@
 import type { TextTurnRequest, TextTurnResponse } from "../types/intake";
-import type { OfferListResponse, OfferSortBy, SortDirection } from "../types/offers";
+import type {
+  OfferListResponse,
+  OfferResponse,
+  OfferSortBy,
+  OfferSummaryPayload,
+  OfferUpdateResponse,
+  SortDirection
+} from "../types/offers";
 
 export async function sendTextTurn(request: TextTurnRequest): Promise<TextTurnResponse> {
   const response = await fetch("/api/v1/offers/intake/text", {
@@ -68,4 +75,32 @@ export async function createDemoOffers(): Promise<void> {
   if (!response.ok) {
     throw new Error(`Demo offer seed request failed with status ${response.status}`);
   }
+}
+
+export async function fetchOfferById(offerId: string): Promise<OfferSummaryPayload> {
+  const response = await fetch(`/api/v1/offers/${offerId}`, {
+    method: "GET"
+  });
+  if (!response.ok) {
+    throw new Error(`Offer detail request failed with status ${response.status}`);
+  }
+  const payload = (await response.json()) as OfferResponse;
+  return payload.offer;
+}
+
+export async function updateOffer(
+  offerId: string,
+  payload: Record<string, unknown>
+): Promise<OfferUpdateResponse> {
+  const response = await fetch(`/api/v1/offers/${offerId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ payload })
+  });
+  if (!response.ok) {
+    throw new Error(`Update offer request failed with status ${response.status}`);
+  }
+  return (await response.json()) as OfferUpdateResponse;
 }

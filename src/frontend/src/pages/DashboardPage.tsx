@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 
-import { createDemoOffers, deleteOffer, fetchOffers } from "../services/offersApi";
+import { createDemoOffers, deleteOffer, fetchOfferById, fetchOffers, updateOffer } from "../services/offersApi";
 import type { OfferSortBy, OfferSummaryPayload, SortDirection } from "../types/offers";
 
 interface SortOption {
@@ -17,6 +17,35 @@ const SORT_OPTIONS: SortOption[] = [
   { label: "Role (A-Z)", sortBy: "role_title", sortDirection: "asc" },
   { label: "Role (Z-A)", sortBy: "role_title", sortDirection: "desc" }
 ];
+
+interface EditOfferFormState {
+  company_name: string;
+  role_title: string;
+  location: string;
+  employment_type: string;
+  work_model: string;
+  annual_base_salary_usd: string;
+  hourly_rate_usd: string;
+  hours_per_week: string;
+  annualized_total_cash_usd: string;
+  signing_bonus_usd: string;
+  target_bonus_percent: string;
+  retirement_match_percent: string;
+  retirement_match_cap_usd: string;
+  health_insurance_employer_monthly_usd: string;
+  hsa_employer_annual_usd: string;
+  equity_grant_usd: string;
+  equity_vesting_schedule: string;
+  other_monetary_benefits_text: string;
+  mission_alignment_notes: string;
+  culture_notes: string;
+  growth_notes: string;
+  wellness_notes: string;
+  pto_days: string;
+  remote_flexibility_notes: string;
+  other_non_monetary_benefits_text: string;
+  non_monetary_summary_bullets_text: string;
+}
 
 function asNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -124,9 +153,146 @@ function salaryText(offer: OfferSummaryPayload): string | null {
   return null;
 }
 
+const EMPTY_EDIT_FORM: EditOfferFormState = {
+  company_name: "",
+  role_title: "",
+  location: "",
+  employment_type: "",
+  work_model: "",
+  annual_base_salary_usd: "",
+  hourly_rate_usd: "",
+  hours_per_week: "",
+  annualized_total_cash_usd: "",
+  signing_bonus_usd: "",
+  target_bonus_percent: "",
+  retirement_match_percent: "",
+  retirement_match_cap_usd: "",
+  health_insurance_employer_monthly_usd: "",
+  hsa_employer_annual_usd: "",
+  equity_grant_usd: "",
+  equity_vesting_schedule: "",
+  other_monetary_benefits_text: "",
+  mission_alignment_notes: "",
+  culture_notes: "",
+  growth_notes: "",
+  wellness_notes: "",
+  pto_days: "",
+  remote_flexibility_notes: "",
+  other_non_monetary_benefits_text: "",
+  non_monetary_summary_bullets_text: ""
+};
+
+function asNumericInputText(value: unknown): string {
+  const parsed = asNumber(value);
+  return parsed === null ? "" : `${parsed}`;
+}
+
+function listTextForTextarea(value: unknown): string {
+  return asTextList(value).join("\n");
+}
+
+function toOptionalNumber(value: string): number | null {
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    return null;
+  }
+  const parsed = Number(trimmed.replace(/,/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseTextareaList(value: string): string[] {
+  return value
+    .split("\n")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function editFormFromOffer(offer: OfferSummaryPayload): EditOfferFormState {
+  const compensation = (offer.compensation ?? {}) as Record<string, unknown>;
+  const monetary = (offer.monetary_benefits ?? {}) as Record<string, unknown>;
+  const nonMonetary = (offer.non_monetary_benefits ?? {}) as Record<string, unknown>;
+
+  return {
+    company_name: asText(offer.company_name) ?? "",
+    role_title: asText(offer.role_title) ?? "",
+    location: asText(offer.location) ?? "",
+    employment_type: asText(offer.employment_type) ?? "",
+    work_model: asText(offer.work_model) ?? "",
+    annual_base_salary_usd: asNumericInputText(compensation.annual_base_salary_usd),
+    hourly_rate_usd: asNumericInputText(compensation.hourly_rate_usd),
+    hours_per_week: asNumericInputText(compensation.hours_per_week),
+    annualized_total_cash_usd: asNumericInputText(compensation.annualized_total_cash_usd),
+    signing_bonus_usd: asNumericInputText(compensation.signing_bonus_usd),
+    target_bonus_percent: asNumericInputText(compensation.target_bonus_percent),
+    retirement_match_percent: asNumericInputText(monetary.retirement_match_percent),
+    retirement_match_cap_usd: asNumericInputText(monetary.retirement_match_cap_usd),
+    health_insurance_employer_monthly_usd: asNumericInputText(
+      monetary.health_insurance_employer_monthly_usd
+    ),
+    hsa_employer_annual_usd: asNumericInputText(monetary.hsa_employer_annual_usd),
+    equity_grant_usd: asNumericInputText(monetary.equity_grant_usd),
+    equity_vesting_schedule: asText(monetary.equity_vesting_schedule) ?? "",
+    other_monetary_benefits_text: listTextForTextarea(monetary.other_monetary_benefits),
+    mission_alignment_notes: asText(nonMonetary.mission_alignment_notes) ?? "",
+    culture_notes: asText(nonMonetary.culture_notes) ?? "",
+    growth_notes: asText(nonMonetary.growth_notes) ?? "",
+    wellness_notes: asText(nonMonetary.wellness_notes) ?? "",
+    pto_days: asNumericInputText(nonMonetary.pto_days),
+    remote_flexibility_notes: asText(nonMonetary.remote_flexibility_notes) ?? "",
+    other_non_monetary_benefits_text: listTextForTextarea(nonMonetary.other_non_monetary_benefits),
+    non_monetary_summary_bullets_text: listTextForTextarea(offer.non_monetary_summary_bullets)
+  };
+}
+
+function offerPayloadFromEditForm(
+  form: EditOfferFormState,
+  existing: OfferSummaryPayload
+): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    ...existing,
+    company_name: form.company_name.trim(),
+    role_title: form.role_title.trim(),
+    location: form.location.trim(),
+    employment_type: form.employment_type.trim(),
+    work_model: form.work_model.trim(),
+    compensation: {
+      annual_base_salary_usd: toOptionalNumber(form.annual_base_salary_usd),
+      hourly_rate_usd: toOptionalNumber(form.hourly_rate_usd),
+      hours_per_week: toOptionalNumber(form.hours_per_week),
+      annualized_total_cash_usd: toOptionalNumber(form.annualized_total_cash_usd),
+      signing_bonus_usd: toOptionalNumber(form.signing_bonus_usd),
+      target_bonus_percent: toOptionalNumber(form.target_bonus_percent)
+    },
+    monetary_benefits: {
+      retirement_match_percent: toOptionalNumber(form.retirement_match_percent),
+      retirement_match_cap_usd: toOptionalNumber(form.retirement_match_cap_usd),
+      health_insurance_employer_monthly_usd: toOptionalNumber(
+        form.health_insurance_employer_monthly_usd
+      ),
+      hsa_employer_annual_usd: toOptionalNumber(form.hsa_employer_annual_usd),
+      equity_grant_usd: toOptionalNumber(form.equity_grant_usd),
+      equity_vesting_schedule: form.equity_vesting_schedule.trim(),
+      other_monetary_benefits: parseTextareaList(form.other_monetary_benefits_text)
+    },
+    non_monetary_benefits: {
+      mission_alignment_notes: form.mission_alignment_notes.trim(),
+      culture_notes: form.culture_notes.trim(),
+      growth_notes: form.growth_notes.trim(),
+      wellness_notes: form.wellness_notes.trim(),
+      pto_days: toOptionalNumber(form.pto_days),
+      remote_flexibility_notes: form.remote_flexibility_notes.trim(),
+      other_non_monetary_benefits: parseTextareaList(form.other_non_monetary_benefits_text)
+    },
+    non_monetary_summary_bullets: parseTextareaList(form.non_monetary_summary_bullets_text)
+  };
+  delete payload.id;
+  return payload;
+}
+
 export function DashboardPage(): JSX.Element {
   const DELETE_FADE_DURATION_MS = 280;
   const DELETE_COLLAPSE_DURATION_MS = 460;
+  const EDIT_PANEL_TRANSITION_MS = 240;
 
   const [offers, setOffers] = useState<OfferSummaryPayload[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -142,10 +308,26 @@ export function DashboardPage(): JSX.Element {
   const animationTimeoutRef = useRef<Record<string, number>>({});
   const deleteFadeTimeoutRef = useRef<Record<string, number>>({});
   const deleteCollapseTimeoutRef = useRef<Record<string, number>>({});
+  const editCloseTimeoutRef = useRef<number | null>(null);
+
+  const [editOfferId, setEditOfferId] = useState<string | null>(null);
+  const [isEditPanelMounted, setIsEditPanelMounted] = useState(false);
+  const [isEditPanelOpen, setIsEditPanelOpen] = useState(false);
+  const [isEditLoading, setIsEditLoading] = useState(false);
+  const [isEditSaving, setIsEditSaving] = useState(false);
+  const [editErrorText, setEditErrorText] = useState<string | null>(null);
+  const [editValidationErrors, setEditValidationErrors] = useState<string[]>([]);
+  const [editForm, setEditForm] = useState<EditOfferFormState>(EMPTY_EDIT_FORM);
+  const [initialEditForm, setInitialEditForm] = useState<EditOfferFormState>(EMPTY_EDIT_FORM);
+  const [editOfferBasePayload, setEditOfferBasePayload] = useState<OfferSummaryPayload | null>(null);
 
   const selectedSort = useMemo(() => {
     return SORT_OPTIONS.find((option) => option.label === sortSelection) ?? SORT_OPTIONS[0];
   }, [sortSelection]);
+
+  const isEditDirty = useMemo(() => {
+    return JSON.stringify(editForm) !== JSON.stringify(initialEditForm);
+  }, [editForm, initialEditForm]);
 
   const scheduleCardAnimation = (offerId: string, mode: "select" | "deselect"): void => {
     setCardAnimationState((existing) => ({ ...existing, [offerId]: mode }));
@@ -267,6 +449,129 @@ export function DashboardPage(): JSX.Element {
     }
   };
 
+  const closeEditPanel = (): void => {
+    setIsEditPanelOpen(false);
+    if (editCloseTimeoutRef.current !== null) {
+      window.clearTimeout(editCloseTimeoutRef.current);
+    }
+    editCloseTimeoutRef.current = window.setTimeout(() => {
+      setIsEditPanelMounted(false);
+      setEditOfferId(null);
+      setEditOfferBasePayload(null);
+      setEditForm(EMPTY_EDIT_FORM);
+      setInitialEditForm(EMPTY_EDIT_FORM);
+      setEditErrorText(null);
+      setEditValidationErrors([]);
+      editCloseTimeoutRef.current = null;
+    }, EDIT_PANEL_TRANSITION_MS);
+  };
+
+  const requestCloseEditPanel = (): void => {
+    if (isEditSaving) {
+      return;
+    }
+    if (isEditDirty) {
+      const shouldDiscard = window.confirm("Discard unsaved edits?");
+      if (!shouldDiscard) {
+        return;
+      }
+    }
+    closeEditPanel();
+  };
+
+  const handleEditClick = (offerId: string): void => {
+    setIsEditPanelMounted(true);
+    window.requestAnimationFrame(() => {
+      setIsEditPanelOpen(true);
+    });
+    setEditOfferId(offerId);
+    setIsEditLoading(true);
+    setEditErrorText(null);
+    setEditValidationErrors([]);
+    void fetchOfferById(offerId)
+      .then((offer) => {
+        const nextForm = editFormFromOffer(offer);
+        setEditOfferBasePayload(offer);
+        setEditForm(nextForm);
+        setInitialEditForm(nextForm);
+      })
+      .catch((error: unknown) => {
+        setEditErrorText(error instanceof Error ? error.message : "Unable to load offer for editing.");
+      })
+      .finally(() => {
+        setIsEditLoading(false);
+      });
+  };
+
+  const updateEditField = (field: keyof EditOfferFormState, value: string): void => {
+    setEditForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleEditInputChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+    const field = event.target.name as keyof EditOfferFormState;
+    updateEditField(field, event.target.value);
+  };
+
+  const hasFieldError = (field: string): boolean => {
+    const normalized = field.toLowerCase();
+    return editValidationErrors.some((error) => error.toLowerCase().includes(normalized));
+  };
+
+  const handleSaveEdits = async (): Promise<void> => {
+    if (editOfferId === null || editOfferBasePayload === null) {
+      return;
+    }
+    setIsEditSaving(true);
+    setEditErrorText(null);
+    setEditValidationErrors([]);
+    try {
+      const payload = offerPayloadFromEditForm(editForm, editOfferBasePayload);
+      const result = await updateOffer(editOfferId, payload);
+      if (result.status !== "saved" || result.offer === null) {
+        setEditValidationErrors(result.errors);
+        setEditErrorText(
+          result.errors[0] ?? "Unable to save changes. Check required fields and try again."
+        );
+        return;
+      }
+      setOffers((current) =>
+        current.map((offer) => (offer.id === editOfferId ? result.offer ?? offer : offer))
+      );
+      closeEditPanel();
+    } catch (error: unknown) {
+      setEditErrorText(error instanceof Error ? error.message : "Unable to save edits.");
+    } finally {
+      setIsEditSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isEditPanelMounted) {
+      return;
+    }
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isEditPanelMounted]);
+
+  useEffect(() => {
+    if (!isEditPanelMounted) {
+      return;
+    }
+    const onEscape = (event: globalThis.KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        requestCloseEditPanel();
+      }
+    };
+    window.addEventListener("keydown", onEscape);
+    return () => {
+      window.removeEventListener("keydown", onEscape);
+    };
+  }, [isEditPanelMounted, isEditSaving, isEditDirty]);
+
   useEffect(() => {
     return () => {
       const timeoutIds = Object.values(animationTimeoutRef.current);
@@ -280,6 +585,9 @@ export function DashboardPage(): JSX.Element {
       const deleteCollapseTimeoutIds = Object.values(deleteCollapseTimeoutRef.current);
       for (const timeoutId of deleteCollapseTimeoutIds) {
         window.clearTimeout(timeoutId);
+      }
+      if (editCloseTimeoutRef.current !== null) {
+        window.clearTimeout(editCloseTimeoutRef.current);
       }
     };
   }, []);
@@ -424,6 +732,7 @@ export function DashboardPage(): JSX.Element {
                       className="secondary-button selectable"
                       onClick={(event) => {
                         event.stopPropagation();
+                        handleEditClick(offer.id);
                       }}
                     >
                       Edit
@@ -450,6 +759,292 @@ export function DashboardPage(): JSX.Element {
           );
         })}
       </section>
+
+      {isEditPanelMounted ? (
+        <div
+          className={`edit-offer-overlay ${isEditPanelOpen ? "edit-offer-overlay-open" : ""}`.trim()}
+          data-testid="edit-offer-overlay"
+          onClick={() => {
+            requestCloseEditPanel();
+          }}
+        >
+          <section
+            className={`edit-offer-panel ${isEditPanelOpen ? "edit-offer-panel-open" : ""}`.trim()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Edit offer"
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            <header className="edit-offer-header">
+              <h2>Edit Offer</h2>
+              <button
+                type="button"
+                className="secondary-button selectable"
+                onClick={() => {
+                  requestCloseEditPanel();
+                }}
+                disabled={isEditSaving}
+              >
+                Close
+              </button>
+            </header>
+
+            {isEditLoading ? <p className="dashboard-status">Loading offer...</p> : null}
+            {editErrorText ? <p className="error-text">{editErrorText}</p> : null}
+
+            {!isEditLoading && editOfferId !== null ? (
+              <form
+                className="edit-offer-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void handleSaveEdits();
+                }}
+              >
+                <section className="edit-offer-section">
+                  <h3>Core details</h3>
+                  <div className="edit-offer-grid">
+                    <label>
+                      Company name*
+                      <input name="company_name" value={editForm.company_name} onChange={handleEditInputChange} />
+                    </label>
+                    <label>
+                      Role title*
+                      <input name="role_title" value={editForm.role_title} onChange={handleEditInputChange} />
+                    </label>
+                    <label>
+                      Location*
+                      <input name="location" value={editForm.location} onChange={handleEditInputChange} />
+                    </label>
+                    <label>
+                      Employment type
+                      <input
+                        name="employment_type"
+                        value={editForm.employment_type}
+                        onChange={handleEditInputChange}
+                      />
+                    </label>
+                    <label>
+                      Work model
+                      <input name="work_model" value={editForm.work_model} onChange={handleEditInputChange} />
+                    </label>
+                  </div>
+                </section>
+
+                <section className="edit-offer-section">
+                  <h3>Compensation</h3>
+                  <div className="edit-offer-grid">
+                    <label className={hasFieldError("annual_base_salary_usd") ? "edit-offer-field-error" : ""}>
+                      Annual base salary (USD)*
+                      <input
+                        name="annual_base_salary_usd"
+                        value={editForm.annual_base_salary_usd}
+                        onChange={handleEditInputChange}
+                        inputMode="decimal"
+                      />
+                    </label>
+                    <label className={hasFieldError("hourly_rate_usd") ? "edit-offer-field-error" : ""}>
+                      Hourly rate (USD)
+                      <input
+                        name="hourly_rate_usd"
+                        value={editForm.hourly_rate_usd}
+                        onChange={handleEditInputChange}
+                        inputMode="decimal"
+                      />
+                    </label>
+                    <label className={hasFieldError("hours_per_week") ? "edit-offer-field-error" : ""}>
+                      Hours per week
+                      <input
+                        name="hours_per_week"
+                        value={editForm.hours_per_week}
+                        onChange={handleEditInputChange}
+                        inputMode="decimal"
+                      />
+                    </label>
+                    <label>
+                      Annualized total cash (USD)
+                      <input
+                        name="annualized_total_cash_usd"
+                        value={editForm.annualized_total_cash_usd}
+                        onChange={handleEditInputChange}
+                        inputMode="decimal"
+                      />
+                    </label>
+                    <label>
+                      Signing bonus (USD)
+                      <input
+                        name="signing_bonus_usd"
+                        value={editForm.signing_bonus_usd}
+                        onChange={handleEditInputChange}
+                        inputMode="decimal"
+                      />
+                    </label>
+                    <label>
+                      Target bonus (%)
+                      <input
+                        name="target_bonus_percent"
+                        value={editForm.target_bonus_percent}
+                        onChange={handleEditInputChange}
+                        inputMode="decimal"
+                      />
+                    </label>
+                  </div>
+                </section>
+
+                <section className="edit-offer-section">
+                  <h3>Monetary benefits</h3>
+                  <div className="edit-offer-grid">
+                    <label>
+                      Retirement match (%)
+                      <input
+                        name="retirement_match_percent"
+                        value={editForm.retirement_match_percent}
+                        onChange={handleEditInputChange}
+                        inputMode="decimal"
+                      />
+                    </label>
+                    <label>
+                      Retirement match cap (USD)
+                      <input
+                        name="retirement_match_cap_usd"
+                        value={editForm.retirement_match_cap_usd}
+                        onChange={handleEditInputChange}
+                        inputMode="decimal"
+                      />
+                    </label>
+                    <label>
+                      Health insurance employer monthly (USD)
+                      <input
+                        name="health_insurance_employer_monthly_usd"
+                        value={editForm.health_insurance_employer_monthly_usd}
+                        onChange={handleEditInputChange}
+                        inputMode="decimal"
+                      />
+                    </label>
+                    <label>
+                      HSA employer annual (USD)
+                      <input
+                        name="hsa_employer_annual_usd"
+                        value={editForm.hsa_employer_annual_usd}
+                        onChange={handleEditInputChange}
+                        inputMode="decimal"
+                      />
+                    </label>
+                    <label>
+                      Equity grant value (USD)
+                      <input
+                        name="equity_grant_usd"
+                        value={editForm.equity_grant_usd}
+                        onChange={handleEditInputChange}
+                        inputMode="decimal"
+                      />
+                    </label>
+                    <label>
+                      Equity vesting schedule
+                      <input
+                        name="equity_vesting_schedule"
+                        value={editForm.equity_vesting_schedule}
+                        onChange={handleEditInputChange}
+                      />
+                    </label>
+                    <label className="edit-offer-grid-full">
+                      Other monetary benefits (one per line)
+                      <textarea
+                        name="other_monetary_benefits_text"
+                        value={editForm.other_monetary_benefits_text}
+                        onChange={handleEditInputChange}
+                      />
+                    </label>
+                  </div>
+                </section>
+
+                <section className="edit-offer-section">
+                  <h3>Non-monetary benefits</h3>
+                  <div className="edit-offer-grid">
+                    <label className="edit-offer-grid-full">
+                      Mission alignment notes
+                      <textarea
+                        name="mission_alignment_notes"
+                        value={editForm.mission_alignment_notes}
+                        onChange={handleEditInputChange}
+                      />
+                    </label>
+                    <label className="edit-offer-grid-full">
+                      Culture notes
+                      <textarea name="culture_notes" value={editForm.culture_notes} onChange={handleEditInputChange} />
+                    </label>
+                    <label className="edit-offer-grid-full">
+                      Growth notes
+                      <textarea name="growth_notes" value={editForm.growth_notes} onChange={handleEditInputChange} />
+                    </label>
+                    <label className="edit-offer-grid-full">
+                      Wellness notes
+                      <textarea
+                        name="wellness_notes"
+                        value={editForm.wellness_notes}
+                        onChange={handleEditInputChange}
+                      />
+                    </label>
+                    <label>
+                      PTO days
+                      <input name="pto_days" value={editForm.pto_days} onChange={handleEditInputChange} />
+                    </label>
+                    <label className="edit-offer-grid-full">
+                      Remote flexibility notes
+                      <textarea
+                        name="remote_flexibility_notes"
+                        value={editForm.remote_flexibility_notes}
+                        onChange={handleEditInputChange}
+                      />
+                    </label>
+                    <label className="edit-offer-grid-full">
+                      Other non-monetary benefits (one per line)
+                      <textarea
+                        name="other_non_monetary_benefits_text"
+                        value={editForm.other_non_monetary_benefits_text}
+                        onChange={handleEditInputChange}
+                      />
+                    </label>
+                    <label className="edit-offer-grid-full">
+                      Non-monetary summary bullets (one per line)
+                      <textarea
+                        name="non_monetary_summary_bullets_text"
+                        value={editForm.non_monetary_summary_bullets_text}
+                        onChange={handleEditInputChange}
+                      />
+                    </label>
+                  </div>
+                </section>
+
+                {editValidationErrors.length > 0 ? (
+                  <ul className="edit-offer-errors">
+                    {editValidationErrors.map((error) => (
+                      <li key={error}>{error}</li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                <footer className="edit-offer-actions">
+                  <button
+                    type="button"
+                    className="secondary-button selectable"
+                    onClick={() => {
+                      requestCloseEditPanel();
+                    }}
+                    disabled={isEditSaving}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="action-button selectable" disabled={isEditSaving}>
+                    {isEditSaving ? "Saving..." : "Save Changes"}
+                  </button>
+                </footer>
+              </form>
+            ) : null}
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }

@@ -113,8 +113,12 @@ If user note exists, it is displayed below all other comparison page content.
 ## Edit Offer Flow
 
 1. Existing offers are editable.
-2. Editing uses a pre-filled structured form.
+2. Editing uses a pre-filled structured form containing core, compensation, monetary, and non-monetary fields.
 3. Editing does not route user through the initial open-ended AI intake flow.
+4. Clicking `Edit` opens a centered panel over Dashboard with blurred/disabled background.
+5. Edit panel uses fade-in/fade-out motion on open/close.
+6. If user attempts to close with unsaved edits, system asks for discard confirmation.
+7. Saving sends full payload update, closes the panel on success, and refreshes the edited card on Dashboard.
 
 ## Dashboard Page
 

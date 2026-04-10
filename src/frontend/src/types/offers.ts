@@ -22,3 +22,21 @@ export interface OfferSummaryPayload {
 export interface OfferListResponse {
   offers: OfferSummaryPayload[];
 }
+
+export interface OfferResponse {
+  offer: OfferSummaryPayload;
+}
+
+export interface MissingFieldPrompt {
+  path: string;
+  required: boolean;
+  message: string;
+}
+
+export interface OfferUpdateResponse {
+  status: string;
+  errors: string[];
+  warnings: string[];
+  missing_field_prompts: MissingFieldPrompt[];
+  offer: OfferSummaryPayload | null;
+}
