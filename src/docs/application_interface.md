@@ -167,6 +167,7 @@ Endpoint paths may evolve, but external behavior must remain equivalent.
 7. Save accepted blanks as omitted fields.
 8. Retrieve offer list and single offer details.
 9. Update offer by ID via structured form payload.
+10. During conversational turns, the entry-creation agent may trigger the same save flow as `action=finish` by calling its configured `submit_entry` tool when the user indicates they are done.
 
 ### Comparison
 
@@ -198,10 +199,11 @@ Validation behavior:
 1. Missing required section or invalid value type results in startup failure with explicit error details.
 2. Unknown/extra keys are treated as config errors.
 3. Optional keys may use defaults defined by backend config types.
-4. `agents.entry_creation` and `agents.structured_output` must be configured:
+4. `agents.entry_creation` and `agents.parse_entry` must be configured:
    - `entry_creation` drives natural-language conversational assistant replies
-   - `structured_output` parses each user turn into mergeable structured offer data
-5. `openai.accepted_audio_extensions` defines the allowed file extensions for audio transcription intake validation.
+   - `parse_entry` parses user turns/conversation transcript into mergeable structured offer data
+5. `agents.entry_creation.tools` configures optional function tools the chat agent can call (for example `submit_entry`).
+6. `openai.accepted_audio_extensions` defines the allowed file extensions for audio transcription intake validation.
 
 ## Persistence Contract
 

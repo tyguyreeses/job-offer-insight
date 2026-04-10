@@ -12,7 +12,7 @@ from uuid import uuid4
 from ...domain.models import OfferRecord
 from ...gen_ai.audio_transcriber import AudioTranscriptionError
 from ...gen_ai.entry_creation_agent import EntryCreationAgentError
-from ...gen_ai.protocols import Agent, AudioTranscriber, ChatAgent
+from ...gen_ai.protocols import Agent, AudioTranscriber, ChatAgent, ChatAgentReply
 from ...gen_ai.text_parser_agent import TextParserError
 from ...storage.repositories.interfaces import OfferRepository
 from ...utils.logging import get_logger
@@ -52,6 +52,7 @@ _PROMPT_KEY_REQUIRED = "required_fields_bundle"
 _PROMPT_KEY_MONETARY = "monetary_benefits"
 _PROMPT_KEY_NON_MONETARY = "non_monetary_benefits"
 _PROMPT_KEY_ANYTHING_ELSE = "anything_else"
+_TOOL_SUBMIT_ENTRY = "submit_entry"
 
 
 @dataclass(frozen=True)
@@ -459,6 +460,29 @@ def _fallback_assistant_message(
     return _assistant_message_for_step(step, missing_required_fields)
 
 
+def _fallback_assistant_reply(
+    *,
+    step: str,
+    missing_required_fields: list[str],
+    blocked_finish: bool,
+) -> ChatAgentReply:
+    return ChatAgentReply(
+        message=_fallback_assistant_message(
+            step=step,
+            missing_required_fields=missing_required_fields,
+            blocked_finish=blocked_finish,
+        ),
+        tool_calls=[],
+    )
+
+
+def _requested_submit_entry(reply: ChatAgentReply) -> bool:
+    for tool_call in reply.tool_calls:
+        if tool_call.name == _TOOL_SUBMIT_ENTRY:
+            return True
+    return False
+
+
 def _advance_on_skip(session: ConversationSession) -> None:
     if session.step == _STEP_COLLECT_MONETARY:
         session.step = _STEP_COLLECT_NON_MONETARY
@@ -527,9 +551,9 @@ class Stage4OfferService:
         blocked_finish: bool,
         errors: list[str],
         warnings: list[str],
-    ) -> str:
+    ) -> ChatAgentReply:
         if self.entry_creation_agent is None:
-            return _fallback_assistant_message(
+            return _fallback_assistant_reply(
                 step=step,
                 missing_required_fields=missing_required_fields,
                 blocked_finish=blocked_finish,
@@ -552,7 +576,7 @@ class Stage4OfferService:
                 state=state,
             )
         except EntryCreationAgentError:
-            return _fallback_assistant_message(
+            return _fallback_assistant_reply(
                 step=step,
                 missing_required_fields=missing_required_fields,
                 blocked_finish=blocked_finish,
@@ -624,7 +648,7 @@ class Stage4OfferService:
                     try:
                         extracted_payload = self.text_parser_agent.parse(message)
                     except TextParserError as exc:
-                        logger.warn("Failed to parse text: %s", exc)
+                        logger.warning("Failed to parse text: %s", exc)
                         errors.append(f"Unable to extract structured offer data: {exc}")
                     else:
                         session.payload = _merge_payloads(session.payload, extracted_payload)
@@ -648,7 +672,7 @@ class Stage4OfferService:
             missing_required_fields = _missing_required_fields(session.payload)
             if missing_required_fields:
                 session.step = _STEP_COLLECT_REQUIRED
-                assistant_message = self._build_assistant_message(
+                assistant_reply = self._build_assistant_message(
                     session=session,
                     step=session.step,
                     missing_required_fields=missing_required_fields,
@@ -656,6 +680,7 @@ class Stage4OfferService:
                     errors=errors,
                     warnings=warnings,
                 )
+                assistant_message = assistant_reply.message
                 _append_message(session, "assistant", assistant_message)
                 return TextConversationResult(
                     session_id=session.session_id,
@@ -685,7 +710,7 @@ class Stage4OfferService:
             if validation_errors:
                 session.step = _STEP_COLLECT_REQUIRED
                 missing_required_fields = _missing_required_fields(session.payload)
-                assistant_message = self._build_assistant_message(
+                assistant_reply = self._build_assistant_message(
                     session=session,
                     step=session.step,
                     missing_required_fields=missing_required_fields,
@@ -693,6 +718,7 @@ class Stage4OfferService:
                     errors=validation_errors,
                     warnings=warnings,
                 )
+                assistant_message = assistant_reply.message
                 _append_message(session, "assistant", assistant_message)
                 return TextConversationResult(
                     session_id=session.session_id,
@@ -719,7 +745,7 @@ class Stage4OfferService:
                 payload=session.payload,
             )
             session.step = _STEP_COMPLETED
-            assistant_message = self._build_assistant_message(
+            assistant_reply = self._build_assistant_message(
                 session=session,
                 step=_STEP_COMPLETED,
                 missing_required_fields=[],
@@ -727,6 +753,7 @@ class Stage4OfferService:
                 errors=[],
                 warnings=warnings,
             )
+            assistant_message = assistant_reply.message
             _append_message(session, "assistant", assistant_message)
             messages = list(session.messages)
             del self.text_conversation_sessions[session.session_id]
@@ -745,7 +772,7 @@ class Stage4OfferService:
             )
 
         missing_required_fields = _missing_required_fields(session.payload)
-        assistant_message = self._build_assistant_message(
+        assistant_reply = self._build_assistant_message(
             session=session,
             step=session.step,
             missing_required_fields=missing_required_fields,
@@ -753,6 +780,13 @@ class Stage4OfferService:
             errors=errors,
             warnings=warnings,
         )
+        if action in ("submit", "skip_current") and _requested_submit_entry(assistant_reply):
+            return self.intake_text_offer(
+                session_id=session.session_id,
+                action="finish",
+                source_input_type=source_input_type,
+            )
+        assistant_message = assistant_reply.message
         _append_message(session, "assistant", assistant_message)
         return TextConversationResult(
             session_id=session.session_id,

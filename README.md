@@ -4,10 +4,11 @@ Stage-based implementation of a job-offer review app.
 
 ## Current Stage
 
-- Active branch: `stage-5.1`
+- Active branch: `stage-5.1-chat-agent`
 - Stage 5.1 focus:
   - Conversational text intake flow (`submit`, `skip_current`, `finish`) with in-memory session state
   - Required-field-first assistant prompting and finish gating
+  - Config-driven agents (`entry_creation`, `parse_entry`) and `entry_creation.tools` support (including `submit_entry` to trigger the same save flow as `Finish`)
   - Frontend Add Entry page scaffold (Vite + React + TypeScript) with Stage 5.1 styling and shared fade animation utilities
 
 ## Backend Config Foundation (Stage 1)

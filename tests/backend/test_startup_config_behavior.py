@@ -48,7 +48,7 @@ agents:
     model: "gpt-5.2"
     max_output_tokens: 500
     prompt: "You are a helper."
-  structured_output:
+  parse_entry:
     type: structured-output
     enabled: true
     model: "gpt-5.2"
@@ -82,7 +82,7 @@ def test_app_build_fails_with_invalid_config(tmp_path: Path) -> None:
 def test_app_build_fails_when_agents_section_missing(tmp_path: Path) -> None:
     config_path = tmp_path / "missing_agents_config.yaml"
     invalid_config = VALID_CONFIG.replace(
-        "\nagents:\n  entry_creation:\n    type: non-structured\n    enabled: true\n    model: \"gpt-5.2\"\n    max_output_tokens: 500\n    prompt: \"You are a helper.\"\n  structured_output:\n    type: structured-output\n    enabled: true\n    model: \"gpt-5.2\"\n    max_output_tokens: 1200\n    prompt: \"Return only a JSON object.\"\n",
+        "\nagents:\n  entry_creation:\n    type: non-structured\n    enabled: true\n    model: \"gpt-5.2\"\n    max_output_tokens: 500\n    prompt: \"You are a helper.\"\n  parse_entry:\n    type: structured-output\n    enabled: true\n    model: \"gpt-5.2\"\n    max_output_tokens: 1200\n    prompt: \"Return only a JSON object.\"\n",
         "",
     )
     _write_config(config_path, invalid_config)

@@ -66,13 +66,22 @@ class AgentConfig(BaseModel):
     model: str = Field(min_length=1)
     prompt: str = Field(min_length=1)
     max_output_tokens: int = Field(default=1200, ge=1)
+    tools: list["AgentToolConfig"] = Field(default_factory=list)
+
+
+class AgentToolConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1)
+    description: str = ""
+    enabled: bool = True
 
 
 class AgentsSection(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     entry_creation: AgentConfig
-    structured_output: AgentConfig
+    parse_entry: AgentConfig
 
 
 class RuntimeConfig(BaseModel):

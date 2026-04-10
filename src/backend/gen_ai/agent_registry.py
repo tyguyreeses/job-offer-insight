@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from ..utils.config_types import AgentsSection
+from ..utils.config_types import AgentsSection, AgentToolConfig
 
 
 @dataclass(frozen=True)
@@ -17,6 +17,14 @@ class AgentDefinition:
     model: str
     prompt: str
     max_output_tokens: int
+    tools: list["AgentToolDefinition"]
+
+
+@dataclass(frozen=True)
+class AgentToolDefinition:
+    name: str
+    description: str
+    enabled: bool
 
 
 @dataclass(frozen=True)
@@ -31,7 +39,7 @@ class AgentRegistry:
 
 def build_agent_registry(config: AgentsSection) -> AgentRegistry:
     entry_creation_prompt = _resolve_prompt(config.entry_creation.prompt)
-    structured_output_prompt = _resolve_prompt(config.structured_output.prompt)
+    parse_entry_prompt = _resolve_prompt(config.parse_entry.prompt)
     return AgentRegistry(
         agents={
             "entry_creation": AgentDefinition(
@@ -41,14 +49,16 @@ def build_agent_registry(config: AgentsSection) -> AgentRegistry:
                 model=config.entry_creation.model,
                 prompt=entry_creation_prompt,
                 max_output_tokens=config.entry_creation.max_output_tokens,
+                tools=_resolve_tools(config.entry_creation.tools),
             ),
-            "structured_output": AgentDefinition(
-                name="structured_output",
-                type=config.structured_output.type,
-                enabled=config.structured_output.enabled,
-                model=config.structured_output.model,
-                prompt=structured_output_prompt,
-                max_output_tokens=config.structured_output.max_output_tokens,
+            "parse_entry": AgentDefinition(
+                name="parse_entry",
+                type=config.parse_entry.type,
+                enabled=config.parse_entry.enabled,
+                model=config.parse_entry.model,
+                prompt=parse_entry_prompt,
+                max_output_tokens=config.parse_entry.max_output_tokens,
+                tools=_resolve_tools(config.parse_entry.tools),
             )
         }
     )
@@ -71,3 +81,14 @@ def _resolve_prompt(value: str) -> str:
             return path.read_text(encoding="utf-8").strip()
 
     return stripped
+
+
+def _resolve_tools(config_tools: list[AgentToolConfig]) -> list[AgentToolDefinition]:
+    return [
+        AgentToolDefinition(
+            name=tool.name,
+            description=tool.description,
+            enabled=tool.enabled,
+        )
+        for tool in config_tools
+    ]

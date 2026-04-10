@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
+import json
 from pathlib import Path
 from typing import Any
 
 from fastapi.testclient import TestClient
 
 from src.backend.dependencies import build_runtime_container
+from src.backend.domain.services.offer_service import Stage4OfferService
+from src.backend.gen_ai.protocols import ChatAgentReply, ChatToolCall
 from src.backend.main import create_app
 from src.backend.utils.config_loader import load_default_config
 from src.backend.utils.logging import setup_logger
@@ -23,7 +27,7 @@ def _build_client(tmp_path: Path) -> TestClient:
     agents_section = config.agents.model_copy(
         update={
             "entry_creation": config.agents.entry_creation.model_copy(update={"enabled": False}),
-            "structured_output": config.agents.structured_output.model_copy(update={"enabled": False}),
+            "parse_entry": config.agents.parse_entry.model_copy(update={"enabled": False}),
         }
     )
     config = config.model_copy(update={"database": database_section, "agents": agents_section})
@@ -47,6 +51,47 @@ def _post_text_turn(
     response = client.post("/api/v1/offers/intake/text", json=request)
     assert response.status_code == 200
     return response.json()
+
+
+class JsonParser:
+    def parse(self, text: str) -> dict[str, Any]:
+        return json.loads(text)
+
+
+class AutoFinishChatAgent:
+    def reply(self, *, transcript: list[dict[str, str]], state: dict[str, Any]) -> ChatAgentReply:
+        _ = transcript
+        _ = state
+        return ChatAgentReply(
+            message="Submitting now.",
+            tool_calls=[ChatToolCall(name="submit_entry")],
+        )
+
+
+def _build_client_with_tooling(
+    tmp_path: Path,
+    *,
+    parser: Any,
+    chat_agent: Any,
+) -> TestClient:
+    config = load_default_config()
+    database_section = config.database.model_copy(
+        update={
+            "path": str(tmp_path / "stage5_1_offer_intake_tool_test.db"),
+            "enable_wal": False,
+        }
+    )
+    config = config.model_copy(update={"database": database_section})
+    logger = setup_logger(debug=False, configured_level=config.logging.level)
+    container = build_runtime_container(config=config, logger=logger)
+    service = Stage4OfferService(
+        offer_repository=container.offer_repository,
+        text_parser_agent=parser,
+        audio_transcriber=container.audio_transcriber,
+        entry_creation_agent=chat_agent,
+    )
+    app = create_app(replace(container, offer_service=service))
+    return TestClient(app)
 
 
 def test_conversation_starts_with_required_bundle_prompt(tmp_path: Path) -> None:
@@ -289,3 +334,26 @@ def test_finish_logs_full_payload_object_at_debug(tmp_path: Path, capsys) -> Non
     assert "Final offer payload on finish for session" in captured.err
     assert '"company_name": "Nimbus Health"' in captured.err
     assert '"location": "Denver, CO"' in captured.err
+
+
+def test_submit_entry_tool_invokes_same_finish_flow_as_finish_button(tmp_path: Path) -> None:
+    client = _build_client_with_tooling(
+        tmp_path,
+        parser=JsonParser(),
+        chat_agent=AutoFinishChatAgent(),
+    )
+
+    payload = _post_text_turn(
+        client,
+        session_id=None,
+        action="submit",
+        message_text=(
+            '{"company_name":"Nimbus Health","role_title":"Backend Engineer",'
+            '"location":"Denver, CO","compensation":{"annual_base_salary_usd":130000}}'
+        ),
+    )
+
+    assert payload["status"] == "saved"
+    assert payload["step"] == "completed"
+    assert payload["offer"] is not None
+    assert payload["offer"]["company_name"] == "Nimbus Health"
