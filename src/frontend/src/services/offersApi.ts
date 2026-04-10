@@ -51,3 +51,12 @@ export async function fetchOffers(options?: {
 
   return (await response.json()) as OfferListResponse;
 }
+
+export async function deleteOffer(offerId: string): Promise<void> {
+  const response = await fetch(`/api/v1/offers/${offerId}`, {
+    method: "DELETE"
+  });
+  if (!response.ok) {
+    throw new Error(`Delete offer request failed with status ${response.status}`);
+  }
+}

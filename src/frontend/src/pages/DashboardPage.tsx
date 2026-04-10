@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
-import { fetchOffers } from "../services/offersApi";
+import { deleteOffer, fetchOffers } from "../services/offersApi";
 import type { OfferSortBy, OfferSummaryPayload, SortDirection } from "../types/offers";
 
 interface SortOption {
@@ -125,13 +125,19 @@ function salaryText(offer: OfferSummaryPayload): string | null {
 }
 
 export function DashboardPage(): JSX.Element {
+  const DELETE_ANIMATION_DURATION_MS = 700;
+
   const [offers, setOffers] = useState<OfferSummaryPayload[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [sortSelection, setSortSelection] = useState(SORT_OPTIONS[0].label);
   const [selectedOfferIds, setSelectedOfferIds] = useState<string[]>([]);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
+  const [deletingOfferIds, setDeletingOfferIds] = useState<string[]>([]);
   const [cardAnimationState, setCardAnimationState] = useState<Record<string, "select" | "deselect">>({});
   const animationTimeoutRef = useRef<Record<string, number>>({});
+  const deleteTimeoutRef = useRef<Record<string, number>>({});
 
   const selectedSort = useMemo(() => {
     return SORT_OPTIONS.find((option) => option.label === sortSelection) ?? SORT_OPTIONS[0];
@@ -185,9 +191,15 @@ export function DashboardPage(): JSX.Element {
   }, [selectedSort.sortBy, selectedSort.sortDirection]);
 
   const handleToggleSelection = (offerId: string): void => {
+    if (deletingOfferIds.includes(offerId)) {
+      return;
+    }
     setSelectedOfferIds((current) => {
       if (current.includes(offerId)) {
         scheduleCardAnimation(offerId, "deselect");
+        if (deleteConfirmId === offerId) {
+          setDeleteConfirmId(null);
+        }
         return current.filter((id) => id !== offerId);
       }
       scheduleCardAnimation(offerId, "select");
@@ -199,10 +211,41 @@ export function DashboardPage(): JSX.Element {
     });
   };
 
+  const handleDeleteClick = async (offerId: string): Promise<void> => {
+    if (deleteConfirmId !== offerId) {
+      setDeleteConfirmId(offerId);
+      return;
+    }
+    setIsDeletingId(offerId);
+    setErrorText(null);
+    try {
+      await deleteOffer(offerId);
+      setDeletingOfferIds((current) => (current.includes(offerId) ? current : [...current, offerId]));
+      setSelectedOfferIds((current) => current.filter((id) => id !== offerId));
+      setDeleteConfirmId(null);
+      if (deleteTimeoutRef.current[offerId] !== undefined) {
+        window.clearTimeout(deleteTimeoutRef.current[offerId]);
+      }
+      deleteTimeoutRef.current[offerId] = window.setTimeout(() => {
+        setOffers((current) => current.filter((offer) => offer.id !== offerId));
+        setDeletingOfferIds((current) => current.filter((id) => id !== offerId));
+        setIsDeletingId(null);
+        delete deleteTimeoutRef.current[offerId];
+      }, DELETE_ANIMATION_DURATION_MS);
+    } catch (error: unknown) {
+      setErrorText(error instanceof Error ? error.message : "Unable to delete offer.");
+      setIsDeletingId(null);
+    }
+  };
+
   useEffect(() => {
     return () => {
       const timeoutIds = Object.values(animationTimeoutRef.current);
       for (const timeoutId of timeoutIds) {
+        window.clearTimeout(timeoutId);
+      }
+      const deleteTimeoutIds = Object.values(deleteTimeoutRef.current);
+      for (const timeoutId of deleteTimeoutIds) {
         window.clearTimeout(timeoutId);
       }
     };
@@ -254,66 +297,111 @@ export function DashboardPage(): JSX.Element {
           const summary = summaryBullets(offer);
           const createdDate = formatDate(offer.offer_meta?.created_at);
           const isSelected = selectedOfferIds.includes(offer.id);
+          const isDeleteConfirm = deleteConfirmId === offer.id;
+          const isDeleting = isDeletingId === offer.id;
+          const isPendingRemoval = deletingOfferIds.includes(offer.id);
 
           return (
-            <article
+            <div
               key={offer.id}
-              className={
-                isSelected
-                  ? `dashboard-card dashboard-card-selected selectable ${
-                      cardAnimationState[offer.id] === "select" ? "dashboard-card-flip-select" : ""
-                    }`
-                  : `dashboard-card selectable ${
-                      cardAnimationState[offer.id] === "deselect" ? "dashboard-card-flip-deselect" : ""
-                    }`
-              }
-              role="button"
-              tabIndex={0}
-              aria-pressed={isSelected}
-              data-testid={`offer-card-${offer.id}`}
-              onClick={() => handleToggleSelection(offer.id)}
-              onKeyDown={(event) => handleCardKeyDown(event, offer.id)}
+              className={`dashboard-card-shell ${isPendingRemoval ? "dashboard-card-shell-collapsing" : ""}`.trim()}
             >
-              <h2 className="dashboard-card-company">{offer.company_name}</h2>
-              <p className="dashboard-card-role">{offer.role_title}</p>
+              <article
+                className={
+                  isSelected
+                    ? `dashboard-card dashboard-card-selected selectable ${
+                        cardAnimationState[offer.id] === "select" ? "dashboard-card-flip-select" : ""
+                      } ${isPendingRemoval ? "dashboard-card-deleting" : ""}`
+                    : `dashboard-card selectable ${
+                        cardAnimationState[offer.id] === "deselect" ? "dashboard-card-flip-deselect" : ""
+                      } ${isPendingRemoval ? "dashboard-card-deleting" : ""}`
+                }
+                role="button"
+                tabIndex={0}
+                aria-pressed={isSelected}
+                data-testid={`offer-card-${offer.id}`}
+                onClick={() => {
+                  if (isPendingRemoval) {
+                    return;
+                  }
+                  handleToggleSelection(offer.id);
+                }}
+                onKeyDown={(event) => {
+                  if (isPendingRemoval) {
+                    return;
+                  }
+                  handleCardKeyDown(event, offer.id);
+                }}
+              >
+                <h2 className="dashboard-card-company">{offer.company_name}</h2>
+                <p className="dashboard-card-role">{offer.role_title}</p>
 
-              {salary ? (
-                <section className="dashboard-card-section">
-                  <h3>Salary</h3>
-                  <p>{salary}</p>
-                </section>
-              ) : null}
+                {salary ? (
+                  <section className="dashboard-card-section">
+                    <h3>Salary</h3>
+                    <p>{salary}</p>
+                  </section>
+                ) : null}
 
-              {monetary.length > 0 ? (
-                <section className="dashboard-card-section">
-                  <h3>Monetary benefits</h3>
-                  <ul>
-                    {monetary.map((item) => (
-                      <li key={`${offer.id}-monetary-${item}`}>{item}</li>
-                    ))}
-                  </ul>
-                </section>
-              ) : null}
+                {monetary.length > 0 ? (
+                  <section className="dashboard-card-section">
+                    <h3>Monetary benefits</h3>
+                    <ul>
+                      {monetary.map((item) => (
+                        <li key={`${offer.id}-monetary-${item}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
 
-              {summary.length > 0 ? (
-                <section className="dashboard-card-section">
-                  <h3>Non-monetary benefits</h3>
-                  <ul>
-                    {summary.map((item) => (
-                      <li key={`${offer.id}-non-monetary-${item}`}>{item}</li>
-                    ))}
-                  </ul>
-                </section>
-              ) : null}
+                {summary.length > 0 ? (
+                  <section className="dashboard-card-section">
+                    <h3>Non-monetary benefits</h3>
+                    <ul>
+                      {summary.map((item) => (
+                        <li key={`${offer.id}-non-monetary-${item}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
 
-              {createdDate ? (
-                <section className="dashboard-card-section">
-                  <h3>Date created</h3>
-                  <p>{createdDate}</p>
-                </section>
-              ) : null}
+                {createdDate ? (
+                  <section className="dashboard-card-section">
+                    <h3>Date created</h3>
+                    <p>{createdDate}</p>
+                  </section>
+                ) : null}
 
-            </article>
+                {isSelected ? (
+                  <div className="dashboard-card-actions">
+                    <button
+                      type="button"
+                      className="secondary-button selectable"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className={`secondary-button selectable card-delete-button ${
+                        isDeleteConfirm ? "card-delete-button-confirm" : ""
+                      }`}
+                      disabled={isDeleting || isPendingRemoval}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleDeleteClick(offer.id);
+                      }}
+                    >
+                      <span className="card-delete-button-label">
+                        {isDeleting ? "Deleting..." : isDeleteConfirm ? "Confirm" : "Delete"}
+                      </span>
+                    </button>
+                  </div>
+                ) : null}
+              </article>
+            </div>
           );
         })}
       </section>

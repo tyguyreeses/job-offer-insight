@@ -1,14 +1,16 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { vi } from "vitest";
 
-import { fetchOffers } from "../services/offersApi";
+import { deleteOffer, fetchOffers } from "../services/offersApi";
 import { DashboardPage } from "./DashboardPage";
 
 vi.mock("../services/offersApi", () => ({
-  fetchOffers: vi.fn()
+  fetchOffers: vi.fn(),
+  deleteOffer: vi.fn()
 }));
 
 const mockedFetchOffers = vi.mocked(fetchOffers);
+const mockedDeleteOffer = vi.mocked(deleteOffer);
 
 const defaultOffers = [
   {
@@ -50,6 +52,7 @@ const defaultOffers = [
 describe("DashboardPage", () => {
   beforeEach(() => {
     mockedFetchOffers.mockReset();
+    mockedDeleteOffer.mockReset();
   });
 
   it("loads with default newest-first sort and renders cards left-to-right", async () => {
@@ -121,5 +124,48 @@ describe("DashboardPage", () => {
     expect(first).toHaveAttribute("aria-pressed", "false");
     expect(second).toHaveAttribute("aria-pressed", "true");
     expect(third).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("shows edit/delete buttons only for selected cards", async () => {
+    mockedFetchOffers.mockResolvedValueOnce({ offers: defaultOffers });
+    render(<DashboardPage />);
+    await screen.findByText("Zenith Labs");
+
+    expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("offer-card-offer-3"));
+
+    expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+  });
+
+  it("requires delete confirm click and removes card after confirm", async () => {
+    mockedFetchOffers.mockResolvedValueOnce({ offers: defaultOffers });
+    mockedDeleteOffer.mockResolvedValueOnce();
+
+    render(<DashboardPage />);
+    await screen.findByText("Zenith Labs");
+
+    fireEvent.click(screen.getByTestId("offer-card-offer-3"));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(mockedDeleteOffer).not.toHaveBeenCalled();
+    const confirmButton = screen.getByRole("button", { name: "Confirm" });
+    expect(confirmButton).toHaveClass("card-delete-button-confirm");
+
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => {
+      expect(mockedDeleteOffer).toHaveBeenCalledWith("offer-3");
+      expect(screen.getByTestId("offer-card-offer-3")).toHaveClass("dashboard-card-deleting");
+      expect(screen.getByTestId("offer-card-offer-3").parentElement).toHaveClass(
+        "dashboard-card-shell-collapsing"
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("Zenith Labs")).not.toBeInTheDocument();
+    });
   });
 });

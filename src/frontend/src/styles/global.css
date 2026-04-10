@@ -115,16 +115,34 @@ body {
 
 .dashboard-scroll-row {
   display: flex;
-  gap: 1.5rem;
+  gap: 0;
   overflow-x: auto;
   padding: 1.1rem 1.1rem 1.4rem;
   min-height: 470px;
   perspective: 1100px;
 }
 
+.dashboard-card-shell {
+  flex: 0 0 auto;
+  width: min(460px, 92vw);
+  margin-right: 1.5rem;
+  transition: width 460ms ease-in-out 220ms, margin-right 460ms ease-in-out 220ms;
+}
+
+.dashboard-card-shell:last-child {
+  margin-right: 0;
+}
+
+.dashboard-card-shell-collapsing {
+  width: 0;
+  margin-right: 0;
+  overflow: hidden;
+}
+
 .dashboard-card {
-  min-width: min(430px, 92vw);
-  max-width: min(460px, 92vw);
+  width: 100%;
+  min-width: 0;
+  max-width: none;
   border-radius: var(--radius-card);
   border: 1px solid var(--color-border);
   background: rgba(255, 255, 255, 0.92);
@@ -135,8 +153,15 @@ body {
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  transition: box-shadow 220ms ease, transform 220ms ease, background 260ms ease,
-    color 260ms ease, border-color 260ms ease;
+  transition: box-shadow 220ms ease, transform 360ms ease, background 260ms ease,
+    color 260ms ease, border-color 260ms ease, opacity 360ms ease, filter 360ms ease;
+}
+
+.dashboard-card-deleting {
+  opacity: 0;
+  transform: translateY(10px) scale(0.97);
+  filter: saturate(0.86);
+  pointer-events: none;
 }
 
 .dashboard-card::before {
@@ -237,9 +262,46 @@ body {
   transition: color 260ms ease;
 }
 
-.dashboard-select-button {
-  align-self: flex-start;
+.dashboard-card-actions {
+  display: flex;
+  gap: 0.65rem;
   margin-top: auto;
+  padding-top: 0.25rem;
+}
+
+.card-delete-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-delete-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #d3292f;
+  opacity: 0;
+  transition: opacity var(--motion-duration-in) var(--motion-ease-out);
+  pointer-events: none;
+}
+
+.card-delete-button-confirm {
+  color: #ffffff;
+  border-color: rgba(160, 23, 30, 0.5);
+}
+
+.card-delete-button-confirm::before {
+  opacity: 1;
+}
+
+.card-delete-button-confirm .card-delete-button-label {
+  color: #ffffff;
+}
+
+.card-delete-button-label {
+  position: relative;
+  z-index: 1;
+  color: inherit;
+  transition: color var(--motion-duration-in) var(--motion-ease-out);
 }
 
 @keyframes dashboard-card-select-flip {
