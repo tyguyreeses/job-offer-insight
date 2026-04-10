@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 
 import { fetchOffers } from "../services/offersApi";
 import type { OfferSortBy, OfferSummaryPayload, SortDirection } from "../types/offers";
@@ -179,6 +179,16 @@ export function DashboardPage(): JSX.Element {
     });
   };
 
+  const handleCardKeyDown = (
+    event: KeyboardEvent<HTMLElement>,
+    offerId: string
+  ): void => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleToggleSelection(offerId);
+    }
+  };
+
   return (
     <main className="main-panel dashboard-panel">
       <h1 className="main-title dashboard-title">Dashboard</h1>
@@ -219,7 +229,17 @@ export function DashboardPage(): JSX.Element {
           return (
             <article
               key={offer.id}
-              className={isSelected ? "dashboard-card dashboard-card-selected" : "dashboard-card"}
+              className={
+                isSelected
+                  ? "dashboard-card dashboard-card-selected selectable"
+                  : "dashboard-card selectable"
+              }
+              role="button"
+              tabIndex={0}
+              aria-pressed={isSelected}
+              data-testid={`offer-card-${offer.id}`}
+              onClick={() => handleToggleSelection(offer.id)}
+              onKeyDown={(event) => handleCardKeyDown(event, offer.id)}
             >
               <h2 className="dashboard-card-company">{offer.company_name}</h2>
               <p className="dashboard-card-role">{offer.role_title}</p>
@@ -260,15 +280,6 @@ export function DashboardPage(): JSX.Element {
                 </section>
               ) : null}
 
-              <button
-                type="button"
-                className="secondary-button selectable dashboard-select-button"
-                aria-label={`Select ${offer.company_name}`}
-                aria-pressed={isSelected}
-                onClick={() => handleToggleSelection(offer.id)}
-              >
-                {isSelected ? "Selected" : "Select"}
-              </button>
             </article>
           );
         })}

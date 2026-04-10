@@ -110,9 +110,9 @@ describe("DashboardPage", () => {
     render(<DashboardPage />);
     await screen.findByText("Zenith Labs");
 
-    const first = screen.getByRole("button", { name: "Select Zenith Labs" });
-    const second = screen.getByRole("button", { name: "Select Beacon Cloud" });
-    const third = screen.getByRole("button", { name: "Select Atlas Systems" });
+    const first = screen.getByTestId("offer-card-offer-3");
+    const second = screen.getByTestId("offer-card-offer-2");
+    const third = screen.getByTestId("offer-card-offer-1");
 
     fireEvent.click(first);
     fireEvent.click(second);
