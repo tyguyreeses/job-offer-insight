@@ -18,6 +18,19 @@ const mockedSendTextTurn = vi.mocked(sendTextTurn);
 const mockedSendAudioTurn = vi.mocked(sendAudioTurn);
 const mockedCreateBrowserAudioRecorder = vi.mocked(createBrowserAudioRecorder);
 
+const inProgressResponse = {
+  session_id: "session-1",
+  status: "in_progress" as const,
+  assistant_message: "Please share the remaining required information: company_name.",
+  step: "collect_required" as const,
+  can_finish: false,
+  missing_required_fields: ["company_name"],
+  current_prompt_key: "required_fields_bundle",
+  errors: [],
+  warnings: [],
+  offer: null
+};
+
 describe("AddEntryPage", () => {
   beforeEach(() => {
     mockedSendTextTurn.mockReset();
@@ -43,19 +56,8 @@ describe("AddEntryPage", () => {
     });
   });
 
-  it("shows assistant message above input after submit", async () => {
-    mockedSendTextTurn.mockResolvedValueOnce({
-      session_id: "session-1",
-      status: "in_progress",
-      assistant_message: "Please share the remaining required information: company_name.",
-      step: "collect_required",
-      can_finish: false,
-      missing_required_fields: ["company_name"],
-      current_prompt_key: "required_fields_bundle",
-      errors: [],
-      warnings: [],
-      offer: null
-    });
+  it("shows assistant message above text input after submit", async () => {
+    mockedSendTextTurn.mockResolvedValueOnce(inProgressResponse);
 
     render(<AddEntryPage />);
     fireEvent.click(screen.getByRole("button", { name: "Text" }));
@@ -78,18 +80,23 @@ describe("AddEntryPage", () => {
     });
   });
 
-  it("transitions from mode buttons to audio recorder controls", async () => {
+  it("fades text button, centers audio button, and relabels it to Record", async () => {
     render(<AddEntryPage />);
 
     fireEvent.click(screen.getByRole("button", { name: "Audio" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Start Recording" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Stop Recording" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Record" })).toBeInTheDocument();
     });
+
+    const textButton = screen.getByRole("button", { name: "Text" });
+    const recordButton = screen.getByRole("button", { name: "Record" });
+
+    expect(textButton).toHaveClass("audio-text-fade");
+    expect(recordButton).toHaveClass("audio-main-centered");
   });
 
-  it("shows recording indicator while audio capture is running", async () => {
+  it("changes Record to Stop with label transition and recording pulse", async () => {
     mockedCreateBrowserAudioRecorder.mockResolvedValue({
       start: vi.fn().mockResolvedValue(undefined),
       stop: vi.fn().mockResolvedValue(new Blob(["audio"], { type: "audio/webm" }))
@@ -98,56 +105,118 @@ describe("AddEntryPage", () => {
     render(<AddEntryPage />);
 
     fireEvent.click(screen.getByRole("button", { name: "Audio" }));
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Start Recording" })).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Start Recording" }));
+
+    const recordButton = await screen.findByRole("button", { name: "Record" });
+    fireEvent.click(recordButton);
 
     await waitFor(() => {
-      expect(screen.getByText("Recording...")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Stop" })).toBeInTheDocument();
     });
+
+    const stopButton = screen.getByRole("button", { name: "Stop" });
+    expect(stopButton).toHaveClass("audio-main-recording");
+
+    const stopLabel = screen.getByText("Stop");
+    expect(stopLabel).toHaveClass("audio-main-label-fade-in");
   });
 
-  it("submits recorded audio and shows assistant message", async () => {
+  it("auto-submits audio when Stop is clicked", async () => {
     mockedCreateBrowserAudioRecorder.mockResolvedValue({
       start: vi.fn().mockResolvedValue(undefined),
       stop: vi.fn().mockResolvedValue(new Blob(["audio"], { type: "audio/webm" }))
     });
-    mockedSendAudioTurn.mockResolvedValueOnce({
-      session_id: "audio-session-1",
-      status: "in_progress",
-      assistant_message: "Please share the remaining required information: company_name.",
-      step: "collect_required",
-      can_finish: false,
-      missing_required_fields: ["company_name"],
-      current_prompt_key: "required_fields_bundle",
-      errors: [],
-      warnings: [],
-      offer: null
-    });
+    mockedSendAudioTurn.mockResolvedValueOnce(inProgressResponse);
 
     render(<AddEntryPage />);
+
     fireEvent.click(screen.getByRole("button", { name: "Audio" }));
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Start Recording" })).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Start Recording" }));
-    await waitFor(() => {
-      expect(screen.getByText("Recording...")).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Stop Recording" }));
+
+    fireEvent.click(await screen.findByRole("button", { name: "Record" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Recording captured and ready to submit.")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Stop" })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Stop" }));
 
     await waitFor(() => {
       expect(mockedSendAudioTurn).toHaveBeenCalledTimes(1);
       expect(
         screen.getByText("Please share the remaining required information: company_name.")
       ).toBeInTheDocument();
+    });
+
+    const requestPayload = mockedSendAudioTurn.mock.calls[0][0];
+    expect(requestPayload.get("action")).toBe("submit");
+  });
+
+  it("shows Processing while auto-submit is in flight and disables the centered button", async () => {
+    mockedCreateBrowserAudioRecorder.mockResolvedValue({
+      start: vi.fn().mockResolvedValue(undefined),
+      stop: vi.fn().mockResolvedValue(new Blob(["audio"], { type: "audio/webm" }))
+    });
+
+    const resolveRequestRef: { current: ((value: typeof inProgressResponse) => void) | null } = {
+      current: null
+    };
+    mockedSendAudioTurn.mockImplementation(
+      () =>
+        new Promise<typeof inProgressResponse>((resolve) => {
+          resolveRequestRef.current = resolve;
+        })
+    );
+
+    render(<AddEntryPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Audio" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Record" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Stop" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop" }));
+
+    const processingButton = await screen.findByRole("button", { name: "Processing..." });
+    expect(processingButton).toBeDisabled();
+
+    if (resolveRequestRef.current !== null) {
+      resolveRequestRef.current(inProgressResponse);
+    }
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Record" })).toBeInTheDocument();
+    });
+  });
+
+  it("shows Retry after auto-submit failure and retries with one tap", async () => {
+    mockedCreateBrowserAudioRecorder.mockResolvedValue({
+      start: vi.fn().mockResolvedValue(undefined),
+      stop: vi.fn().mockResolvedValue(new Blob(["audio"], { type: "audio/webm" }))
+    });
+
+    mockedSendAudioTurn
+      .mockRejectedValueOnce(new Error("Network error"))
+      .mockResolvedValueOnce(inProgressResponse);
+
+    render(<AddEntryPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Audio" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Record" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Stop" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop" }));
+
+    const retryButton = await screen.findByRole("button", { name: "Retry" });
+    expect(retryButton).toBeInTheDocument();
+
+    fireEvent.click(retryButton);
+
+    await waitFor(() => {
+      expect(mockedSendAudioTurn).toHaveBeenCalledTimes(2);
+      expect(screen.getByRole("button", { name: "Record" })).toBeInTheDocument();
     });
   });
 
@@ -156,11 +225,10 @@ describe("AddEntryPage", () => {
 
     render(<AddEntryPage />);
     fireEvent.click(screen.getByRole("button", { name: "Audio" }));
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Start Recording" })).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Start Recording" }));
-    fireEvent.click(screen.getByRole("button", { name: "Start Recording" }));
+
+    const recordButton = await screen.findByRole("button", { name: "Record" });
+    fireEvent.click(recordButton);
+    fireEvent.click(recordButton);
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Switch to Text Input" })).toBeInTheDocument();

@@ -92,11 +92,21 @@ If user note exists, it is displayed below all other comparison page content.
    - Text input
 3. Main entry controls appear as two large, centered round buttons.
 4. On text-mode selection, mode buttons fade out and text input fades in.
-5. Assistant follow-up messages fade in above the text box.
-6. Under the submit control, display a notice that users can edit information later.
-7. AI extracts structured offer data.
-8. System asks clarifying follow-up questions for missing fields.
-9. User can confirm omitted fields as "not part of offer."
+5. On audio-mode selection:
+   - Text button fades away.
+   - Audio button smoothly slides to the centered position.
+   - The same button becomes the recording control with label transitions (`Audio` -> `Record` -> `Stop`).
+6. Audio recording behavior:
+   - While recording, the full button pulses red.
+   - Pressing `Stop` automatically sends the recorded audio to `POST /api/v1/offers/intake/audio` with `action=submit`.
+   - During upload/transcription, the centered button is disabled and shows processing state.
+   - If auto-submit fails, the button label switches to `Retry` and one tap retries the same captured clip.
+7. Button label changes in audio mode animate as fade-out of prior label followed by fade-in of next label.
+8. Assistant follow-up messages fade in above the input/conversation controls.
+9. Under intake action controls, display a notice that users can edit information later.
+10. AI extracts structured offer data.
+11. System asks clarifying follow-up questions for missing fields.
+12. User can confirm omitted fields as "not part of offer."
 
 ## Edit Offer Flow
 

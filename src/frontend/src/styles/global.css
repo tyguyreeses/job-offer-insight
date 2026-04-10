@@ -87,6 +87,7 @@ body {
 .mode-switcher {
   display: flex;
   gap: 1.25rem;
+  align-items: center;
 }
 
 .mode-button {
@@ -170,19 +171,10 @@ body {
   height: 0.55rem;
   border-radius: 50%;
   background: #d3292f;
-  animation: recording-pulse 1100ms ease-in-out infinite;
-}
-
-@keyframes recording-pulse {
-  0%,
-  100% {
-    opacity: 0.45;
-    transform: scale(0.9);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.05);
-  }
+  animation-name: shared-recording-pulse;
+  animation-duration: var(--motion-duration-pulse);
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
 }
 
 .action-row {
@@ -194,6 +186,74 @@ body {
 
 .switch-mode-button {
   align-self: center;
+}
+
+.audio-mode-switcher {
+  position: relative;
+  width: min(460px, 96vw);
+  justify-content: center;
+}
+
+.audio-text-fade {
+  opacity: 0;
+  transform: scale(0.98);
+  pointer-events: none;
+  transition: opacity var(--motion-duration-out) var(--motion-ease-in),
+    transform var(--motion-duration-out) var(--motion-ease-in);
+}
+
+.audio-main-button {
+  transition: transform var(--motion-duration-slide) var(--motion-ease-out),
+    background-color var(--motion-duration-in) var(--motion-ease-out),
+    color var(--motion-duration-in) var(--motion-ease-out),
+    border-color var(--motion-duration-in) var(--motion-ease-out);
+}
+
+.audio-main-active {
+  z-index: 1;
+}
+
+.audio-main-centered {
+  transform: translateX(calc(-50% - 0.625rem));
+}
+
+.audio-main-recording {
+  background: #d3292f;
+  color: #ffffff;
+  border-color: rgba(160, 23, 30, 0.5);
+}
+
+.audio-main-recording:not(:disabled) {
+  animation-name: shared-recording-pulse;
+  animation-duration: var(--motion-duration-pulse);
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}
+
+.audio-main-processing {
+  opacity: 0.8;
+}
+
+.audio-main-label {
+  display: inline-block;
+}
+
+.audio-main-label-fade-out {
+  animation-name: shared-label-fade-out;
+  animation-duration: var(--motion-duration-label-out);
+  animation-timing-function: var(--motion-ease-in);
+  animation-fill-mode: both;
+}
+
+.audio-main-label-fade-in {
+  animation-name: shared-label-fade-in;
+  animation-duration: var(--motion-duration-label-in);
+  animation-timing-function: var(--motion-ease-out);
+  animation-fill-mode: both;
+}
+
+.audio-conversation-panel {
+  max-width: 620px;
 }
 
 .action-button,
@@ -238,6 +298,11 @@ body {
 .selectable:focus-visible {
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.95), 0 0 16px var(--color-hover-glow);
   transform: translateY(-1px);
+}
+
+.audio-main-centered.selectable:hover,
+.audio-main-centered.selectable:focus-visible {
+  transform: translateX(calc(-50% - 0.625rem)) translateY(-1px);
 }
 
 @media (max-width: 720px) {

@@ -20,6 +20,10 @@
   --motion-duration-in: 220ms;
   --motion-duration-out: 180ms;
   --motion-duration-message: 200ms;
+  --motion-duration-label-out: 120ms;
+  --motion-duration-label-in: 140ms;
+  --motion-duration-slide: 280ms;
+  --motion-duration-pulse: 1100ms;
   --motion-ease-in: ease-in;
   --motion-ease-out: ease-out;
 }
