@@ -74,6 +74,7 @@ If user note exists, it is displayed below all other comparison page content.
 3. Selectable interactive elements use a soft blue glow hover effect.
 4. Loading/reveal motion uses smooth fades with staged sequencing (top-to-bottom and left-to-right).
 5. Navbar styling should present an elegant, clean, minimal look across routes.
+6. Dashboard offer cards must follow end-goal styling intent: clean/minimal presentation, consistent card sizing, clear section separation, and readable vertical content rhythm.
 
 ## Navbar Behavior
 
@@ -107,6 +108,7 @@ If user note exists, it is displayed below all other comparison page content.
 10. AI extracts structured offer data.
 11. System asks clarifying follow-up questions for missing fields.
 12. User can confirm omitted fields as "not part of offer."
+13. After a successful save (from `Finish` button or equivalent agent-tool submit), the UI automatically navigates to `Dashboard`.
 
 ## Edit Offer Flow
 
@@ -117,13 +119,23 @@ If user note exists, it is displayed below all other comparison page content.
 ## Dashboard Page
 
 1. Shows offer cards in horizontal side-scroll layout.
-2. Cards can be sorted by changeable option.
-3. Card vertical display order:
+2. Default ordering is date-based left-to-right (newest first unless changed by user).
+3. Dashboard includes a visible `Sort by` dropdown to change ordering.
+4. Cards can be sorted by changeable option selected from `Sort by`.
+5. Card vertical display order:
    - Salary
    - Monetary benefits
    - Non-monetary benefits (AI bullet-point summary, generated once then stored)
    - Date created (`mm-dd-yyyy`)
-4. Compare selection rules:
+6. Card styling and formatting should align to end-goal decisions:
+   - clean/minimal visual style
+   - side-by-side cards with horizontal scroll emphasis
+   - clear section formatting for salary, monetary, non-monetary, and date blocks
+   - soft blue glow on selectable/interactive elements
+7. Optional-field display rule:
+   - optional fields that are blank/omitted are not rendered on the card at all
+   - do not display placeholder values such as `None`, `null`, `N/A`, or "missing"
+8. Compare selection rules:
    - Maximum two selected cards
    - On selecting a third card, earliest selected card is automatically deselected
 
@@ -168,6 +180,7 @@ Endpoint paths may evolve, but external behavior must remain equivalent.
 8. Retrieve offer list and single offer details.
 9. Update offer by ID via structured form payload.
 10. During conversational turns, the entry-creation agent may trigger the same save flow as `action=finish` by calling its configured `submit_entry` tool when the user indicates they are done.
+11. Successful save completion (including chat-agent-triggered submit) returns/propagates enough outcome state for the frontend to route to Dashboard.
 
 ### Comparison
 
