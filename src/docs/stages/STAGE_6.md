@@ -2,11 +2,11 @@
 
 ## Metadata
 - Stage ID: `6`
-- Status: `Not Started`
-- Completed: `false`
-- Started On: ``
-- Completed On: ``
-- Branch: ``
+- Status: `Completed`
+- Completed: `true`
+- Started On: `2026-04-10`
+- Completed On: `2026-04-10`
+- Branch: `stage_6`
 - Depends On: `Stage 5.1`
 - Primary Docs: `src/docs/application_interface.md`, `end-goal.md`
 
@@ -33,27 +33,27 @@ Implement dashboard presentation, post-intake dashboard routing, and enforce the
 - Offer retrieval APIs available
 
 ## Implementation Checklist
-- [ ] Route to Dashboard automatically after successful intake save (`Finish` or chat-agent tool submit)
-- [ ] Implement dashboard page shell and card grid/scroll behavior
-- [ ] Implement card display fields in specified order
-- [ ] Implement `Sort by` dropdown and backend/frontend sort integration
-- [ ] Set and test default sort order (left-to-right by date)
-- [ ] Ensure optional blank fields are not rendered on cards
-- [ ] Implement card selection state with oldest-deselect rule
-- [ ] Render non-monetary stored bullet summary on cards
+- [x] Route to Dashboard automatically after successful intake save (`Finish` or chat-agent tool submit)
+- [x] Implement dashboard page shell and card grid/scroll behavior
+- [x] Implement card display fields in specified order
+- [x] Implement `Sort by` dropdown and backend/frontend sort integration
+- [x] Set and test default sort order (left-to-right by date)
+- [x] Ensure optional blank fields are not rendered on cards
+- [x] Implement card selection state with oldest-deselect rule
+- [x] Render non-monetary stored bullet summary on cards
 
 ## Deliverables
 - Dashboard with browse/sort/select behavior per contract
 - Successful intake save transitions user directly to Dashboard to view new + prior entries
 
 ## Test Gate
-- [ ] Successful save via `Finish` button redirects to Dashboard
-- [ ] Successful save via chat-agent submit tool redirects to Dashboard
-- [ ] Card display ordering test
-- [ ] Default date sort (left-to-right) test
-- [ ] `Sort by` dropdown behavior test
-- [ ] Optional blank fields hidden test (no `None`/`null`/`N/A` rendering)
-- [ ] Selection cap test (third selection deselects first)
+- [x] Successful save via `Finish` button redirects to Dashboard
+- [x] Successful save via chat-agent submit tool redirects to Dashboard
+- [x] Card display ordering test
+- [x] Default date sort (left-to-right) test
+- [x] `Sort by` dropdown behavior test
+- [x] Optional blank fields hidden test (no `None`/`null`/`N/A` rendering)
+- [x] Selection cap test (third selection deselects first)
 
 ## Exit Criteria
 - Dashboard behavior is contract-complete

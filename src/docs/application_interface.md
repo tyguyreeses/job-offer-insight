@@ -178,6 +178,9 @@ Endpoint paths may evolve, but external behavior must remain equivalent.
 6. Audio transcription failures are returned as observable conversational status `transcription_failed`.
 7. Save accepted blanks as omitted fields.
 8. Retrieve offer list and single offer details.
+   - `GET /api/v1/offers` supports sort controls:
+     - `sort_by`: `created_at | company_name | role_title` (default `created_at`)
+     - `sort_direction`: `asc | desc` (default `desc`)
 9. Update offer by ID via structured form payload.
 10. During conversational turns, the entry-creation agent may trigger the same save flow as `action=finish` by calling its configured `submit_entry` tool when the user indicates they are done.
 11. Successful save completion (including chat-agent-triggered submit) returns/propagates enough outcome state for the frontend to route to Dashboard.
