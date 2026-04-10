@@ -69,5 +69,5 @@ class ConfiguredAudioTranscriber:
         if transcript == "":
             raise AudioTranscriptionError("No transcript text was returned for this audio input.")
 
-        logger.debug("Transcription complete for filename=%s", filename)
+        logger.debug("Transcription complete: %s", transcript)
         return transcript
