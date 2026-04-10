@@ -138,6 +138,10 @@ If user note exists, it is displayed below all other comparison page content.
 8. Compare selection rules:
    - Maximum two selected cards
    - On selecting a third card, earliest selected card is automatically deselected
+9. Selected-card quick actions:
+   - When a card is selected/highlighted, show `Edit` and `Delete` actions on the card
+   - `Delete` uses a two-step confirm interaction (`Delete` -> `Confirm`) before removal
+   - On confirmed delete, remove the offer from persistence and the dashboard list
 
 ## Compare Page
 
@@ -182,8 +186,9 @@ Endpoint paths may evolve, but external behavior must remain equivalent.
      - `sort_by`: `created_at | company_name | role_title` (default `created_at`)
      - `sort_direction`: `asc | desc` (default `desc`)
 9. Update offer by ID via structured form payload.
-10. During conversational turns, the entry-creation agent may trigger the same save flow as `action=finish` by calling its configured `submit_entry` tool when the user indicates they are done.
-11. Successful save completion (including chat-agent-triggered submit) returns/propagates enough outcome state for the frontend to route to Dashboard.
+10. Delete offer by ID via `DELETE /api/v1/offers/{offer_id}`.
+11. During conversational turns, the entry-creation agent may trigger the same save flow as `action=finish` by calling its configured `submit_entry` tool when the user indicates they are done.
+12. Successful save completion (including chat-agent-triggered submit) returns/propagates enough outcome state for the frontend to route to Dashboard.
 
 ### Comparison
 

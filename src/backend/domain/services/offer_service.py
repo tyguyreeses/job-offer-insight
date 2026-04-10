@@ -939,6 +939,9 @@ class Stage4OfferService:
     def get_offer(self, offer_id: str) -> OfferRecord | None:
         return self.offer_repository.get_by_id(offer_id)
 
+    def delete_offer(self, offer_id: str) -> bool:
+        return self.offer_repository.delete(offer_id)
+
     def update_offer(self, *, offer_id: str, payload: dict[str, Any]) -> IntakeResult:
         normalized_payload = dict(payload)
         _normalize_compensation(normalized_payload)

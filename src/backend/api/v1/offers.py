@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
 from pydantic import BaseModel, Field, model_validator
 
 from ...dependencies import get_offer_service
@@ -186,3 +186,11 @@ def update_offer(
         missing_field_prompts=[MissingFieldPromptResponse(**prompt.__dict__) for prompt in result.missing_field_prompts],
         offer=offer_payload,
     )
+
+
+@router.delete("/{offer_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
+def delete_offer(offer_id: str, offer_service: OfferService = Depends(get_offer_service)) -> Response:
+    deleted = offer_service.delete_offer(offer_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Offer not found: {offer_id}")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

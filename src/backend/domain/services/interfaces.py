@@ -49,6 +49,9 @@ class OfferService(Protocol):
     def get_offer(self, offer_id: str) -> OfferRecord | None:
         """Return one saved offer."""
 
+    def delete_offer(self, offer_id: str) -> bool:
+        """Delete one saved offer and return whether it existed."""
+
     def update_offer(self, *, offer_id: str, payload: dict[str, Any]) -> IntakeResult:
         """Update one offer and return save/blocked outcomes."""
 
