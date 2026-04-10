@@ -1,16 +1,18 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { vi } from "vitest";
 
-import { deleteOffer, fetchOffers } from "../services/offersApi";
+import { createDemoOffers, deleteOffer, fetchOffers } from "../services/offersApi";
 import { DashboardPage } from "./DashboardPage";
 
 vi.mock("../services/offersApi", () => ({
   fetchOffers: vi.fn(),
-  deleteOffer: vi.fn()
+  deleteOffer: vi.fn(),
+  createDemoOffers: vi.fn()
 }));
 
 const mockedFetchOffers = vi.mocked(fetchOffers);
 const mockedDeleteOffer = vi.mocked(deleteOffer);
+const mockedCreateDemoOffers = vi.mocked(createDemoOffers);
 
 const defaultOffers = [
   {
@@ -53,6 +55,7 @@ describe("DashboardPage", () => {
   beforeEach(() => {
     mockedFetchOffers.mockReset();
     mockedDeleteOffer.mockReset();
+    mockedCreateDemoOffers.mockReset();
   });
 
   it("loads with default newest-first sort and renders cards left-to-right", async () => {
@@ -166,6 +169,26 @@ describe("DashboardPage", () => {
 
     await waitFor(() => {
       expect(screen.queryByText("Zenith Labs")).not.toBeInTheDocument();
+    });
+  });
+
+  it("creates demo offers from debug button and refreshes the dashboard list", async () => {
+    mockedFetchOffers.mockResolvedValueOnce({ offers: defaultOffers });
+    mockedCreateDemoOffers.mockResolvedValueOnce();
+    mockedFetchOffers.mockResolvedValueOnce({ offers: [...defaultOffers, defaultOffers[0]] });
+
+    render(<DashboardPage />);
+    await screen.findByText("Zenith Labs");
+
+    fireEvent.click(screen.getByRole("button", { name: "Create Demo Offers" }));
+
+    await waitFor(() => {
+      expect(mockedCreateDemoOffers).toHaveBeenCalledTimes(1);
+      expect(mockedFetchOffers).toHaveBeenCalledTimes(2);
+      expect(mockedFetchOffers).toHaveBeenLastCalledWith({
+        sortBy: "created_at",
+        sortDirection: "desc"
+      });
     });
   });
 });

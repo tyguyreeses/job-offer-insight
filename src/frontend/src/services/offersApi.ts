@@ -60,3 +60,12 @@ export async function deleteOffer(offerId: string): Promise<void> {
     throw new Error(`Delete offer request failed with status ${response.status}`);
   }
 }
+
+export async function createDemoOffers(): Promise<void> {
+  const response = await fetch("/api/v1/offers/debug/demo-seed", {
+    method: "POST"
+  });
+  if (!response.ok) {
+    throw new Error(`Demo offer seed request failed with status ${response.status}`);
+  }
+}

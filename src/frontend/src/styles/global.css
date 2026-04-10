@@ -90,6 +90,7 @@ body {
 .dashboard-toolbar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.8rem;
 }
 
@@ -105,6 +106,10 @@ body {
   font-family: var(--font-body);
   font-size: 0.95rem;
   padding: 0.5rem 0.75rem;
+}
+
+.dashboard-debug-button {
+  white-space: nowrap;
 }
 
 .dashboard-status {

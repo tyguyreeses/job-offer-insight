@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
-import { deleteOffer, fetchOffers } from "../services/offersApi";
+import { createDemoOffers, deleteOffer, fetchOffers } from "../services/offersApi";
 import type { OfferSortBy, OfferSummaryPayload, SortDirection } from "../types/offers";
 
 interface SortOption {
@@ -129,6 +129,7 @@ export function DashboardPage(): JSX.Element {
 
   const [offers, setOffers] = useState<OfferSummaryPayload[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSeedingDemo, setIsSeedingDemo] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [sortSelection, setSortSelection] = useState(SORT_OPTIONS[0].label);
   const [selectedOfferIds, setSelectedOfferIds] = useState<string[]>([]);
@@ -238,6 +239,23 @@ export function DashboardPage(): JSX.Element {
     }
   };
 
+  const handleCreateDemoOffers = async (): Promise<void> => {
+    setIsSeedingDemo(true);
+    setErrorText(null);
+    try {
+      await createDemoOffers();
+      const refreshed = await fetchOffers({
+        sortBy: selectedSort.sortBy,
+        sortDirection: selectedSort.sortDirection,
+      });
+      setOffers(refreshed.offers);
+    } catch (error: unknown) {
+      setErrorText(error instanceof Error ? error.message : "Unable to create demo offers.");
+    } finally {
+      setIsSeedingDemo(false);
+    }
+  };
+
   useEffect(() => {
     return () => {
       const timeoutIds = Object.values(animationTimeoutRef.current);
@@ -281,6 +299,16 @@ export function DashboardPage(): JSX.Element {
             </option>
           ))}
         </select>
+        <button
+          type="button"
+          className="secondary-button selectable dashboard-debug-button"
+          onClick={() => {
+            void handleCreateDemoOffers();
+          }}
+          disabled={isLoading || isSeedingDemo}
+        >
+          {isSeedingDemo ? "Creating..." : "Create Demo Offers"}
+        </button>
       </section>
 
       {isLoading ? <p className="dashboard-status">Loading offers...</p> : null}
