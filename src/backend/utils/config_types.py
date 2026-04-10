@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class AppSection(BaseModel):
@@ -84,6 +84,145 @@ class AgentsSection(BaseModel):
     parse_entry: AgentConfig
 
 
+class OfferSchemaIdentitySection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    company_name_path: str = Field(default="company_name", min_length=1)
+    role_title_path: str = Field(default="role_title", min_length=1)
+
+
+class OfferSchemaRequiredSection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    all_of: list[str] = Field(default_factory=list)
+    one_of: list[list[str]] = Field(default_factory=list)
+
+
+class OfferSchemaCardSection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    section_id: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+
+
+class OfferSchemaEditSection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    section_id: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+
+
+class OfferSchemaFieldCard(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    visible: bool = True
+    section_id: str = Field(min_length=1)
+    order: int = Field(default=0)
+    style: Literal["value", "labeled_value", "list"] = "labeled_value"
+
+
+class OfferSchemaFieldEdit(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    visible: bool = True
+    section_id: str = Field(min_length=1)
+    order: int = Field(default=0)
+    widget: Literal["text", "number", "textarea", "textarea_list"] = "text"
+
+
+class OfferSchemaField(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(min_length=1)
+    label: str = Field(min_length=1)
+    description: str = ""
+    storage_path: str = Field(min_length=1)
+    data_type: Literal["string", "number", "integer", "list_string"]
+    group: Literal["core", "compensation", "monetary", "non_monetary", "meta"]
+    required: bool = False
+    default_when_omitted: Any = None
+    card: OfferSchemaFieldCard
+    edit: OfferSchemaFieldEdit
+
+    @model_validator(mode="after")
+    def validate_defaults_match_type(self) -> "OfferSchemaField":
+        if self.default_when_omitted is None:
+            return self
+        if self.data_type == "string" and not isinstance(self.default_when_omitted, str):
+            raise ValueError("default_when_omitted must be string for string fields")
+        if self.data_type in ("number", "integer") and not isinstance(
+            self.default_when_omitted, (int, float)
+        ):
+            raise ValueError("default_when_omitted must be numeric for number/integer fields")
+        if self.data_type == "list_string":
+            if not isinstance(self.default_when_omitted, list) or any(
+                not isinstance(item, str) for item in self.default_when_omitted
+            ):
+                raise ValueError("default_when_omitted must be list[str] for list_string fields")
+        return self
+
+
+class OfferSchemaMigrationRule(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    from_path: str = Field(min_length=1)
+    to_path: str = Field(min_length=1)
+
+
+class OfferSchemaMigration(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    from_version: int = Field(ge=1)
+    rules: list[OfferSchemaMigrationRule] = Field(default_factory=list)
+
+
+class OfferSchemaSection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    version: int = Field(default=1, ge=1)
+    identity: OfferSchemaIdentitySection
+    required: OfferSchemaRequiredSection
+    card_sections: list[OfferSchemaCardSection]
+    edit_sections: list[OfferSchemaEditSection]
+    fields: list[OfferSchemaField]
+    migrations: list[OfferSchemaMigration] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_unique_field_ids_and_paths(self) -> "OfferSchemaSection":
+        field_ids = [field.id for field in self.fields]
+        if len(field_ids) != len(set(field_ids)):
+            raise ValueError("offer_schema.fields contains duplicate field ids")
+
+        storage_paths = [field.storage_path for field in self.fields]
+        if len(storage_paths) != len(set(storage_paths)):
+            raise ValueError("offer_schema.fields contains duplicate storage_path values")
+
+        card_ids = {section.section_id for section in self.card_sections}
+        edit_ids = {section.section_id for section in self.edit_sections}
+        for field in self.fields:
+            if field.card.section_id not in card_ids:
+                raise ValueError(
+                    f"Field '{field.id}' references unknown card section '{field.card.section_id}'"
+                )
+            if field.edit.section_id not in edit_ids:
+                raise ValueError(
+                    f"Field '{field.id}' references unknown edit section '{field.edit.section_id}'"
+                )
+
+        known_ids = set(field_ids)
+        for field_id in self.required.all_of:
+            if field_id not in known_ids:
+                raise ValueError(f"required.all_of references unknown field id: {field_id}")
+        for group in self.required.one_of:
+            if not group:
+                raise ValueError("required.one_of groups may not be empty")
+            for field_id in group:
+                if field_id not in known_ids:
+                    raise ValueError(f"required.one_of references unknown field id: {field_id}")
+
+        return self
+
+
 class RuntimeConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -93,3 +232,4 @@ class RuntimeConfig(BaseModel):
     openai: OpenAISection
     workflow: WorkflowSection
     agents: AgentsSection
+    offer_schema: OfferSchemaSection

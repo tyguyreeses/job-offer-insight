@@ -51,6 +51,10 @@ class OfferIntakeResponse(BaseModel):
     offer: dict[str, Any] | None
 
 
+class OfferSchemaResponse(BaseModel):
+    offer_schema: dict[str, Any]
+
+
 class TextConversationResponse(BaseModel):
     class ConversationMessageResponse(BaseModel):
         role: Literal["user", "assistant"]
@@ -161,6 +165,11 @@ def list_offers(
 def seed_demo_offers(offer_service: OfferService = Depends(get_offer_service)) -> OfferListResponse:
     created = [offer_service.render_offer_payload(record) for record in offer_service.seed_demo_offers()]
     return OfferListResponse(offers=created)
+
+
+@router.get("/schema", response_model=OfferSchemaResponse)
+def get_offer_schema(offer_service: OfferService = Depends(get_offer_service)) -> OfferSchemaResponse:
+    return OfferSchemaResponse(offer_schema=offer_service.get_offer_schema())
 
 
 @router.get("/{offer_id}", response_model=OfferResponse)

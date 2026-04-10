@@ -61,6 +61,9 @@ class OfferService(Protocol):
     def render_offer_payload(self, record: OfferRecord) -> dict[str, Any]:
         """Return API-shaped payload for one offer record."""
 
+    def get_offer_schema(self) -> dict[str, Any]:
+        """Return the normalized config-driven offer schema contract."""
+
 
 class ComparisonService(Protocol):
     """Contract for comparison-focused orchestration behavior."""

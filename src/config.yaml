@@ -48,3 +48,461 @@ agents:
     model: "gpt-5-mini"
     max_output_tokens: 1200
     prompt: "extract_offer.md"
+
+offer_schema:
+  version: 1
+  identity:
+    company_name_path: "company_name"
+    role_title_path: "role_title"
+  required:
+    all_of: ["company-name", "role-title", "location"]
+    one_of:
+      - ["annual-base-salary-usd"]
+      - ["hourly-rate-usd", "hours-per-week"]
+  card_sections:
+    - section_id: "salary"
+      title: "Salary"
+    - section_id: "monetary"
+      title: "Monetary benefits"
+    - section_id: "non_monetary"
+      title: "Non-monetary benefits"
+    - section_id: "meta"
+      title: "Date created"
+  edit_sections:
+    - section_id: "core"
+      title: "Core details"
+    - section_id: "compensation"
+      title: "Compensation"
+    - section_id: "monetary"
+      title: "Monetary benefits"
+    - section_id: "non_monetary"
+      title: "Non-monetary benefits"
+  fields:
+    - id: "company-name"
+      label: "Company name"
+      storage_path: "company_name"
+      data_type: "string"
+      group: "core"
+      required: true
+      default_when_omitted: ""
+      card:
+        visible: false
+        section_id: "salary"
+        order: 0
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "core"
+        order: 1
+        widget: "text"
+    - id: "role-title"
+      label: "Role title"
+      storage_path: "role_title"
+      data_type: "string"
+      group: "core"
+      required: true
+      default_when_omitted: ""
+      card:
+        visible: false
+        section_id: "salary"
+        order: 0
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "core"
+        order: 2
+        widget: "text"
+    - id: "location"
+      label: "Location"
+      storage_path: "location"
+      data_type: "string"
+      group: "core"
+      required: true
+      default_when_omitted: ""
+      card:
+        visible: false
+        section_id: "salary"
+        order: 0
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "core"
+        order: 3
+        widget: "text"
+    - id: "employment-type"
+      label: "Employment type"
+      storage_path: "employment_type"
+      data_type: "string"
+      group: "core"
+      default_when_omitted: ""
+      card:
+        visible: false
+        section_id: "salary"
+        order: 0
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "core"
+        order: 4
+        widget: "text"
+    - id: "work-model"
+      label: "Work model"
+      storage_path: "work_model"
+      data_type: "string"
+      group: "core"
+      default_when_omitted: ""
+      card:
+        visible: false
+        section_id: "salary"
+        order: 0
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "core"
+        order: 5
+        widget: "text"
+
+    - id: "annual-base-salary-usd"
+      label: "Annual base salary (USD)"
+      storage_path: "compensation.annual_base_salary_usd"
+      data_type: "number"
+      group: "compensation"
+      card:
+        visible: true
+        section_id: "salary"
+        order: 1
+        style: "value"
+      edit:
+        visible: true
+        section_id: "compensation"
+        order: 1
+        widget: "number"
+    - id: "hourly-rate-usd"
+      label: "Hourly rate (USD)"
+      storage_path: "compensation.hourly_rate_usd"
+      data_type: "number"
+      group: "compensation"
+      card:
+        visible: true
+        section_id: "salary"
+        order: 2
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "compensation"
+        order: 2
+        widget: "number"
+    - id: "hours-per-week"
+      label: "Hours per week"
+      storage_path: "compensation.hours_per_week"
+      data_type: "number"
+      group: "compensation"
+      card:
+        visible: true
+        section_id: "salary"
+        order: 3
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "compensation"
+        order: 3
+        widget: "number"
+    - id: "annualized-total-cash-usd"
+      label: "Annualized total cash (USD)"
+      storage_path: "compensation.annualized_total_cash_usd"
+      data_type: "number"
+      group: "compensation"
+      card:
+        visible: false
+        section_id: "salary"
+        order: 4
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "compensation"
+        order: 4
+        widget: "number"
+    - id: "signing-bonus-usd"
+      label: "Signing bonus (USD)"
+      storage_path: "compensation.signing_bonus_usd"
+      data_type: "number"
+      group: "compensation"
+      card:
+        visible: true
+        section_id: "monetary"
+        order: 1
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "compensation"
+        order: 5
+        widget: "number"
+    - id: "target-bonus-percent"
+      label: "Target bonus (%)"
+      storage_path: "compensation.target_bonus_percent"
+      data_type: "number"
+      group: "compensation"
+      card:
+        visible: true
+        section_id: "monetary"
+        order: 2
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "compensation"
+        order: 6
+        widget: "number"
+
+    - id: "retirement-match-percent"
+      label: "Retirement match (%)"
+      storage_path: "monetary_benefits.retirement_match_percent"
+      data_type: "number"
+      group: "monetary"
+      card:
+        visible: true
+        section_id: "monetary"
+        order: 3
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "monetary"
+        order: 1
+        widget: "number"
+    - id: "retirement-match-cap-usd"
+      label: "Retirement match cap (USD)"
+      storage_path: "monetary_benefits.retirement_match_cap_usd"
+      data_type: "number"
+      group: "monetary"
+      card:
+        visible: false
+        section_id: "monetary"
+        order: 4
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "monetary"
+        order: 2
+        widget: "number"
+    - id: "health-insurance-employer-monthly-usd"
+      label: "Health insurance employer monthly (USD)"
+      storage_path: "monetary_benefits.health_insurance_employer_monthly_usd"
+      data_type: "number"
+      group: "monetary"
+      card:
+        visible: true
+        section_id: "monetary"
+        order: 5
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "monetary"
+        order: 3
+        widget: "number"
+    - id: "hsa-employer-annual-usd"
+      label: "HSA employer annual (USD)"
+      storage_path: "monetary_benefits.hsa_employer_annual_usd"
+      data_type: "number"
+      group: "monetary"
+      card:
+        visible: false
+        section_id: "monetary"
+        order: 6
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "monetary"
+        order: 4
+        widget: "number"
+    - id: "equity-grant-usd"
+      label: "Equity grant value (USD)"
+      storage_path: "monetary_benefits.equity_grant_usd"
+      data_type: "number"
+      group: "monetary"
+      card:
+        visible: true
+        section_id: "monetary"
+        order: 7
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "monetary"
+        order: 5
+        widget: "number"
+    - id: "equity-vesting-schedule"
+      label: "Equity vesting schedule"
+      storage_path: "monetary_benefits.equity_vesting_schedule"
+      data_type: "string"
+      group: "monetary"
+      default_when_omitted: ""
+      card:
+        visible: false
+        section_id: "monetary"
+        order: 8
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "monetary"
+        order: 6
+        widget: "text"
+    - id: "other-monetary-benefits"
+      label: "Other monetary benefits"
+      storage_path: "monetary_benefits.other_monetary_benefits"
+      data_type: "list_string"
+      group: "monetary"
+      default_when_omitted: []
+      card:
+        visible: true
+        section_id: "monetary"
+        order: 9
+        style: "list"
+      edit:
+        visible: true
+        section_id: "monetary"
+        order: 7
+        widget: "textarea_list"
+
+    - id: "mission-alignment-notes"
+      label: "Mission alignment notes"
+      storage_path: "non_monetary_benefits.mission_alignment_notes"
+      data_type: "string"
+      group: "non_monetary"
+      default_when_omitted: ""
+      card:
+        visible: false
+        section_id: "non_monetary"
+        order: 1
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "non_monetary"
+        order: 1
+        widget: "textarea"
+    - id: "culture-notes"
+      label: "Culture notes"
+      storage_path: "non_monetary_benefits.culture_notes"
+      data_type: "string"
+      group: "non_monetary"
+      default_when_omitted: ""
+      card:
+        visible: false
+        section_id: "non_monetary"
+        order: 2
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "non_monetary"
+        order: 2
+        widget: "textarea"
+    - id: "growth-notes"
+      label: "Growth notes"
+      storage_path: "non_monetary_benefits.growth_notes"
+      data_type: "string"
+      group: "non_monetary"
+      default_when_omitted: ""
+      card:
+        visible: false
+        section_id: "non_monetary"
+        order: 3
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "non_monetary"
+        order: 3
+        widget: "textarea"
+    - id: "wellness-notes"
+      label: "Wellness notes"
+      storage_path: "non_monetary_benefits.wellness_notes"
+      data_type: "string"
+      group: "non_monetary"
+      default_when_omitted: ""
+      card:
+        visible: false
+        section_id: "non_monetary"
+        order: 4
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "non_monetary"
+        order: 4
+        widget: "textarea"
+    - id: "pto-days"
+      label: "PTO days"
+      storage_path: "non_monetary_benefits.pto_days"
+      data_type: "integer"
+      group: "non_monetary"
+      card:
+        visible: false
+        section_id: "non_monetary"
+        order: 5
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "non_monetary"
+        order: 5
+        widget: "number"
+    - id: "remote-flexibility-notes"
+      label: "Remote flexibility notes"
+      storage_path: "non_monetary_benefits.remote_flexibility_notes"
+      data_type: "string"
+      group: "non_monetary"
+      default_when_omitted: ""
+      card:
+        visible: false
+        section_id: "non_monetary"
+        order: 6
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "non_monetary"
+        order: 6
+        widget: "textarea"
+    - id: "other-non-monetary-benefits"
+      label: "Other non-monetary benefits"
+      storage_path: "non_monetary_benefits.other_non_monetary_benefits"
+      data_type: "list_string"
+      group: "non_monetary"
+      default_when_omitted: []
+      card:
+        visible: true
+        section_id: "non_monetary"
+        order: 7
+        style: "list"
+      edit:
+        visible: true
+        section_id: "non_monetary"
+        order: 7
+        widget: "textarea_list"
+    - id: "non-monetary-summary-bullets"
+      label: "Non-monetary summary bullets"
+      storage_path: "non_monetary_summary_bullets"
+      data_type: "list_string"
+      group: "non_monetary"
+      default_when_omitted: []
+      card:
+        visible: true
+        section_id: "non_monetary"
+        order: 8
+        style: "list"
+      edit:
+        visible: true
+        section_id: "non_monetary"
+        order: 8
+        widget: "textarea_list"
+
+    - id: "created-at"
+      label: "Date created"
+      storage_path: "offer_meta.created_at"
+      data_type: "string"
+      group: "meta"
+      default_when_omitted: ""
+      card:
+        visible: true
+        section_id: "meta"
+        order: 1
+        style: "value"
+      edit:
+        visible: false
+        section_id: "core"
+        order: 999
+        widget: "text"
+  migrations: []

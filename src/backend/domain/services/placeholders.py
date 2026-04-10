@@ -107,6 +107,9 @@ class UnimplementedOfferService:
         payload["role_title"] = record.role_title
         return payload
 
+    def get_offer_schema(self) -> dict[str, Any]:
+        return {}
+
 
 @dataclass(frozen=True)
 class UnimplementedComparisonService:
