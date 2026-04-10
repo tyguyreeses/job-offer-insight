@@ -406,10 +406,23 @@ body {
 }
 
 .audio-main-button {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.95);
   transition: transform var(--motion-duration-slide) var(--motion-ease-out),
     background-color var(--motion-duration-in) var(--motion-ease-out),
     color var(--motion-duration-in) var(--motion-ease-out),
     border-color var(--motion-duration-in) var(--motion-ease-out);
+}
+
+.audio-main-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #d3292f;
+  opacity: 0;
+  transition: opacity var(--motion-duration-in) var(--motion-ease-out);
+  pointer-events: none;
 }
 
 .audio-main-active {
@@ -421,9 +434,12 @@ body {
 }
 
 .audio-main-recording {
-  background: #d3292f;
   color: #ffffff;
   border-color: rgba(160, 23, 30, 0.5);
+}
+
+.audio-main-recording::before {
+  opacity: 1;
 }
 
 .audio-main-recording:not(:disabled) {
@@ -439,6 +455,8 @@ body {
 
 .audio-main-label {
   display: inline-block;
+  position: relative;
+  z-index: 1;
 }
 
 .audio-main-label-processing {
