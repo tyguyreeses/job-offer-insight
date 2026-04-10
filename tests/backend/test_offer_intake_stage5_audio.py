@@ -20,6 +20,7 @@ class DeterministicParser:
             return {
                 "company_name": "Aurora Dynamics",
                 "role_title": "ML Engineer",
+                "location": "Denver, CO",
                 "compensation": {"annual_base_salary_usd": 172000},
             }
         if text == "audio final detail":
@@ -167,6 +168,7 @@ def test_audio_finish_blocks_when_required_fields_missing(tmp_path: Path) -> Non
     assert blocked["status"] == "blocked_required_fields"
     assert blocked["step"] == "collect_required"
     assert "company_name" in blocked["missing_required_fields"]
+    assert "location" in blocked["missing_required_fields"]
 
 
 def test_audio_submit_requires_audio_file(tmp_path: Path) -> None:

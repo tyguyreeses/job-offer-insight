@@ -23,7 +23,8 @@ An offer is valid for save only if all required constraints are met:
 
 1. `company_name` (non-empty string)
 2. `role_title` (non-empty string)
-3. Base pay path:
+3. `location` (non-empty string)
+4. Base pay path:
    - either `compensation.annual_base_salary_usd`
    - or both `compensation.hourly_rate_usd` and `compensation.hours_per_week`
 

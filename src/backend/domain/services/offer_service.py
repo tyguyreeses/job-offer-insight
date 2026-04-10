@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -26,6 +27,7 @@ _REQUIRED_COMPENSATION_PATHS = (
 _REQUIRED_FIELD_PATHS = (
     "company_name",
     "role_title",
+    "location",
     *_REQUIRED_COMPENSATION_PATHS,
 )
 
@@ -179,7 +181,6 @@ def _normalize_compensation(payload: dict[str, Any]) -> None:
 
 
 _OPTIONAL_FIELD_DEFAULTS: dict[str, Any] = {
-    "location": "",
     "employment_type": "",
     "work_model": "",
     "compensation.signing_bonus_usd": None,
@@ -218,6 +219,14 @@ def _collect_missing_prompts(payload: dict[str, Any]) -> list[FieldPrompt]:
                 path="role_title",
                 required=True,
                 message="Provide role_title to save this offer.",
+            )
+        )
+    if not _is_present(payload.get("location")):
+        prompts.append(
+            FieldPrompt(
+                path="location",
+                required=True,
+                message="Provide location to save this offer.",
             )
         )
 
@@ -296,6 +305,8 @@ def _validate_required(payload: dict[str, Any]) -> list[str]:
         errors.append("company_name is required")
     if not _is_present(payload.get("role_title")):
         errors.append("role_title is required")
+    if not _is_present(payload.get("location")):
+        errors.append("location is required")
 
     annual_base = _coerce_float(_get_path(payload, "compensation.annual_base_salary_usd"))
     hourly_rate = _coerce_float(_get_path(payload, "compensation.hourly_rate_usd"))
@@ -329,6 +340,8 @@ def _missing_required_fields(payload: dict[str, Any]) -> list[str]:
         missing.append("company_name")
     if not _is_present(payload.get("role_title")):
         missing.append("role_title")
+    if not _is_present(payload.get("location")):
+        missing.append("location")
 
     annual_base = _coerce_float(_get_path(payload, "compensation.annual_base_salary_usd"))
     hourly_rate = _coerce_float(_get_path(payload, "compensation.hourly_rate_usd"))
@@ -588,6 +601,11 @@ class Stage4OfferService:
                     offer=None,
                 )
 
+            logger.debug(
+                "Final offer payload on finish for session %s:\n%s",
+                session.session_id,
+                json.dumps(session.payload, indent=2, sort_keys=True, ensure_ascii=True),
+            )
             record = self.offer_repository.create(
                 company_name=str(session.payload["company_name"]),
                 role_title=str(session.payload["role_title"]),

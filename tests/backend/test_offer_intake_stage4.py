@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -62,6 +63,7 @@ def test_conversation_starts_with_required_bundle_prompt(tmp_path: Path) -> None
     assert payload["current_prompt_key"] == "required_fields_bundle"
     assert payload["offer"] is None
     assert "company_name" in payload["missing_required_fields"]
+    assert "location" in payload["missing_required_fields"]
     assert payload["assistant_message"].startswith(
         "Please share the remaining required information:"
     )
@@ -86,6 +88,7 @@ def test_finish_is_blocked_until_required_fields_are_complete(tmp_path: Path) ->
     assert blocked["step"] == "collect_required"
     assert blocked["can_finish"] is False
     assert "company_name" in blocked["missing_required_fields"]
+    assert "location" in blocked["missing_required_fields"]
     assert blocked["assistant_message"].startswith(
         "I still need required information before saving:"
     )
@@ -155,6 +158,7 @@ def test_prompt_sequence_order_is_deterministic(tmp_path: Path) -> None:
         action="submit",
         message_text=(
             '{"company_name":"Acme Robotics","role_title":"Platform Engineer",'
+            '"location":"Austin, TX",'
             '"compensation":{"annual_base_salary_usd":150000}}'
         ),
     )
@@ -186,6 +190,7 @@ def test_typed_omission_detection_does_not_false_trigger_on_substrings(tmp_path:
         action="submit",
         message_text=(
             '{"company_name":"Acme Robotics","role_title":"Platform Engineer",'
+            '"location":"Austin, TX",'
             '"compensation":{"annual_base_salary_usd":150000}}'
         ),
     )
@@ -245,3 +250,39 @@ def test_submit_requires_message_text(tmp_path: Path) -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_finish_logs_full_payload_object_at_debug(tmp_path: Path, capsys) -> None:
+    client = _build_client(tmp_path)
+    logging.getLogger("job_offer_insight.domain.services.offer_service").setLevel(logging.DEBUG)
+
+    first = _post_text_turn(
+        client,
+        session_id=None,
+        action="submit",
+        message_text=(
+            '{"company_name":"Nimbus Health","role_title":"Backend Engineer",'
+            '"location":"Denver, CO",'
+            '"compensation":{"annual_base_salary_usd":130000}}'
+        ),
+    )
+    _post_text_turn(
+        client,
+        session_id=first["session_id"],
+        action="skip_current",
+    )
+    _post_text_turn(
+        client,
+        session_id=first["session_id"],
+        action="skip_current",
+    )
+    _post_text_turn(
+        client,
+        session_id=first["session_id"],
+        action="finish",
+    )
+    captured = capsys.readouterr()
+
+    assert "Final offer payload on finish for session" in captured.err
+    assert '"company_name": "Nimbus Health"' in captured.err
+    assert '"location": "Denver, CO"' in captured.err
