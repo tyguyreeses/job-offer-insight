@@ -88,6 +88,9 @@ class UnimplementedOfferService:
     def delete_offer(self, offer_id: str) -> bool:
         return self.offer_repository.delete(offer_id)
 
+    def seed_demo_offers(self) -> list[OfferRecord]:
+        return []
+
     def update_offer(self, *, offer_id: str, payload: dict[str, Any]) -> IntakeResult:
         return IntakeResult(
             status="not_implemented",

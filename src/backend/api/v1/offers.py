@@ -157,6 +157,12 @@ def list_offers(
     return OfferListResponse(offers=offers)
 
 
+@router.post("/debug/demo-seed", response_model=OfferListResponse)
+def seed_demo_offers(offer_service: OfferService = Depends(get_offer_service)) -> OfferListResponse:
+    created = [offer_service.render_offer_payload(record) for record in offer_service.seed_demo_offers()]
+    return OfferListResponse(offers=created)
+
+
 @router.get("/{offer_id}", response_model=OfferResponse)
 def get_offer(offer_id: str, offer_service: OfferService = Depends(get_offer_service)) -> OfferResponse:
     record = offer_service.get_offer(offer_id)

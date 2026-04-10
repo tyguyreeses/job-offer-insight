@@ -52,6 +52,9 @@ class OfferService(Protocol):
     def delete_offer(self, offer_id: str) -> bool:
         """Delete one saved offer and return whether it existed."""
 
+    def seed_demo_offers(self) -> list[OfferRecord]:
+        """Create and return demo offers for temporary debug workflows."""
+
     def update_offer(self, *, offer_id: str, payload: dict[str, Any]) -> IntakeResult:
         """Update one offer and return save/blocked outcomes."""
 

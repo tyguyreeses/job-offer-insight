@@ -142,6 +142,9 @@ If user note exists, it is displayed below all other comparison page content.
    - When a card is selected/highlighted, show `Edit` and `Delete` actions on the card
    - `Delete` uses a two-step confirm interaction (`Delete` -> `Confirm`) before removal
    - On confirmed delete, remove the offer from persistence and the dashboard list
+10. Temporary debug seeding:
+   - Dashboard includes a `Create Demo Offers` button next to `Sort by`
+   - Clicking it seeds three preset demo offers and refreshes the list using current sort
 
 ## Compare Page
 
@@ -187,8 +190,9 @@ Endpoint paths may evolve, but external behavior must remain equivalent.
      - `sort_direction`: `asc | desc` (default `desc`)
 9. Update offer by ID via structured form payload.
 10. Delete offer by ID via `DELETE /api/v1/offers/{offer_id}`.
-11. During conversational turns, the entry-creation agent may trigger the same save flow as `action=finish` by calling its configured `submit_entry` tool when the user indicates they are done.
-12. Successful save completion (including chat-agent-triggered submit) returns/propagates enough outcome state for the frontend to route to Dashboard.
+11. Seed demo offers via `POST /api/v1/offers/debug/demo-seed` (temporary debug utility).
+12. During conversational turns, the entry-creation agent may trigger the same save flow as `action=finish` by calling its configured `submit_entry` tool when the user indicates they are done.
+13. Successful save completion (including chat-agent-triggered submit) returns/propagates enough outcome state for the frontend to route to Dashboard.
 
 ### Comparison
 

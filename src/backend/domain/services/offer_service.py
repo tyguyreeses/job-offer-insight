@@ -324,6 +324,65 @@ def _record_to_payload(record: OfferRecord) -> dict[str, Any]:
     return payload
 
 
+def _demo_offer_payloads() -> list[dict[str, Any]]:
+    return [
+        {
+            "company_name": "Northstar Robotics",
+            "role_title": "Senior Software Engineer",
+            "location": "Denver, CO",
+            "compensation": {
+                "annual_base_salary_usd": 182000,
+                "signing_bonus_usd": 20000,
+                "target_bonus_percent": 12,
+            },
+            "monetary_benefits": {
+                "equity_grant_usd": 120000,
+                "retirement_match_percent": 5,
+                "health_insurance_employer_monthly_usd": 900,
+                "other_monetary_benefits": ["Home office stipend"],
+            },
+            "non_monetary_summary_bullets": ["4-day in-office flexibility", "Strong mentorship culture"],
+            "offer_meta": {"status": "active", "source_input_type": "debug_seed"},
+        },
+        {
+            "company_name": "Sierra Data Labs",
+            "role_title": "Platform Engineer II",
+            "location": "Salt Lake City, UT",
+            "compensation": {
+                "annual_base_salary_usd": 168000,
+                "signing_bonus_usd": 10000,
+                "target_bonus_percent": 10,
+            },
+            "monetary_benefits": {
+                "equity_grant_usd": 85000,
+                "retirement_match_percent": 4,
+                "health_insurance_employer_monthly_usd": 760,
+                "other_monetary_benefits": ["Annual learning budget"],
+            },
+            "non_monetary_summary_bullets": ["Remote-first team", "On-call rotation capped at 1 week/month"],
+            "offer_meta": {"status": "active", "source_input_type": "debug_seed"},
+        },
+        {
+            "company_name": "Canyon Cloud Systems",
+            "role_title": "Backend Engineer",
+            "location": "Boulder, CO",
+            "compensation": {
+                "annual_base_salary_usd": 155000,
+                "signing_bonus_usd": 15000,
+                "target_bonus_percent": 8,
+            },
+            "monetary_benefits": {
+                "equity_grant_usd": 60000,
+                "retirement_match_percent": 3,
+                "health_insurance_employer_monthly_usd": 820,
+                "other_monetary_benefits": ["Transit pass reimbursement"],
+            },
+            "non_monetary_summary_bullets": ["Product ownership from day one", "Quarterly team offsites"],
+            "offer_meta": {"status": "active", "source_input_type": "debug_seed"},
+        },
+    ]
+
+
 def _missing_required_fields(payload: dict[str, Any]) -> list[str]:
     missing = _missing_core_required_fields(payload)
     if not _has_required_compensation(payload):
@@ -941,6 +1000,18 @@ class Stage4OfferService:
 
     def delete_offer(self, offer_id: str) -> bool:
         return self.offer_repository.delete(offer_id)
+
+    def seed_demo_offers(self) -> list[OfferRecord]:
+        created: list[OfferRecord] = []
+        for payload in _demo_offer_payloads():
+            created.append(
+                self.offer_repository.create(
+                    company_name=str(payload["company_name"]),
+                    role_title=str(payload["role_title"]),
+                    payload=payload,
+                )
+            )
+        return created
 
     def update_offer(self, *, offer_id: str, payload: dict[str, Any]) -> IntakeResult:
         normalized_payload = dict(payload)
