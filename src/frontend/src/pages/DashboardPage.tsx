@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
 import { fetchOffers } from "../services/offersApi";
 import type { OfferSortBy, OfferSummaryPayload, SortDirection } from "../types/offers";
@@ -130,10 +130,27 @@ export function DashboardPage(): JSX.Element {
   const [errorText, setErrorText] = useState<string | null>(null);
   const [sortSelection, setSortSelection] = useState(SORT_OPTIONS[0].label);
   const [selectedOfferIds, setSelectedOfferIds] = useState<string[]>([]);
+  const [cardAnimationState, setCardAnimationState] = useState<Record<string, "select" | "deselect">>({});
+  const animationTimeoutRef = useRef<Record<string, number>>({});
 
   const selectedSort = useMemo(() => {
     return SORT_OPTIONS.find((option) => option.label === sortSelection) ?? SORT_OPTIONS[0];
   }, [sortSelection]);
+
+  const scheduleCardAnimation = (offerId: string, mode: "select" | "deselect"): void => {
+    setCardAnimationState((existing) => ({ ...existing, [offerId]: mode }));
+    if (animationTimeoutRef.current[offerId] !== undefined) {
+      window.clearTimeout(animationTimeoutRef.current[offerId]);
+    }
+    animationTimeoutRef.current[offerId] = window.setTimeout(() => {
+      setCardAnimationState((existing) => {
+        const next = { ...existing };
+        delete next[offerId];
+        return next;
+      });
+      delete animationTimeoutRef.current[offerId];
+    }, 500);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -170,14 +187,26 @@ export function DashboardPage(): JSX.Element {
   const handleToggleSelection = (offerId: string): void => {
     setSelectedOfferIds((current) => {
       if (current.includes(offerId)) {
+        scheduleCardAnimation(offerId, "deselect");
         return current.filter((id) => id !== offerId);
       }
+      scheduleCardAnimation(offerId, "select");
       if (current.length < 2) {
         return [...current, offerId];
       }
+      scheduleCardAnimation(current[0], "deselect");
       return [current[1], offerId];
     });
   };
+
+  useEffect(() => {
+    return () => {
+      const timeoutIds = Object.values(animationTimeoutRef.current);
+      for (const timeoutId of timeoutIds) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, []);
 
   const handleCardKeyDown = (
     event: KeyboardEvent<HTMLElement>,
@@ -231,8 +260,12 @@ export function DashboardPage(): JSX.Element {
               key={offer.id}
               className={
                 isSelected
-                  ? "dashboard-card dashboard-card-selected selectable"
-                  : "dashboard-card selectable"
+                  ? `dashboard-card dashboard-card-selected selectable ${
+                      cardAnimationState[offer.id] === "select" ? "dashboard-card-flip-select" : ""
+                    }`
+                  : `dashboard-card selectable ${
+                      cardAnimationState[offer.id] === "deselect" ? "dashboard-card-flip-deselect" : ""
+                    }`
               }
               role="button"
               tabIndex={0}

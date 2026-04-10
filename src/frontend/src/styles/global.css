@@ -142,7 +142,6 @@ body {
   background: linear-gradient(155deg, #1b4f9f, #163e7c);
   color: #f6fbff;
   box-shadow: 0 0 0 2px rgba(159, 206, 255, 0.3);
-  animation: dashboard-card-select-flip 460ms ease-out;
 }
 
 .dashboard-card-selected .dashboard-card-role,
@@ -160,6 +159,11 @@ body {
 .dashboard-card-selected.selectable:focus-visible {
   box-shadow: 0 0 0 2px rgba(159, 206, 255, 0.3), 0 0 0 3px rgba(255, 255, 255, 0.9),
     0 0 18px var(--color-hover-glow);
+}
+
+.dashboard-card-flip-select,
+.dashboard-card-flip-deselect {
+  animation: dashboard-card-select-flip 460ms ease-out;
 }
 
 .dashboard-card-company {
@@ -503,7 +507,8 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dashboard-card-selected {
+  .dashboard-card-flip-select,
+  .dashboard-card-flip-deselect {
     animation: none;
   }
 }
