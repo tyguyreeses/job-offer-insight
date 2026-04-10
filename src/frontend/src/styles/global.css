@@ -132,6 +132,11 @@ body {
   text-align: left;
 }
 
+.transcript-message-assistant {
+  align-self: center;
+  text-align: center;
+}
+
 .transcript-message-user {
   align-self: flex-end;
   background: rgba(35, 100, 201, 0.14);
