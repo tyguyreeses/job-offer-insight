@@ -239,6 +239,8 @@ export function AddEntryPage(): JSX.Element {
     transitionAudioLabel(desiredAudioLabel);
   }, [desiredAudioLabel]);
 
+  const isProcessingLabel = audioButtonLabel === "Processing...";
+
   return (
     <div className="app-shell">
       <Navbar />
@@ -285,7 +287,23 @@ export function AddEntryPage(): JSX.Element {
               disabled={mode === "audio" && isSubmitting}
               aria-label={audioButtonLabel}
             >
-              <span className={`audio-main-label audio-main-label-${audioLabelPhase}`}>{audioButtonLabel}</span>
+              <span
+                className={`audio-main-label audio-main-label-${audioLabelPhase} ${
+                  isProcessingLabel ? "audio-main-label-processing" : ""
+                }`}
+              >
+                {isProcessingLabel
+                  ? audioButtonLabel.split("").map((character, index) => (
+                      <span
+                        key={`processing-char-${index}-${character === " " ? "space" : character}`}
+                        className="processing-label-char"
+                        style={{ ["--processing-index" as string]: index } as CSSProperties}
+                      >
+                        {character}
+                      </span>
+                    ))
+                  : audioButtonLabel}
+              </span>
             </button>
           </section>
         ) : (

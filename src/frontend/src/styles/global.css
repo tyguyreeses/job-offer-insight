@@ -260,6 +260,20 @@ body {
   display: inline-block;
 }
 
+.audio-main-label-processing {
+  white-space: pre;
+}
+
+.processing-label-char {
+  display: inline-block;
+  opacity: 0.2;
+  animation-name: shared-processing-char-fade;
+  animation-duration: 1150ms;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-delay: calc(var(--processing-index) * 80ms);
+}
+
 .audio-main-label-fade-out {
   animation-name: shared-label-fade-out;
   animation-duration: var(--motion-duration-label-out);

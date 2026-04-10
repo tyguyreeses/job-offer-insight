@@ -48,6 +48,21 @@
   }
 }
 
+@keyframes shared-processing-char-fade {
+  0% {
+    opacity: 0.2;
+  }
+  30% {
+    opacity: 0.95;
+  }
+  60% {
+    opacity: 0.2;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+
 .motion-fade-enter {
   animation-name: shared-fade-enter;
   animation-duration: var(--motion-duration, var(--motion-duration-in));
