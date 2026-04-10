@@ -13,6 +13,9 @@ from ...gen_ai.audio_transcriber import AudioTranscriptionError
 from ...gen_ai.protocols import Agent, AudioTranscriber
 from ...gen_ai.text_parser_agent import TextParserError
 from ...storage.repositories.interfaces import OfferRepository
+from ...utils.logging import get_logger
+
+logger = get_logger(__name__)
 
 _REQUIRED_COMPENSATION_PATHS = (
     "compensation.annual_base_salary_usd",
@@ -628,6 +631,12 @@ class Stage4OfferService:
         filename: str = "",
         content_type: str | None = None,
     ) -> TextConversationResult:
+        logger.debug(
+            "Audio intake turn action=%s session_id=%s has_audio=%s",
+            action,
+            session_id or "<new>",
+            audio_bytes is not None,
+        )
         session = self._get_or_create_session(session_id)
         session.source_input_type = "audio"
 
@@ -662,6 +671,7 @@ class Stage4OfferService:
         except AudioTranscriptionError as exc:
             missing_required_fields = _missing_required_fields(session.payload)
             message = f"Unable to transcribe audio input: {exc}"
+            logger.warning("Audio transcription failed for session_id=%s: %s", session.session_id, exc)
             return TextConversationResult(
                 session_id=session.session_id,
                 status="transcription_failed",
@@ -741,6 +751,13 @@ class Stage4OfferService:
             company_name=str(merged_payload["company_name"]),
             role_title=str(merged_payload["role_title"]),
             payload=merged_payload,
+        )
+        logger.info(
+            "Saved offer id=%s company=%s role=%s source=%s",
+            record.offer_id,
+            record.company_name,
+            record.role_title,
+            source_input_type,
         )
 
         return IntakeResult(

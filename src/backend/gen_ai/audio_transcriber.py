@@ -7,6 +7,10 @@ from dataclasses import dataclass
 
 from .client import OpenAIClientConfigError, build_openai_client
 from ..utils.config_types import OpenAISection
+from ..utils.logging import get_logger
+
+logger = get_logger(__name__)
+
 
 class AudioTranscriptionError(RuntimeError):
     """Raised when audio cannot be transcribed for intake."""
@@ -17,6 +21,12 @@ class ConfiguredAudioTranscriber:
     openai_config: OpenAISection
 
     def transcribe(self, *, audio_bytes: bytes, filename: str, content_type: str | None = None) -> str:
+        logger.debug(
+            "Starting transcription for filename=%s content_type=%s bytes=%d",
+            filename,
+            content_type or "unknown",
+            len(audio_bytes),
+        )
         if not audio_bytes:
             raise AudioTranscriptionError("Audio file is empty.")
 
@@ -59,4 +69,5 @@ class ConfiguredAudioTranscriber:
         if transcript == "":
             raise AudioTranscriptionError("No transcript text was returned for this audio input.")
 
+        logger.debug("Transcription complete for filename=%s", filename)
         return transcript

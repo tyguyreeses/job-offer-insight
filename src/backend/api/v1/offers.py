@@ -10,8 +10,10 @@ from pydantic import BaseModel, Field, model_validator
 from ...dependencies import get_offer_service
 from ...domain.services.interfaces import OfferService
 from ...domain.services.offer_service import ConversationSessionNotFound
+from ...utils.logging import get_logger
 
 router = APIRouter(prefix="/offers")
+logger = get_logger(__name__)
 
 
 class MissingFieldPromptResponse(BaseModel):
@@ -78,6 +80,7 @@ def intake_offer_from_text(
             message_text=request.message_text,
         )
     except ConversationSessionNotFound as exc:
+        logger.warning("Text intake session not found: %s", request.session_id)
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     offer_payload = (
@@ -117,6 +120,7 @@ def intake_offer_from_audio(
             content_type=audio_file.content_type if audio_file is not None else None,
         )
     except ConversationSessionNotFound as exc:
+        logger.warning("Audio intake session not found: %s", session_id)
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     offer_payload = offer_service.render_offer_payload(result.offer) if result.offer is not None else None
     return TextConversationResponse(
@@ -143,6 +147,7 @@ def list_offers(offer_service: OfferService = Depends(get_offer_service)) -> Off
 def get_offer(offer_id: str, offer_service: OfferService = Depends(get_offer_service)) -> OfferResponse:
     record = offer_service.get_offer(offer_id)
     if record is None:
+        logger.info("Requested offer not found: %s", offer_id)
         raise HTTPException(status_code=404, detail=f"Offer not found: {offer_id}")
     return OfferResponse(offer=offer_service.render_offer_payload(record))
 

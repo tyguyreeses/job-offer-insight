@@ -13,6 +13,7 @@ from src.backend.api.router import build_api_router
 from src.backend.dependencies import RuntimeContainer, build_runtime_container
 from src.backend.utils.config_loader import ConfigLoadError, load_config
 from src.backend.utils.logging import (
+    get_logger,
     log_config_payload,
     setup_error_logger,
     setup_logger,
@@ -80,6 +81,8 @@ def build_app_from_config_path(config_path: Path, debug: bool) -> FastAPI:
     logger = setup_logger(
         debug=debug,
         configured_level=config.logging.level,
+        include_timestamps=config.logging.include_timestamps,
+        json_logs=config.logging.json_logs,
     )
     log_config_payload(logger, config.model_dump())
     container = build_runtime_container(config=config, logger=logger)
@@ -116,6 +119,7 @@ def main() -> int:
         return 1
 
     logger = app.state.runtime_container.logger
+    get_logger(__name__).debug("Application logger initialized at level %s", logger.getEffectiveLevel())
     logger.info("Loaded config from %s", config_path)
     if args.serve:
         return _run_uvicorn(app, config_path, logger)
