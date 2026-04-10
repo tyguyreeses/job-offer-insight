@@ -10,9 +10,10 @@ This folder contains strict stage checklists for implementation.
 4. [STAGE_4.md](./STAGE_4.md) - Offer Intake (Text) + Missing-Info Flow + Validation
 5. [STAGE_4_1.md](./STAGE_4_1.md) - AI Text Extraction to Offer Schema
 6. [STAGE_5.md](./STAGE_5.md) - Audio Intake Integration
-7. [STAGE_6.md](./STAGE_6.md) - Dashboard + Selection Rules + Card Presentation
-8. [STAGE_7.md](./STAGE_7.md) - Compare Modes + Saved Comparisons
-9. [STAGE_8.md](./STAGE_8.md) - Edit Offer Form + Full Test Suite + Hardening
+7. [STAGE_5_1.md](./STAGE_5_1.md) - Main Page + Conversational Offer Intake
+8. [STAGE_6.md](./STAGE_6.md) - Dashboard + Selection Rules + Card Presentation
+9. [STAGE_7.md](./STAGE_7.md) - Compare Modes + Saved Comparisons
+10. [STAGE_8.md](./STAGE_8.md) - Edit Offer Form + Full Test Suite + Hardening
 
 ## Status Tracking
 

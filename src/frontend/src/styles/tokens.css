@@ -1,0 +1,29 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap");
+
+:root {
+  --font-display: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+  --font-body: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+
+  --color-bg-top: #f6fbff;
+  --color-bg-bottom: #eef5ff;
+  --color-surface: rgba(255, 255, 255, 0.82);
+  --color-border: rgba(40, 98, 168, 0.16);
+  --color-text: #10243d;
+  --color-muted: #557290;
+  --color-primary: #2364c9;
+  --color-primary-soft: #2f76e0;
+  --color-hover-glow: rgba(54, 135, 252, 0.45);
+
+  --radius-pill: 999px;
+  --radius-card: 18px;
+
+  --motion-duration-in: 220ms;
+  --motion-duration-out: 180ms;
+  --motion-duration-message: 200ms;
+  --motion-duration-label-out: 120ms;
+  --motion-duration-label-in: 140ms;
+  --motion-duration-slide: 280ms;
+  --motion-duration-pulse: 1100ms;
+  --motion-ease-in: ease-in;
+  --motion-ease-out: ease-out;
+}

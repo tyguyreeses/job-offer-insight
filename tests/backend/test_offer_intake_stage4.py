@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import replace
+import json
 from pathlib import Path
 from typing import Any
 
@@ -8,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from src.backend.dependencies import build_runtime_container
 from src.backend.domain.services.offer_service import Stage4OfferService
-from src.backend.gen_ai.text_parser_agent import TextParserError
+from src.backend.gen_ai.protocols import ChatAgentReply, ChatToolCall
 from src.backend.main import create_app
 from src.backend.utils.config_loader import load_default_config
 from src.backend.utils.logging import setup_logger
@@ -18,13 +20,14 @@ def _build_client(tmp_path: Path) -> TestClient:
     config = load_default_config()
     database_section = config.database.model_copy(
         update={
-            "path": str(tmp_path / "stage4_offer_intake_test.db"),
+            "path": str(tmp_path / "stage5_1_offer_intake_test.db"),
             "enable_wal": False,
         }
     )
     agents_section = config.agents.model_copy(
         update={
-            "text_parser": config.agents.text_parser.model_copy(update={"enabled": False})
+            "entry_creation": config.agents.entry_creation.model_copy(update={"enabled": False}),
+            "parse_entry": config.agents.parse_entry.model_copy(update={"enabled": False}),
         }
     )
     config = config.model_copy(update={"database": database_section, "agents": agents_section})
@@ -34,210 +37,323 @@ def _build_client(tmp_path: Path) -> TestClient:
     return TestClient(app)
 
 
-def _intake_until_saved(client: TestClient, request: dict[str, Any]) -> dict[str, Any]:
-    first_response = client.post("/api/v1/offers/intake/text", json=request)
-    assert first_response.status_code == 200
-    first_payload = first_response.json()
+def _post_text_turn(
+    client: TestClient,
+    *,
+    session_id: str | None,
+    action: str,
+    message_text: str | None = None,
+) -> dict[str, Any]:
+    request: dict[str, Any] = {"session_id": session_id, "action": action}
+    if message_text is not None:
+        request["message_text"] = message_text
 
-    if first_payload["status"] == "saved":
-        return first_payload
+    response = client.post("/api/v1/offers/intake/text", json=request)
+    assert response.status_code == 200
+    return response.json()
 
-    assert first_payload["status"] == "missing_information"
-    omission_confirmations = {
-        prompt["path"]: True
-        for prompt in first_payload["missing_field_prompts"]
-        if not prompt["required"]
-    }
-    second_response = client.post(
-        "/api/v1/offers/intake/text",
-        json={**request, "omission_confirmations": omission_confirmations},
+
+class JsonParser:
+    def parse(self, text: str) -> dict[str, Any]:
+        return json.loads(text)
+
+
+class AutoFinishChatAgent:
+    def reply(self, *, transcript: list[dict[str, str]], state: dict[str, Any]) -> ChatAgentReply:
+        _ = transcript
+        _ = state
+        return ChatAgentReply(
+            message="Submitting now.",
+            tool_calls=[ChatToolCall(name="submit_entry")],
+        )
+
+
+def _build_client_with_tooling(
+    tmp_path: Path,
+    *,
+    parser: Any,
+    chat_agent: Any,
+) -> TestClient:
+    config = load_default_config()
+    database_section = config.database.model_copy(
+        update={
+            "path": str(tmp_path / "stage5_1_offer_intake_tool_test.db"),
+            "enable_wal": False,
+        }
     )
-    assert second_response.status_code == 200
-    second_payload = second_response.json()
-    assert second_payload["status"] == "saved"
-    return second_payload
+    config = config.model_copy(update={"database": database_section})
+    logger = setup_logger(debug=False, configured_level=config.logging.level)
+    container = build_runtime_container(config=config, logger=logger)
+    service = Stage4OfferService(
+        offer_repository=container.offer_repository,
+        text_parser_agent=parser,
+        audio_transcriber=container.audio_transcriber,
+        entry_creation_agent=chat_agent,
+    )
+    app = create_app(replace(container, offer_service=service))
+    return TestClient(app)
 
 
-def test_required_field_failures_block_save(tmp_path: Path) -> None:
+def test_conversation_starts_with_required_bundle_prompt(tmp_path: Path) -> None:
+    client = _build_client(tmp_path)
+
+    payload = _post_text_turn(
+        client,
+        session_id=None,
+        action="submit",
+        message_text='{"role_title":"Software Engineer II","compensation":{"annual_base_salary_usd":145000}}',
+    )
+
+    assert payload["status"] == "in_progress"
+    assert payload["step"] == "collect_required"
+    assert payload["current_prompt_key"] == "required_fields_bundle"
+    assert payload["offer"] is None
+    assert "company_name" in payload["missing_required_fields"]
+    assert "location" in payload["missing_required_fields"]
+    assert payload["assistant_message"].startswith(
+        "Please share the remaining required information:"
+    )
+    assert payload["messages"][-1]["role"] == "assistant"
+
+
+def test_finish_is_blocked_until_required_fields_are_complete(tmp_path: Path) -> None:
+    client = _build_client(tmp_path)
+
+    started = _post_text_turn(
+        client,
+        session_id=None,
+        action="submit",
+        message_text='{"role_title":"ML Engineer"}',
+    )
+    blocked = _post_text_turn(
+        client,
+        session_id=started["session_id"],
+        action="finish",
+    )
+
+    assert blocked["status"] == "blocked_required_fields"
+    assert blocked["step"] == "collect_required"
+    assert blocked["can_finish"] is False
+    assert "company_name" in blocked["missing_required_fields"]
+    assert "location" in blocked["missing_required_fields"]
+    assert blocked["assistant_message"].startswith(
+        "I still need required information before saving:"
+    )
+    assert blocked["messages"][-1]["role"] == "assistant"
+
+
+def test_incremental_merge_skip_and_finish_saves_offer(tmp_path: Path) -> None:
+    client = _build_client(tmp_path)
+
+    first = _post_text_turn(
+        client,
+        session_id=None,
+        action="submit",
+        message_text=(
+            '{"company_name":"Nimbus Health","role_title":"Backend Engineer",'
+            '"location":"Denver, CO"}'
+        ),
+    )
+    assert first["step"] == "collect_required"
+
+    second = _post_text_turn(
+        client,
+        session_id=first["session_id"],
+        action="submit",
+        message_text='{"compensation":{"annual_base_salary_usd":130000}}',
+    )
+    assert second["step"] == "collect_monetary_extras"
+
+    third = _post_text_turn(
+        client,
+        session_id=first["session_id"],
+        action="skip_current",
+    )
+    assert third["step"] == "collect_non_monetary_extras"
+
+    fourth = _post_text_turn(
+        client,
+        session_id=first["session_id"],
+        action="submit",
+        message_text="none",
+    )
+    assert fourth["step"] == "anything_else"
+    assert fourth["can_finish"] is True
+
+    saved = _post_text_turn(
+        client,
+        session_id=first["session_id"],
+        action="finish",
+    )
+
+    assert saved["status"] == "saved"
+    assert saved["step"] == "completed"
+    assert saved["offer"] is not None
+    offer = saved["offer"]
+    assert offer["company_name"] == "Nimbus Health"
+    assert offer["role_title"] == "Backend Engineer"
+    assert offer["location"] == "Denver, CO"
+    assert offer["compensation"]["annual_base_salary_usd"] == 130000
+    assert offer["offer_meta"]["source_input_type"] == "text"
+
+
+def test_prompt_sequence_order_is_deterministic(tmp_path: Path) -> None:
+    client = _build_client(tmp_path)
+
+    first = _post_text_turn(
+        client,
+        session_id=None,
+        action="submit",
+        message_text=(
+            '{"company_name":"Acme Robotics","role_title":"Platform Engineer",'
+            '"location":"Austin, TX",'
+            '"compensation":{"annual_base_salary_usd":150000}}'
+        ),
+    )
+    second = _post_text_turn(
+        client,
+        session_id=first["session_id"],
+        action="submit",
+        message_text="{}",
+    )
+    third = _post_text_turn(
+        client,
+        session_id=first["session_id"],
+        action="skip_current",
+    )
+
+    assert [first["step"], second["step"], third["step"]] == [
+        "collect_monetary_extras",
+        "collect_non_monetary_extras",
+        "anything_else",
+    ]
+
+
+def test_typed_omission_detection_does_not_false_trigger_on_substrings(tmp_path: Path) -> None:
+    client = _build_client(tmp_path)
+
+    first = _post_text_turn(
+        client,
+        session_id=None,
+        action="submit",
+        message_text=(
+            '{"company_name":"Acme Robotics","role_title":"Platform Engineer",'
+            '"location":"Austin, TX",'
+            '"compensation":{"annual_base_salary_usd":150000}}'
+        ),
+    )
+    assert first["step"] == "collect_monetary_extras"
+
+    second = _post_text_turn(
+        client,
+        session_id=first["session_id"],
+        action="submit",
+        message_text=(
+            '{"monetary_benefits":{"other_monetary_benefits":["innovation stipend"]}}'
+        ),
+    )
+
+    assert second["step"] == "collect_non_monetary_extras"
+    assert second["warnings"] == []
+
+    third = _post_text_turn(
+        client,
+        session_id=first["session_id"],
+        action="skip_current",
+    )
+    assert third["step"] == "anything_else"
+
+    saved = _post_text_turn(
+        client,
+        session_id=first["session_id"],
+        action="finish",
+    )
+    assert saved["status"] == "saved"
+    offer = saved["offer"]
+    assert offer is not None
+    assert offer["monetary_benefits"]["other_monetary_benefits"] == ["innovation stipend"]
+
+
+def test_unknown_session_returns_404(tmp_path: Path) -> None:
     client = _build_client(tmp_path)
 
     response = client.post(
         "/api/v1/offers/intake/text",
         json={
-            "text": '{"role_title":"Software Engineer II","compensation":{"annual_base_salary_usd":145000}}'
+            "session_id": "missing-session",
+            "action": "submit",
+            "message_text": "{}",
         },
     )
 
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["status"] == "blocked_required_fields"
-    assert payload["offer"] is None
-    assert "company_name is required" in payload["errors"]
+    assert response.status_code == 404
 
 
-def test_non_required_missing_fields_warn_and_confirmed_omissions_are_stored(tmp_path: Path) -> None:
+def test_submit_requires_message_text(tmp_path: Path) -> None:
     client = _build_client(tmp_path)
-
-    saved = _intake_until_saved(
-        client,
-        {
-            "text": '{"company_name":"Nimbus Health","role_title":"Backend Engineer","compensation":{"annual_base_salary_usd":130000}}'
-        },
-    )
-
-    assert saved["errors"] == []
-    assert saved["warnings"] != []
-    offer = saved["offer"]
-    assert offer is not None
-    offer_id = offer["id"]
-
-    detail_response = client.get(f"/api/v1/offers/{offer_id}")
-    assert detail_response.status_code == 200
-    detail = detail_response.json()["offer"]
-    assert detail["location"] == ""
-    assert detail["monetary_benefits"]["other_monetary_benefits"] == []
-    assert detail["non_monetary_benefits"]["mission_alignment_notes"] == ""
-
-
-def test_hourly_offer_is_annualized_before_save(tmp_path: Path) -> None:
-    client = _build_client(tmp_path)
-
-    saved = _intake_until_saved(
-        client,
-        {
-            "text": (
-                '{"company_name":"Acme Robotics","role_title":"Software Engineer II",'
-                '"compensation":{"hourly_rate_usd":100,"hours_per_week":40}}'
-            )
-        },
-    )
-
-    offer = saved["offer"]
-    assert offer is not None
-    assert offer["compensation"]["annual_base_salary_usd"] == 208000
-
-
-def test_open_ended_text_is_parsed_into_required_fields(tmp_path: Path) -> None:
-    class DeterministicParser:
-        def parse(self, text: str) -> dict[str, Any]:
-            assert "Elevation Labs" in text
-            return {
-                "company_name": "Elevation Labs",
-                "role_title": "Platform Engineer",
-                "compensation": {"annual_base_salary_usd": 150000},
-            }
-
-    config = load_default_config()
-    database_section = config.database.model_copy(
-        update={
-            "path": str(tmp_path / "stage4_offer_intake_open_ended.db"),
-            "enable_wal": False,
-        }
-    )
-    config = config.model_copy(update={"database": database_section})
-    logger = setup_logger(debug=False, configured_level=config.logging.level)
-    container = build_runtime_container(config=config, logger=logger)
-    service = Stage4OfferService(
-        offer_repository=container.offer_repository,
-        text_parser_agent=DeterministicParser(),
-    )
-    app = create_app(replace(container, offer_service=service))
-    client = TestClient(app)
-
-    saved = _intake_until_saved(
-        client,
-        {
-            "text": "Company: Elevation Labs\nRole: Platform Engineer\nAnnual base salary: $150,000"
-        },
-    )
-
-    offer = saved["offer"]
-    assert offer is not None
-    assert offer["company_name"] == "Elevation Labs"
-    assert offer["role_title"] == "Platform Engineer"
-    assert offer["compensation"]["annual_base_salary_usd"] == 150000
-
-
-def test_parser_failure_returns_extraction_failed_status(tmp_path: Path) -> None:
-    class BrokenParser:
-        def parse(self, text: str) -> dict[str, Any]:
-            raise TextParserError("parser output did not match schema")
-
-    config = load_default_config()
-    database_section = config.database.model_copy(
-        update={
-            "path": str(tmp_path / "stage4_offer_intake_parser_failure.db"),
-            "enable_wal": False,
-        }
-    )
-    config = config.model_copy(update={"database": database_section})
-    logger = setup_logger(debug=False, configured_level=config.logging.level)
-    container = build_runtime_container(config=config, logger=logger)
-    failing_service = Stage4OfferService(
-        offer_repository=container.offer_repository,
-        text_parser_agent=BrokenParser(),
-    )
-    app = create_app(replace(container, offer_service=failing_service))
-    client = TestClient(app)
 
     response = client.post(
         "/api/v1/offers/intake/text",
-        json={"text": "Some raw input text"},
+        json={"session_id": None, "action": "submit"},
     )
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["status"] == "extraction_failed"
-    assert payload["offer"] is None
-    assert "Unable to extract structured offer data" in payload["errors"][0]
+
+    assert response.status_code == 422
 
 
-def test_extracted_schema_groups_and_offer_meta_are_persisted(tmp_path: Path) -> None:
-    class RichDeterministicParser:
-        def parse(self, text: str) -> dict[str, Any]:
-            assert "Luma Systems" in text
-            return {
-                "company_name": "Luma Systems",
-                "role_title": "Staff Backend Engineer",
-                "compensation": {
-                    "annual_base_salary_usd": 180000,
-                    "annualized_total_cash_usd": 198000,
-                    "signing_bonus_usd": 15000,
-                    "target_bonus_percent": 10,
-                },
-                "monetary_benefits": {
-                    "retirement_match_percent": 5,
-                    "other_monetary_benefits": ["Phone stipend"],
-                },
-                "non_monetary_benefits": {
-                    "culture_notes": "Low-ego engineering culture",
-                    "other_non_monetary_benefits": ["Strong mentorship"],
-                },
-            }
+def test_finish_logs_full_payload_object_at_debug(tmp_path: Path, capsys) -> None:
+    client = _build_client(tmp_path)
+    logging.getLogger("job_offer_insight.domain.services.offer_service").setLevel(logging.DEBUG)
 
-    config = load_default_config()
-    database_section = config.database.model_copy(
-        update={
-            "path": str(tmp_path / "stage4_offer_intake_schema_groups.db"),
-            "enable_wal": False,
-        }
-    )
-    config = config.model_copy(update={"database": database_section})
-    logger = setup_logger(debug=False, configured_level=config.logging.level)
-    container = build_runtime_container(config=config, logger=logger)
-    service = Stage4OfferService(
-        offer_repository=container.offer_repository,
-        text_parser_agent=RichDeterministicParser(),
-    )
-    app = create_app(replace(container, offer_service=service))
-    client = TestClient(app)
-
-    saved = _intake_until_saved(
+    first = _post_text_turn(
         client,
-        {"text": "Offer from Luma Systems for Staff Backend Engineer"},
+        session_id=None,
+        action="submit",
+        message_text=(
+            '{"company_name":"Nimbus Health","role_title":"Backend Engineer",'
+            '"location":"Denver, CO",'
+            '"compensation":{"annual_base_salary_usd":130000}}'
+        ),
     )
-    offer = saved["offer"]
-    assert offer is not None
-    assert offer["compensation"]["annualized_total_cash_usd"] == 198000
-    assert offer["monetary_benefits"]["retirement_match_percent"] == 5
-    assert offer["non_monetary_benefits"]["culture_notes"] == "Low-ego engineering culture"
-    assert offer["offer_meta"]["source_input_type"] == "text"
+    _post_text_turn(
+        client,
+        session_id=first["session_id"],
+        action="skip_current",
+    )
+    _post_text_turn(
+        client,
+        session_id=first["session_id"],
+        action="skip_current",
+    )
+    _post_text_turn(
+        client,
+        session_id=first["session_id"],
+        action="finish",
+    )
+    captured = capsys.readouterr()
+
+    assert "Final offer payload on finish for session" in captured.err
+    assert '"company_name": "Nimbus Health"' in captured.err
+    assert '"location": "Denver, CO"' in captured.err
+
+
+def test_submit_entry_tool_invokes_same_finish_flow_as_finish_button(tmp_path: Path) -> None:
+    client = _build_client_with_tooling(
+        tmp_path,
+        parser=JsonParser(),
+        chat_agent=AutoFinishChatAgent(),
+    )
+
+    payload = _post_text_turn(
+        client,
+        session_id=None,
+        action="submit",
+        message_text=(
+            '{"company_name":"Nimbus Health","role_title":"Backend Engineer",'
+            '"location":"Denver, CO","compensation":{"annual_base_salary_usd":130000}}'
+        ),
+    )
+
+    assert payload["status"] == "saved"
+    assert payload["step"] == "completed"
+    assert payload["offer"] is not None
+    assert payload["offer"]["company_name"] == "Nimbus Health"

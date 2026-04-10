@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
-from .offer_service import IntakeResult
+from .offer_service import IntakeResult, TextConversationResult
 from ..models import OfferRecord
 
 
@@ -17,11 +17,23 @@ class OfferService(Protocol):
     def intake_text_offer(
         self,
         *,
-        text: str,
-        omission_confirmations: dict[str, bool] | None = None,
-        extracted_offer_overrides: dict[str, Any] | None = None,
-    ) -> IntakeResult:
-        """Intake offer text and return save/missing/blocked outcomes."""
+        session_id: str | None,
+        action: str,
+        message_text: str | None = None,
+        source_input_type: str = "text",
+    ) -> TextConversationResult:
+        """Intake text conversation turns and return stateful outcomes."""
+
+    def intake_audio_offer(
+        self,
+        *,
+        session_id: str | None,
+        action: str,
+        audio_bytes: bytes | None = None,
+        filename: str = "",
+        content_type: str | None = None,
+    ) -> TextConversationResult:
+        """Intake conversational audio turns and return stateful outcomes."""
 
     def list_offers(self) -> list[OfferRecord]:
         """Return all saved offers."""

@@ -30,6 +30,7 @@ openai:
   api_key_env_var: "OPENAI_API_KEY"
   model: "gpt-5.2"
   transcription_model: "gpt-4o-mini-transcribe"
+  accepted_audio_extensions: [".wav", ".mp3", ".m4a", ".mp4", ".mpeg", ".mpga", ".webm"]
   timeout_seconds: 45
   max_retries: 2
 
@@ -41,7 +42,13 @@ workflow:
   allow_placeholder_comparisons: true
 
 agents:
-  text_parser:
+  entry_creation:
+    type: non-structured
+    enabled: true
+    model: "gpt-5.2"
+    max_output_tokens: 500
+    prompt: "You are a helper."
+  parse_entry:
     type: structured-output
     enabled: true
     model: "gpt-5.2"
@@ -74,7 +81,10 @@ def test_app_build_fails_with_invalid_config(tmp_path: Path) -> None:
 
 def test_app_build_fails_when_agents_section_missing(tmp_path: Path) -> None:
     config_path = tmp_path / "missing_agents_config.yaml"
-    invalid_config = VALID_CONFIG.replace("\nagents:\n  text_parser:\n    type: structured-output\n    enabled: true\n    model: \"gpt-5.2\"\n    max_output_tokens: 1200\n    prompt: \"Return only a JSON object.\"\n", "")
+    invalid_config = VALID_CONFIG.replace(
+        "\nagents:\n  entry_creation:\n    type: non-structured\n    enabled: true\n    model: \"gpt-5.2\"\n    max_output_tokens: 500\n    prompt: \"You are a helper.\"\n  parse_entry:\n    type: structured-output\n    enabled: true\n    model: \"gpt-5.2\"\n    max_output_tokens: 1200\n    prompt: \"Return only a JSON object.\"\n",
+        "",
+    )
     _write_config(config_path, invalid_config)
 
     with pytest.raises(ConfigLoadError):
@@ -83,7 +93,7 @@ def test_app_build_fails_when_agents_section_missing(tmp_path: Path) -> None:
 
 def test_app_build_fails_when_agent_type_is_invalid(tmp_path: Path) -> None:
     config_path = tmp_path / "invalid_agent_type_config.yaml"
-    invalid_config = VALID_CONFIG.replace("type: structured-output", "type: invalid")
+    invalid_config = VALID_CONFIG.replace("type: non-structured", "type: invalid", 1)
     _write_config(config_path, invalid_config)
 
     with pytest.raises(ConfigLoadError):
