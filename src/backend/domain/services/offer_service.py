@@ -572,6 +572,7 @@ class Stage4OfferService:
         try:
             extracted_payload = self.text_parser_agent.parse(combined_user_text)
         except TextParserError as combined_exc:
+            logger.warning("Failed to parse combined text: %s", combined_exc)
             # Fallback for local JSON payload inputs without making extra model calls.
             inline_json_payload: dict[str, Any] = {}
             for message in user_messages:
@@ -623,6 +624,7 @@ class Stage4OfferService:
                     try:
                         extracted_payload = self.text_parser_agent.parse(message)
                     except TextParserError as exc:
+                        logger.warn("Failed to parse text: %s", exc)
                         errors.append(f"Unable to extract structured offer data: {exc}")
                     else:
                         session.payload = _merge_payloads(session.payload, extracted_payload)
