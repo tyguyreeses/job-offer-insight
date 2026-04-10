@@ -162,6 +162,12 @@ describe("DashboardPage", () => {
     await waitFor(() => {
       expect(mockedDeleteOffer).toHaveBeenCalledWith("offer-3");
       expect(screen.getByTestId("offer-card-offer-3")).toHaveClass("dashboard-card-deleting");
+      expect(screen.getByTestId("offer-card-offer-3").parentElement).not.toHaveClass(
+        "dashboard-card-shell-collapsing"
+      );
+    });
+
+    await waitFor(() => {
       expect(screen.getByTestId("offer-card-offer-3").parentElement).toHaveClass(
         "dashboard-card-shell-collapsing"
       );

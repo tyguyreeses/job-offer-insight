@@ -125,7 +125,8 @@ function salaryText(offer: OfferSummaryPayload): string | null {
 }
 
 export function DashboardPage(): JSX.Element {
-  const DELETE_ANIMATION_DURATION_MS = 700;
+  const DELETE_FADE_DURATION_MS = 280;
+  const DELETE_COLLAPSE_DURATION_MS = 460;
 
   const [offers, setOffers] = useState<OfferSummaryPayload[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -135,10 +136,12 @@ export function DashboardPage(): JSX.Element {
   const [selectedOfferIds, setSelectedOfferIds] = useState<string[]>([]);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
-  const [deletingOfferIds, setDeletingOfferIds] = useState<string[]>([]);
+  const [fadingOfferIds, setFadingOfferIds] = useState<string[]>([]);
+  const [collapsingOfferIds, setCollapsingOfferIds] = useState<string[]>([]);
   const [cardAnimationState, setCardAnimationState] = useState<Record<string, "select" | "deselect">>({});
   const animationTimeoutRef = useRef<Record<string, number>>({});
-  const deleteTimeoutRef = useRef<Record<string, number>>({});
+  const deleteFadeTimeoutRef = useRef<Record<string, number>>({});
+  const deleteCollapseTimeoutRef = useRef<Record<string, number>>({});
 
   const selectedSort = useMemo(() => {
     return SORT_OPTIONS.find((option) => option.label === sortSelection) ?? SORT_OPTIONS[0];
@@ -192,7 +195,7 @@ export function DashboardPage(): JSX.Element {
   }, [selectedSort.sortBy, selectedSort.sortDirection]);
 
   const handleToggleSelection = (offerId: string): void => {
-    if (deletingOfferIds.includes(offerId)) {
+    if (fadingOfferIds.includes(offerId) || collapsingOfferIds.includes(offerId)) {
       return;
     }
     setSelectedOfferIds((current) => {
@@ -221,18 +224,26 @@ export function DashboardPage(): JSX.Element {
     setErrorText(null);
     try {
       await deleteOffer(offerId);
-      setDeletingOfferIds((current) => (current.includes(offerId) ? current : [...current, offerId]));
+      setFadingOfferIds((current) => (current.includes(offerId) ? current : [...current, offerId]));
       setSelectedOfferIds((current) => current.filter((id) => id !== offerId));
       setDeleteConfirmId(null);
-      if (deleteTimeoutRef.current[offerId] !== undefined) {
-        window.clearTimeout(deleteTimeoutRef.current[offerId]);
+      if (deleteFadeTimeoutRef.current[offerId] !== undefined) {
+        window.clearTimeout(deleteFadeTimeoutRef.current[offerId]);
       }
-      deleteTimeoutRef.current[offerId] = window.setTimeout(() => {
+      if (deleteCollapseTimeoutRef.current[offerId] !== undefined) {
+        window.clearTimeout(deleteCollapseTimeoutRef.current[offerId]);
+      }
+      deleteFadeTimeoutRef.current[offerId] = window.setTimeout(() => {
+        setFadingOfferIds((current) => current.filter((id) => id !== offerId));
+        setCollapsingOfferIds((current) => (current.includes(offerId) ? current : [...current, offerId]));
+        delete deleteFadeTimeoutRef.current[offerId];
+      }, DELETE_FADE_DURATION_MS);
+      deleteCollapseTimeoutRef.current[offerId] = window.setTimeout(() => {
         setOffers((current) => current.filter((offer) => offer.id !== offerId));
-        setDeletingOfferIds((current) => current.filter((id) => id !== offerId));
+        setCollapsingOfferIds((current) => current.filter((id) => id !== offerId));
         setIsDeletingId(null);
-        delete deleteTimeoutRef.current[offerId];
-      }, DELETE_ANIMATION_DURATION_MS);
+        delete deleteCollapseTimeoutRef.current[offerId];
+      }, DELETE_FADE_DURATION_MS + DELETE_COLLAPSE_DURATION_MS);
     } catch (error: unknown) {
       setErrorText(error instanceof Error ? error.message : "Unable to delete offer.");
       setIsDeletingId(null);
@@ -262,8 +273,12 @@ export function DashboardPage(): JSX.Element {
       for (const timeoutId of timeoutIds) {
         window.clearTimeout(timeoutId);
       }
-      const deleteTimeoutIds = Object.values(deleteTimeoutRef.current);
-      for (const timeoutId of deleteTimeoutIds) {
+      const deleteFadeTimeoutIds = Object.values(deleteFadeTimeoutRef.current);
+      for (const timeoutId of deleteFadeTimeoutIds) {
+        window.clearTimeout(timeoutId);
+      }
+      const deleteCollapseTimeoutIds = Object.values(deleteCollapseTimeoutRef.current);
+      for (const timeoutId of deleteCollapseTimeoutIds) {
         window.clearTimeout(timeoutId);
       }
     };
@@ -327,12 +342,14 @@ export function DashboardPage(): JSX.Element {
           const isSelected = selectedOfferIds.includes(offer.id);
           const isDeleteConfirm = deleteConfirmId === offer.id;
           const isDeleting = isDeletingId === offer.id;
-          const isPendingRemoval = deletingOfferIds.includes(offer.id);
+          const isFading = fadingOfferIds.includes(offer.id);
+          const isCollapsing = collapsingOfferIds.includes(offer.id);
+          const isPendingRemoval = isFading || isCollapsing;
 
           return (
             <div
               key={offer.id}
-              className={`dashboard-card-shell ${isPendingRemoval ? "dashboard-card-shell-collapsing" : ""}`.trim()}
+              className={`dashboard-card-shell ${isCollapsing ? "dashboard-card-shell-collapsing" : ""}`.trim()}
             >
               <article
                 className={
