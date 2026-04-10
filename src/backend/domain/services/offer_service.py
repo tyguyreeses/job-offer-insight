@@ -206,40 +206,37 @@ _OPTIONAL_FIELD_DEFAULTS: dict[str, Any] = {
 }
 
 
-def _collect_missing_prompts(payload: dict[str, Any]) -> list[FieldPrompt]:
-    prompts: list[FieldPrompt] = []
-
-    if not _is_present(payload.get("company_name")):
-        prompts.append(
-            FieldPrompt(
-                path="company_name",
-                required=True,
-                message="Provide company_name to save this offer.",
-            )
-        )
-    if not _is_present(payload.get("role_title")):
-        prompts.append(
-            FieldPrompt(
-                path="role_title",
-                required=True,
-                message="Provide role_title to save this offer.",
-            )
-        )
-    if not _is_present(payload.get("location")):
-        prompts.append(
-            FieldPrompt(
-                path="location",
-                required=True,
-                message="Provide location to save this offer.",
-            )
-        )
-
+def _has_required_compensation(payload: dict[str, Any]) -> bool:
     annual_base = _coerce_float(_get_path(payload, "compensation.annual_base_salary_usd"))
     hourly_rate = _coerce_float(_get_path(payload, "compensation.hourly_rate_usd"))
     hours_per_week = _coerce_float(_get_path(payload, "compensation.hours_per_week"))
-    has_base_path = annual_base is not None or (hourly_rate is not None and hours_per_week is not None)
+    return annual_base is not None or (hourly_rate is not None and hours_per_week is not None)
 
-    if not has_base_path:
+
+def _missing_core_required_fields(payload: dict[str, Any]) -> list[str]:
+    missing: list[str] = []
+    if not _is_present(payload.get("company_name")):
+        missing.append("company_name")
+    if not _is_present(payload.get("role_title")):
+        missing.append("role_title")
+    if not _is_present(payload.get("location")):
+        missing.append("location")
+    return missing
+
+
+def _collect_missing_prompts(payload: dict[str, Any]) -> list[FieldPrompt]:
+    prompts: list[FieldPrompt] = []
+
+    for path in _missing_core_required_fields(payload):
+        prompts.append(
+            FieldPrompt(
+                path=path,
+                required=True,
+                message=f"Provide {path} to save this offer.",
+            )
+        )
+
+    if not _has_required_compensation(payload):
         for path in _REQUIRED_COMPENSATION_PATHS:
             prompts.append(
                 FieldPrompt(
@@ -304,20 +301,9 @@ def _fill_optional_defaults(payload: dict[str, Any]) -> list[str]:
 
 def _validate_required(payload: dict[str, Any]) -> list[str]:
     errors: list[str] = []
-
-    if not _is_present(payload.get("company_name")):
-        errors.append("company_name is required")
-    if not _is_present(payload.get("role_title")):
-        errors.append("role_title is required")
-    if not _is_present(payload.get("location")):
-        errors.append("location is required")
-
-    annual_base = _coerce_float(_get_path(payload, "compensation.annual_base_salary_usd"))
-    hourly_rate = _coerce_float(_get_path(payload, "compensation.hourly_rate_usd"))
-    hours_per_week = _coerce_float(_get_path(payload, "compensation.hours_per_week"))
-    has_base_path = annual_base is not None or (hourly_rate is not None and hours_per_week is not None)
-
-    if not has_base_path:
+    for path in _missing_core_required_fields(payload):
+        errors.append(f"{path} is required")
+    if not _has_required_compensation(payload):
         errors.append(
             "Provide compensation.annual_base_salary_usd or both compensation.hourly_rate_usd and compensation.hours_per_week"
         )
@@ -339,19 +325,8 @@ def _record_to_payload(record: OfferRecord) -> dict[str, Any]:
 
 
 def _missing_required_fields(payload: dict[str, Any]) -> list[str]:
-    missing: list[str] = []
-    if not _is_present(payload.get("company_name")):
-        missing.append("company_name")
-    if not _is_present(payload.get("role_title")):
-        missing.append("role_title")
-    if not _is_present(payload.get("location")):
-        missing.append("location")
-
-    annual_base = _coerce_float(_get_path(payload, "compensation.annual_base_salary_usd"))
-    hourly_rate = _coerce_float(_get_path(payload, "compensation.hourly_rate_usd"))
-    hours_per_week = _coerce_float(_get_path(payload, "compensation.hours_per_week"))
-    has_base_path = annual_base is not None or (hourly_rate is not None and hours_per_week is not None)
-    if not has_base_path:
+    missing = _missing_core_required_fields(payload)
+    if not _has_required_compensation(payload):
         missing.extend(_REQUIRED_COMPENSATION_PATHS)
     return missing
 

@@ -17,10 +17,20 @@ description: |
 
 ### Process
 
-Run tests from repo root with:
+Choose commands based on the area you changed:
 
 ```
 python -m pytest -q
 ```
 
-Tests are in `tests/`.
+Run frontend tests when frontend behavior/tests changed:
+
+```
+cd src/frontend && npm test
+```
+
+If a change spans backend and frontend behavior, run both commands before
+concluding the feature.
+
+Backend tests are in `tests/`.
+Frontend tests are in `src/frontend/src/`.

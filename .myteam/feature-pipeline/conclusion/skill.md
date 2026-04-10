@@ -32,7 +32,7 @@ Follow guidance in the `git-commit` skill.
 ### Version bump (if applicable)
 
 If runtime behavior changed and this repo uses package versioning
-(for example, a tracked `pyproject.toml`), bump the version
+(for example, a tracked `pyproject.toml` or `src/frontend/package.json`), bump the version
 appropriately.
 
 Because the project is in 0.x:

@@ -9,6 +9,28 @@ import type { IntakeAction, TextTurnResponse } from "../types/intake";
 type ModeState = "chooser" | "chooser-exit" | "text" | "audio";
 type AudioLabelPhase = "steady" | "fade-out" | "fade-in";
 
+function AssistantMessagePanel({ message }: { message: string }): JSX.Element | null {
+  if (!message) {
+    return null;
+  }
+  return (
+    <div className="transcript-panel">
+      <div
+        className="assistant-message transcript-message transcript-message-assistant motion-fade-enter"
+        style={
+          {
+            ["--motion-delay" as string]: "0ms",
+            ["--motion-duration" as string]: "200ms",
+            ["--motion-from-y" as string]: "6px"
+          } as CSSProperties
+        }
+      >
+        {message}
+      </div>
+    </div>
+  );
+}
+
 export function AddEntryPage(): JSX.Element {
   const [mode, setMode] = useState<ModeState>("chooser");
   const [inputText, setInputText] = useState("");
@@ -311,20 +333,7 @@ export function AddEntryPage(): JSX.Element {
             className="conversation-panel motion-fade-enter"
             style={{ ["--motion-delay" as string]: "80ms", ["--motion-duration" as string]: "220ms" }}
           >
-            {latestAssistantMessage ? (
-              <div className="transcript-panel">
-                <div
-                  className="assistant-message transcript-message transcript-message-assistant motion-fade-enter"
-                  style={{
-                    ["--motion-delay" as string]: "0ms",
-                    ["--motion-duration" as string]: "200ms",
-                    ["--motion-from-y" as string]: "6px"
-                  }}
-                >
-                  {latestAssistantMessage}
-                </div>
-              </div>
-            ) : null}
+            <AssistantMessagePanel message={latestAssistantMessage} />
 
             <label className="input-label" htmlFor="job-entry-text">
               Add details
@@ -376,20 +385,7 @@ export function AddEntryPage(): JSX.Element {
             className="conversation-panel audio-conversation-panel motion-fade-enter"
             style={{ ["--motion-delay" as string]: "120ms", ["--motion-duration" as string]: "220ms" }}
           >
-            {latestAssistantMessage ? (
-              <div className="transcript-panel">
-                <div
-                  className="assistant-message transcript-message transcript-message-assistant motion-fade-enter"
-                  style={{
-                    ["--motion-delay" as string]: "0ms",
-                    ["--motion-duration" as string]: "200ms",
-                    ["--motion-from-y" as string]: "6px"
-                  }}
-                >
-                  {latestAssistantMessage}
-                </div>
-              </div>
-            ) : null}
+            <AssistantMessagePanel message={latestAssistantMessage} />
 
             {errorText ? <p className="error-text">{errorText}</p> : null}
 
