@@ -337,8 +337,8 @@ def _assistant_message_for_step(
         )
     if step == _STEP_COLLECT_NON_MONETARY:
         return (
-            "Any additional non-monetary benefits to include (for example culture, mission "
-            "alignment, wellness/perks)? If none, you can skip."
+            "Any additional non-monetary benefits to include? Share them naturally and I will "
+            "store them as concise bullet points. If none, you can skip."
         )
     if step == _STEP_ANYTHING_ELSE:
         return "Is there anything else you want to add before saving?"

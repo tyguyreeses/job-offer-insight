@@ -376,119 +376,8 @@ offer_schema:
         order: 8
         widget: "textarea_list"
 
-    - id: "mission-alignment-notes"
-      label: "Mission alignment notes"
-      storage_path: "non_monetary_benefits.mission_alignment_notes"
-      data_type: "string"
-      group: "non_monetary"
-      default_when_omitted: ""
-      card:
-        visible: false
-        section_id: "non_monetary"
-        order: 1
-        style: "labeled_value"
-      edit:
-        visible: true
-        section_id: "non_monetary"
-        order: 1
-        widget: "textarea"
-    - id: "culture-notes"
-      label: "Culture notes"
-      storage_path: "non_monetary_benefits.culture_notes"
-      data_type: "string"
-      group: "non_monetary"
-      default_when_omitted: ""
-      card:
-        visible: false
-        section_id: "non_monetary"
-        order: 2
-        style: "labeled_value"
-      edit:
-        visible: true
-        section_id: "non_monetary"
-        order: 2
-        widget: "textarea"
-    - id: "growth-notes"
-      label: "Growth notes"
-      storage_path: "non_monetary_benefits.growth_notes"
-      data_type: "string"
-      group: "non_monetary"
-      default_when_omitted: ""
-      card:
-        visible: false
-        section_id: "non_monetary"
-        order: 3
-        style: "labeled_value"
-      edit:
-        visible: true
-        section_id: "non_monetary"
-        order: 3
-        widget: "textarea"
-    - id: "wellness-notes"
-      label: "Wellness notes"
-      storage_path: "non_monetary_benefits.wellness_notes"
-      data_type: "string"
-      group: "non_monetary"
-      default_when_omitted: ""
-      card:
-        visible: false
-        section_id: "non_monetary"
-        order: 4
-        style: "labeled_value"
-      edit:
-        visible: true
-        section_id: "non_monetary"
-        order: 4
-        widget: "textarea"
-    - id: "pto-days"
-      label: "PTO days"
-      storage_path: "non_monetary_benefits.pto_days"
-      data_type: "integer"
-      group: "non_monetary"
-      card:
-        visible: false
-        section_id: "non_monetary"
-        order: 5
-        style: "labeled_value"
-      edit:
-        visible: true
-        section_id: "non_monetary"
-        order: 5
-        widget: "number"
-    - id: "remote-flexibility-notes"
-      label: "Remote flexibility notes"
-      storage_path: "non_monetary_benefits.remote_flexibility_notes"
-      data_type: "string"
-      group: "non_monetary"
-      default_when_omitted: ""
-      card:
-        visible: false
-        section_id: "non_monetary"
-        order: 6
-        style: "labeled_value"
-      edit:
-        visible: true
-        section_id: "non_monetary"
-        order: 6
-        widget: "textarea"
-    - id: "other-non-monetary-benefits"
-      label: "Other non-monetary benefits"
-      storage_path: "non_monetary_benefits.other_non_monetary_benefits"
-      data_type: "list_string"
-      group: "non_monetary"
-      default_when_omitted: []
-      card:
-        visible: true
-        section_id: "non_monetary"
-        order: 7
-        style: "list"
-      edit:
-        visible: true
-        section_id: "non_monetary"
-        order: 7
-        widget: "textarea_list"
     - id: "non-monetary-summary-bullets"
-      label: "Non-monetary summary bullets"
+      label: "Non-monetary benefits"
       storage_path: "non_monetary_summary_bullets"
       data_type: "list_string"
       group: "non_monetary"
@@ -496,12 +385,12 @@ offer_schema:
       card:
         visible: true
         section_id: "non_monetary"
-        order: 8
+        order: 1
         style: "list"
       edit:
         visible: true
         section_id: "non_monetary"
-        order: 8
+        order: 1
         widget: "textarea_list"
 
     - id: "created-at"
