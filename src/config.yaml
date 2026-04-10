@@ -18,7 +18,7 @@ database:
 
 openai:
   api_key_env_var: "OPENAI_API_KEY"
-  model: "gpt-5.2-mini"
+  model: "gpt-5.3-mini"
   transcription_model: "gpt-4o-mini-transcribe"
   accepted_audio_extensions: [".wav", ".mp3", ".m4a", ".mp4", ".mpeg", ".mpga", ".webm"]
   timeout_seconds: 45
@@ -35,12 +35,12 @@ agents:
   entry_creation:
     type: non-structured
     enabled: true
-    model: "gpt-5.2-mini"
+    model: "gpt-5.3-mini"
     max_output_tokens: 500
     prompt: "entry_creation_chat.md"
   structured_output:
     type: structured-output
     enabled: true
-    model: "gpt-5.2-mini"
+    model: "gpt-5.3-mini"
     max_output_tokens: 1200
     prompt: "extract_offer.md"
