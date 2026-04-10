@@ -298,6 +298,21 @@ offer_schema:
         section_id: "monetary"
         order: 3
         widget: "number"
+    - id: "dental-insurance-employer-monthly-usd"
+      label: "Dental insurance employer monthly (USD)"
+      storage_path: "monetary_benefits.dental_insurance_employer_monthly_usd"
+      data_type: "number"
+      group: "monetary"
+      card:
+        visible: true
+        section_id: "monetary"
+        order: 6
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "monetary"
+        order: 4
+        widget: "number"
     - id: "hsa-employer-annual-usd"
       label: "HSA employer annual (USD)"
       storage_path: "monetary_benefits.hsa_employer_annual_usd"
@@ -306,12 +321,12 @@ offer_schema:
       card:
         visible: false
         section_id: "monetary"
-        order: 6
+        order: 7
         style: "labeled_value"
       edit:
         visible: true
         section_id: "monetary"
-        order: 4
+        order: 5
         widget: "number"
     - id: "equity-grant-usd"
       label: "Equity grant value (USD)"
@@ -321,12 +336,12 @@ offer_schema:
       card:
         visible: true
         section_id: "monetary"
-        order: 7
+        order: 8
         style: "labeled_value"
       edit:
         visible: true
         section_id: "monetary"
-        order: 5
+        order: 6
         widget: "number"
     - id: "equity-vesting-schedule"
       label: "Equity vesting schedule"
@@ -337,12 +352,12 @@ offer_schema:
       card:
         visible: false
         section_id: "monetary"
-        order: 8
+        order: 9
         style: "labeled_value"
       edit:
         visible: true
         section_id: "monetary"
-        order: 6
+        order: 7
         widget: "text"
     - id: "other-monetary-benefits"
       label: "Other monetary benefits"
@@ -353,12 +368,12 @@ offer_schema:
       card:
         visible: true
         section_id: "monetary"
-        order: 9
+        order: 10
         style: "list"
       edit:
         visible: true
         section_id: "monetary"
-        order: 7
+        order: 8
         widget: "textarea_list"
 
     - id: "mission-alignment-notes"
