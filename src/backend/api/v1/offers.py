@@ -1,8 +1,7 @@
-"""Offer intake and CRUD endpoints for Stage 4."""
+"""Offer intake and CRUD endpoints."""
 
 from __future__ import annotations
 
-import json
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -67,35 +66,6 @@ class OfferUpdateRequest(BaseModel):
     payload: dict[str, Any]
 
 
-def _parse_form_json_dict(raw_value: str, field_name: str) -> dict[str, Any]:
-    try:
-        parsed = json.loads(raw_value)
-    except json.JSONDecodeError as exc:
-        raise HTTPException(
-            status_code=422,
-            detail=f"{field_name} must be valid JSON object text.",
-        ) from exc
-    if not isinstance(parsed, dict):
-        raise HTTPException(status_code=422, detail=f"{field_name} must be a JSON object.")
-    return parsed
-
-
-def _parse_omission_confirmations(raw_value: str) -> dict[str, bool]:
-    parsed = _parse_form_json_dict(raw_value, "omission_confirmations_json")
-    confirmations: dict[str, bool] = {}
-    for key, value in parsed.items():
-        if not isinstance(key, str) or not isinstance(value, bool):
-            raise HTTPException(
-                status_code=422,
-                detail=(
-                    "omission_confirmations_json values must be a JSON object "
-                    "with string keys and boolean values."
-                ),
-            )
-        confirmations[key] = value
-    return confirmations
-
-
 @router.post("/intake/text", response_model=TextConversationResponse)
 def intake_offer_from_text(
     request: TextIntakeRequest,
@@ -127,33 +97,38 @@ def intake_offer_from_text(
     )
 
 
-@router.post("/intake/audio", response_model=OfferIntakeResponse)
+@router.post("/intake/audio", response_model=TextConversationResponse)
 def intake_offer_from_audio(
-    audio_file: UploadFile = File(...),
-    omission_confirmations_json: str = Form(default="{}"),
-    extracted_offer_overrides_json: str = Form(default="{}"),
+    action: Literal["submit", "skip_current", "finish"] = Form(...),
+    session_id: str | None = Form(default=None),
+    audio_file: UploadFile | None = File(default=None),
     offer_service: OfferService = Depends(get_offer_service),
-) -> OfferIntakeResponse:
-    omission_confirmations = _parse_omission_confirmations(omission_confirmations_json)
-    extracted_offer_overrides = _parse_form_json_dict(
-        extracted_offer_overrides_json, "extracted_offer_overrides_json"
-    )
-    audio_bytes = audio_file.file.read()
-    result = offer_service.intake_audio_offer(
-        audio_bytes=audio_bytes,
-        filename=audio_file.filename or "",
-        content_type=audio_file.content_type,
-        omission_confirmations=omission_confirmations,
-        extracted_offer_overrides=extracted_offer_overrides,
-    )
-    offer_payload = (
-        offer_service.render_offer_payload(result.offer) if result.offer is not None else None
-    )
-    return OfferIntakeResponse(
+) -> TextConversationResponse:
+    if action == "submit" and audio_file is None:
+        raise HTTPException(status_code=422, detail="audio_file is required for action=submit.")
+
+    audio_bytes = audio_file.file.read() if audio_file is not None else None
+    try:
+        result = offer_service.intake_audio_offer(
+            session_id=session_id,
+            action=action,
+            audio_bytes=audio_bytes,
+            filename=(audio_file.filename or "audio.webm") if audio_file is not None else "",
+            content_type=audio_file.content_type if audio_file is not None else None,
+        )
+    except ConversationSessionNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    offer_payload = offer_service.render_offer_payload(result.offer) if result.offer is not None else None
+    return TextConversationResponse(
+        session_id=result.session_id,
         status=result.status,
+        assistant_message=result.assistant_message,
+        step=result.step,
+        can_finish=result.can_finish,
+        missing_required_fields=result.missing_required_fields,
+        current_prompt_key=result.current_prompt_key,
         errors=result.errors,
         warnings=result.warnings,
-        missing_field_prompts=[MissingFieldPromptResponse(**prompt.__dict__) for prompt in result.missing_field_prompts],
         offer=offer_payload,
     )
 

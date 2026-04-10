@@ -20,19 +20,20 @@ class OfferService(Protocol):
         session_id: str | None,
         action: str,
         message_text: str | None = None,
+        source_input_type: str = "text",
     ) -> TextConversationResult:
         """Intake text conversation turns and return stateful outcomes."""
 
     def intake_audio_offer(
         self,
         *,
-        audio_bytes: bytes,
-        filename: str,
+        session_id: str | None,
+        action: str,
+        audio_bytes: bytes | None = None,
+        filename: str = "",
         content_type: str | None = None,
-        omission_confirmations: dict[str, bool] | None = None,
-        extracted_offer_overrides: dict[str, Any] | None = None,
-    ) -> IntakeResult:
-        """Intake offer audio and return save/missing/blocked outcomes."""
+    ) -> TextConversationResult:
+        """Intake conversational audio turns and return stateful outcomes."""
 
     def list_offers(self) -> list[OfferRecord]:
         """Return all saved offers."""

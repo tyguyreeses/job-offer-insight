@@ -8,7 +8,12 @@ export interface TextTurnRequest {
 
 export interface TextTurnResponse {
   session_id: string;
-  status: "in_progress" | "blocked_required_fields" | "saved" | "extraction_failed";
+  status:
+    | "in_progress"
+    | "blocked_required_fields"
+    | "saved"
+    | "extraction_failed"
+    | "transcription_failed";
   assistant_message: string;
   step:
     | "collect_required"

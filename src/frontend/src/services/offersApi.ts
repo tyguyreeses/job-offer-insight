@@ -15,3 +15,16 @@ export async function sendTextTurn(request: TextTurnRequest): Promise<TextTurnRe
 
   return (await response.json()) as TextTurnResponse;
 }
+
+export async function sendAudioTurn(request: FormData): Promise<TextTurnResponse> {
+  const response = await fetch("/api/v1/offers/intake/audio", {
+    method: "POST",
+    body: request
+  });
+
+  if (!response.ok) {
+    throw new Error(`Audio intake request failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as TextTurnResponse;
+}

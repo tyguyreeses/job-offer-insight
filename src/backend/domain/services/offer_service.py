@@ -83,6 +83,7 @@ class ConversationSession:
     session_id: str
     payload: dict[str, Any]
     step: str = _STEP_COLLECT_REQUIRED
+    source_input_type: str = "text"
 
 
 class ConversationSessionNotFound(RuntimeError):
@@ -469,8 +470,10 @@ class Stage4OfferService:
         session_id: str | None,
         action: str,
         message_text: str | None = None,
+        source_input_type: str = "text",
     ) -> TextConversationResult:
         session = self._get_or_create_session(session_id)
+        session.source_input_type = source_input_type
         errors: list[str] = []
         warnings: list[str] = []
 
@@ -561,7 +564,7 @@ class Stage4OfferService:
             offer_meta = session.payload["offer_meta"]
             if isinstance(offer_meta, dict):
                 offer_meta.setdefault("status", "active")
-                offer_meta["source_input_type"] = "text"
+                offer_meta["source_input_type"] = session.source_input_type
                 offer_meta.setdefault("created_at", now)
                 offer_meta["updated_at"] = now
 
@@ -619,12 +622,37 @@ class Stage4OfferService:
     def intake_audio_offer(
         self,
         *,
-        audio_bytes: bytes,
-        filename: str,
+        session_id: str | None,
+        action: str,
+        audio_bytes: bytes | None = None,
+        filename: str = "",
         content_type: str | None = None,
-        omission_confirmations: dict[str, bool] | None = None,
-        extracted_offer_overrides: dict[str, Any] | None = None,
-    ) -> IntakeResult:
+    ) -> TextConversationResult:
+        session = self._get_or_create_session(session_id)
+        session.source_input_type = "audio"
+
+        if action != "submit":
+            return self.intake_text_offer(
+                session_id=session.session_id,
+                action=action,
+                source_input_type="audio",
+            )
+
+        if not audio_bytes:
+            missing_required_fields = _missing_required_fields(session.payload)
+            return TextConversationResult(
+                session_id=session.session_id,
+                status="transcription_failed",
+                assistant_message="Unable to transcribe audio input: Audio file is empty.",
+                step=session.step,
+                can_finish=(session.step == _STEP_ANYTHING_ELSE and len(missing_required_fields) == 0),
+                missing_required_fields=missing_required_fields,
+                current_prompt_key=_current_prompt_key_for_step(session.step),
+                errors=["Unable to transcribe audio input: Audio file is empty."],
+                warnings=[],
+                offer=None,
+            )
+
         try:
             transcript = self.audio_transcriber.transcribe(
                 audio_bytes=audio_bytes,
@@ -632,18 +660,24 @@ class Stage4OfferService:
                 content_type=content_type,
             )
         except AudioTranscriptionError as exc:
-            return IntakeResult(
+            missing_required_fields = _missing_required_fields(session.payload)
+            message = f"Unable to transcribe audio input: {exc}"
+            return TextConversationResult(
+                session_id=session.session_id,
                 status="transcription_failed",
-                errors=[f"Unable to transcribe audio input: {exc}"],
+                assistant_message=message,
+                step=session.step,
+                can_finish=(session.step == _STEP_ANYTHING_ELSE and len(missing_required_fields) == 0),
+                missing_required_fields=missing_required_fields,
+                current_prompt_key=_current_prompt_key_for_step(session.step),
+                errors=[message],
                 warnings=[],
-                missing_field_prompts=[],
                 offer=None,
             )
-
-        return self._intake_offer_from_text(
-            text=transcript,
-            omission_confirmations=omission_confirmations,
-            extracted_offer_overrides=extracted_offer_overrides,
+        return self.intake_text_offer(
+            session_id=session.session_id,
+            action="submit",
+            message_text=transcript,
             source_input_type="audio",
         )
 

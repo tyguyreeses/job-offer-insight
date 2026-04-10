@@ -144,15 +144,17 @@ Endpoint paths may evolve, but external behavior must remain equivalent.
 
 1. Create offer from text/audio-derived payload.
 2. Text intake endpoint accepts JSON body at `POST /api/v1/offers/intake/text`.
-3. Audio intake endpoint accepts multipart upload at `POST /api/v1/offers/intake/audio` with:
-   - `audio_file` upload (`.wav`, `.mp3`, `.m4a`, `.mp4`, `.mpeg`, `.mpga`, `.webm`)
-   - optional `omission_confirmations_json` object text
-   - optional `extracted_offer_overrides_json` object text
-4. Return missing-field prompts when required for completion decisions.
-5. Save accepted blanks as omitted fields.
-6. Retrieve offer list and single offer details.
-7. Update offer by ID via structured form payload.
-8. Audio transcription failures are returned as observable intake status `transcription_failed`.
+3. Audio intake endpoint accepts multipart conversational turns at `POST /api/v1/offers/intake/audio` with:
+   - `action`: `submit | skip_current | finish`
+   - optional `session_id` for continuing a prior turn
+   - required `audio_file` for `action=submit` (`.wav`, `.mp3`, `.m4a`, `.mp4`, `.mpeg`, `.mpga`, `.webm`)
+4. Audio and text intake return the same conversational response contract:
+   - `session_id`, `status`, `assistant_message`, `step`, `can_finish`, `missing_required_fields`, `current_prompt_key`, `errors`, `warnings`, `offer`
+5. `skip_current` and `finish` on audio follow the same state machine and gating behavior as text.
+6. Audio transcription failures are returned as observable conversational status `transcription_failed`.
+7. Save accepted blanks as omitted fields.
+8. Retrieve offer list and single offer details.
+9. Update offer by ID via structured form payload.
 
 ### Comparison
 

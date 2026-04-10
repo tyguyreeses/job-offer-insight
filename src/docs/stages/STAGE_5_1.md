@@ -42,11 +42,9 @@ Implement the Main Page UX for creating an offer and replace one-shot text intak
   - typed omission intent in user text
 - Parse each follow-up reply and merge into existing session payload
 - Preserve existing normalization/validation/persistence rules for final save
-- Audio button currently does nothing when clicked (no UI warning required)
+- Audio mode now mirrors text conversational flow using simple start/stop recording + submit controls
 
 ## Out of Scope
-- Audio recording or audio upload UX in this stage
-- Changes to `POST /api/v1/offers/intake/audio`
 - Persistence of conversation sessions beyond process lifetime (no DB-backed sessions yet)
 - Dashboard/compare/edit page behavior changes
 
@@ -79,7 +77,8 @@ Implement the Main Page UX for creating an offer and replace one-shot text intak
 - [x] Create shared animation tokens/utilities for fade enter/exit and reuse them for all Stage 5.1 motion
 - [x] Implement elegant navbar shell aligned with end-goal navigation expectations
 - [x] Wire frontend conversation UI to new text-intake contract
-- [x] Keep audio button visually present and non-functional (no state change on click)
+- [x] Implement conversational audio mode with start/stop recording UI and recording-state indicator
+- [x] Route `POST /api/v1/offers/intake/audio` through the same conversational state machine as text
 
 ## Deliverables
 - Runnable frontend main page for end-to-end "create offer" UX testing
@@ -96,7 +95,7 @@ Implement the Main Page UX for creating an offer and replace one-shot text intak
 - [x] Frontend test: text click triggers fade transition and input reveal
 - [x] Frontend test: assistant message region appears/updates above input
 - [x] Frontend test: finish behavior follows backend state (`can_finish` / blocked)
-- [x] Frontend test: audio button click causes no state change
+- [x] Frontend test: audio mode reveals simple record controls and recording indicator behavior
 - [x] Frontend test: selectable controls apply blue-glow hover style
 - [x] Frontend test: staged fade/reveal sequence order is deterministic (header -> controls -> conversation region)
 - [x] Frontend test: Stage 5.1 fade transitions consume shared motion utilities/tokens (no page-specific fade keyframes)
@@ -106,7 +105,9 @@ Implement the Main Page UX for creating an offer and replace one-shot text intak
 ## Progress Snapshot (2026-04-09)
 
 - Implemented conversational backend contract and state machine on `/api/v1/offers/intake/text`.
+- Converted `/api/v1/offers/intake/audio` to conversational turns with transcription-then-text-workflow delegation.
 - Implemented frontend scaffold and Add Entry page UX/styling/motion for Stage 5.1.
+- Implemented frontend audio mode parity with simple start/stop recording and submit/skip/finish actions.
 - Added automated backend and frontend tests for Stage 5.1 behavior.
 - Applied follow-up fixes from code-linter review:
   - hardened typed omission detection to avoid substring false positives
@@ -157,7 +158,7 @@ Validation results:
   3. Additional non-monetary benefits prompt
   4. "Is there anything else?"
   5. Save
-- Audio button remains inert (no-op) in this stage.
+- Audio mode uses start/stop recording and submits conversational turns to `/offers/intake/audio`.
 - UI styling baseline is mandatory in this stage: custom CSS, centered minimal composition, blue hover glow, and smooth staged fades.
 
 ## Implementation Contract Addendum (Decision Lock)
