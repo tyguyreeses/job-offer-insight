@@ -23,3 +23,9 @@ def test_get_logger_returns_namespaced_logger_for_backend_module() -> None:
 def test_get_logger_preserves_app_logger_prefix() -> None:
     logger = get_logger(f"{APP_LOGGER_NAME}.custom")
     assert logger.name == f"{APP_LOGGER_NAME}.custom"
+
+
+def test_debug_mode_keeps_third_party_loggers_quiet() -> None:
+    setup_logger(debug=True, configured_level="INFO")
+    assert logging.getLogger(APP_LOGGER_NAME).getEffectiveLevel() == logging.DEBUG
+    assert logging.getLogger("python_multipart").getEffectiveLevel() == logging.WARNING
