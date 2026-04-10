@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Navbar } from "../components/Navbar";
 import { createBrowserAudioRecorder, type AudioRecorderController } from "../services/audioRecorder";
 import { sendAudioTurn, sendTextTurn } from "../services/offersApi";
-import type { ConversationMessage, IntakeAction, TextTurnResponse } from "../types/intake";
+import type { IntakeAction, TextTurnResponse } from "../types/intake";
 
 type ModeState = "chooser" | "chooser-exit" | "text" | "audio";
 type AudioLabelPhase = "steady" | "fade-out" | "fade-in";
@@ -38,10 +38,9 @@ export function AddEntryPage(): JSX.Element {
     };
   }, []);
 
-  const transcript = useMemo<ConversationMessage[]>(
-    () => conversation?.messages ?? [],
-    [conversation?.messages]
-  );
+  const latestAssistantMessage = useMemo(() => {
+    return conversation?.assistant_message?.trim() ?? "";
+  }, [conversation?.assistant_message]);
 
   const transitionAudioLabel = (nextLabel: string): void => {
     if (audioButtonLabel === nextLabel) {
@@ -294,21 +293,18 @@ export function AddEntryPage(): JSX.Element {
             className="conversation-panel motion-fade-enter"
             style={{ ["--motion-delay" as string]: "80ms", ["--motion-duration" as string]: "220ms" }}
           >
-            {transcript.length > 0 ? (
+            {latestAssistantMessage ? (
               <div className="transcript-panel">
-                {transcript.map((entry, index) => (
-                  <div
-                    key={`${entry.role}-${index}-${entry.content.slice(0, 16)}`}
-                    className={`assistant-message transcript-message transcript-message-${entry.role} motion-fade-enter`}
-                    style={{
-                      ["--motion-delay" as string]: "0ms",
-                      ["--motion-duration" as string]: "200ms",
-                      ["--motion-from-y" as string]: "6px"
-                    }}
-                  >
-                    {entry.content}
-                  </div>
-                ))}
+                <div
+                  className="assistant-message transcript-message transcript-message-assistant motion-fade-enter"
+                  style={{
+                    ["--motion-delay" as string]: "0ms",
+                    ["--motion-duration" as string]: "200ms",
+                    ["--motion-from-y" as string]: "6px"
+                  }}
+                >
+                  {latestAssistantMessage}
+                </div>
               </div>
             ) : null}
 
@@ -362,21 +358,18 @@ export function AddEntryPage(): JSX.Element {
             className="conversation-panel audio-conversation-panel motion-fade-enter"
             style={{ ["--motion-delay" as string]: "120ms", ["--motion-duration" as string]: "220ms" }}
           >
-            {transcript.length > 0 ? (
+            {latestAssistantMessage ? (
               <div className="transcript-panel">
-                {transcript.map((entry, index) => (
-                  <div
-                    key={`${entry.role}-${index}-${entry.content.slice(0, 16)}`}
-                    className={`assistant-message transcript-message transcript-message-${entry.role} motion-fade-enter`}
-                    style={{
-                      ["--motion-delay" as string]: "0ms",
-                      ["--motion-duration" as string]: "200ms",
-                      ["--motion-from-y" as string]: "6px"
-                    }}
-                  >
-                    {entry.content}
-                  </div>
-                ))}
+                <div
+                  className="assistant-message transcript-message transcript-message-assistant motion-fade-enter"
+                  style={{
+                    ["--motion-delay" as string]: "0ms",
+                    ["--motion-duration" as string]: "200ms",
+                    ["--motion-from-y" as string]: "6px"
+                  }}
+                >
+                  {latestAssistantMessage}
+                </div>
               </div>
             ) : null}
 

@@ -432,6 +432,22 @@ def _append_message(session: ConversationSession, role: str, content: str) -> No
     session.messages.append({"role": role, "content": text})
 
 
+def _user_messages(session: ConversationSession) -> list[str]:
+    messages: list[str] = []
+    for entry in session.messages:
+        if entry.get("role") != "user":
+            continue
+        content = entry.get("content")
+        if isinstance(content, str) and content.strip() != "":
+            messages.append(content.strip())
+    return messages
+
+
+def _looks_like_json_object(text: str) -> bool:
+    stripped = text.strip()
+    return stripped.startswith("{") and stripped.endswith("}")
+
+
 def _fallback_assistant_message(
     *,
     step: str,
@@ -542,6 +558,45 @@ class Stage4OfferService:
                 blocked_finish=blocked_finish,
             )
 
+    def _parse_and_merge_finish_payload(
+        self,
+        *,
+        session: ConversationSession,
+        errors: list[str],
+    ) -> None:
+        user_messages = _user_messages(session)
+        if not user_messages:
+            return
+
+        combined_user_text = "\n\n".join(user_messages)
+        try:
+            extracted_payload = self.text_parser_agent.parse(combined_user_text)
+        except TextParserError as combined_exc:
+            # Fallback for local JSON payload inputs without making extra model calls.
+            inline_json_payload: dict[str, Any] = {}
+            for message in user_messages:
+                if not _looks_like_json_object(message):
+                    continue
+                try:
+                    piece = self.text_parser_agent.parse(message)
+                except TextParserError:
+                    continue
+                inline_json_payload = _merge_payloads(inline_json_payload, piece)
+
+            if not inline_json_payload:
+                errors.append(
+                    "Unable to extract structured offer data from conversation transcript: "
+                    f"{combined_exc}"
+                )
+                return
+
+            session.payload = _merge_payloads(session.payload, inline_json_payload)
+            _normalize_compensation(session.payload)
+            return
+
+        session.payload = _merge_payloads(session.payload, extracted_payload)
+        _normalize_compensation(session.payload)
+
     def intake_text_offer(
         self,
         *,
@@ -564,14 +619,14 @@ class Stage4OfferService:
                 warnings.extend(_apply_prompt_omission_defaults(session.payload, current_prompt_key))
                 _advance_on_skip(session)
             elif message:
-                try:
-                    extracted_payload = self.text_parser_agent.parse(message)
-                except TextParserError as exc:
-                    errors.append(f"Unable to extract structured offer data: {exc}")
-                else:
-                    session.payload = _merge_payloads(session.payload, extracted_payload)
-                    _normalize_compensation(session.payload)
-
+                if len(_missing_required_fields(session.payload)) > 0:
+                    try:
+                        extracted_payload = self.text_parser_agent.parse(message)
+                    except TextParserError as exc:
+                        errors.append(f"Unable to extract structured offer data: {exc}")
+                    else:
+                        session.payload = _merge_payloads(session.payload, extracted_payload)
+                        _normalize_compensation(session.payload)
                 if session.step == _STEP_COLLECT_REQUIRED:
                     if len(_missing_required_fields(session.payload)) == 0:
                         session.step = _STEP_COLLECT_MONETARY
@@ -586,15 +641,7 @@ class Stage4OfferService:
 
         elif action == "finish":
             _append_message(session, "user", message)
-            if message:
-                if not _is_typed_omission(message):
-                    try:
-                        extracted_payload = self.text_parser_agent.parse(message)
-                    except TextParserError as exc:
-                        errors.append(f"Unable to extract structured offer data: {exc}")
-                    else:
-                        session.payload = _merge_payloads(session.payload, extracted_payload)
-                        _normalize_compensation(session.payload)
+            self._parse_and_merge_finish_payload(session=session, errors=errors)
 
             missing_required_fields = _missing_required_fields(session.payload)
             if missing_required_fields:
