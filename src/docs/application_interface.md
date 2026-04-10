@@ -187,6 +187,7 @@ Validation behavior:
 2. Unknown/extra keys are treated as config errors.
 3. Optional keys may use defaults defined by backend config types.
 4. `agents.text_parser` must be configured for AI text-intake parsing behavior.
+5. `openai.accepted_audio_extensions` defines the allowed file extensions for audio transcription intake validation.
 
 ## Persistence Contract
 

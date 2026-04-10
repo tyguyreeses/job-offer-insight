@@ -40,6 +40,10 @@ class OpenAISection(BaseModel):
     api_key_env_var: str = Field(default="OPENAI_API_KEY", min_length=1)
     model: str = Field(default="gpt-5.2", min_length=1)
     transcription_model: str = Field(default="gpt-4o-mini-transcribe", min_length=1)
+    accepted_audio_extensions: list[str] = Field(
+        default_factory=lambda: [".wav", ".mp3", ".m4a", ".mp4", ".mpeg", ".mpga", ".webm"],
+        min_length=1,
+    )
     timeout_seconds: float = Field(default=45.0, gt=0)
     max_retries: int = Field(default=2, ge=0)
 

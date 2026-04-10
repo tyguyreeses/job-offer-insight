@@ -20,6 +20,7 @@ openai:
   api_key_env_var: "OPENAI_API_KEY"
   model: "gpt-5.2"
   transcription_model: "gpt-4o-mini-transcribe"
+  accepted_audio_extensions: [".wav", ".mp3", ".m4a", ".mp4", ".mpeg", ".mpga", ".webm"]
   timeout_seconds: 45
   max_retries: 2
 

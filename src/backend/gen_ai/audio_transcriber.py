@@ -8,17 +8,6 @@ from dataclasses import dataclass
 from .client import OpenAIClientConfigError, build_openai_client
 from ..utils.config_types import OpenAISection
 
-_ACCEPTED_AUDIO_EXTENSIONS = {
-    ".wav",
-    ".mp3",
-    ".m4a",
-    ".mp4",
-    ".mpeg",
-    ".mpga",
-    ".webm",
-}
-
-
 class AudioTranscriptionError(RuntimeError):
     """Raised when audio cannot be transcribed for intake."""
 
@@ -31,11 +20,19 @@ class ConfiguredAudioTranscriber:
         if not audio_bytes:
             raise AudioTranscriptionError("Audio file is empty.")
 
+        accepted_extensions = {
+            extension.strip().lower()
+            for extension in self.openai_config.accepted_audio_extensions
+            if extension.strip() != ""
+        }
+        if not accepted_extensions:
+            raise AudioTranscriptionError("No accepted audio extensions are configured.")
+
         lowered_name = filename.strip().lower()
         if lowered_name == "" or not any(
-            lowered_name.endswith(extension) for extension in _ACCEPTED_AUDIO_EXTENSIONS
+            lowered_name.endswith(extension) for extension in accepted_extensions
         ):
-            accepted = ", ".join(sorted(_ACCEPTED_AUDIO_EXTENSIONS))
+            accepted = ", ".join(sorted(accepted_extensions))
             raise AudioTranscriptionError(
                 f"Unsupported audio format. Accepted extensions: {accepted}"
             )
