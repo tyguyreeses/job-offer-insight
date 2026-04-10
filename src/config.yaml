@@ -32,9 +32,15 @@ workflow:
   allow_placeholder_comparisons: true
 
 agents:
-  text_parser:
+  entry_creation:
+    type: non-structured
+    enabled: true
+    model: "gpt-5.2-mini"
+    max_output_tokens: 500
+    prompt: "entry_creation_chat.md"
+  structured_output:
     type: structured-output
     enabled: true
-    model: "gpt-5.2"
+    model: "gpt-5.2-mini"
     max_output_tokens: 1200
     prompt: "extract_offer.md"

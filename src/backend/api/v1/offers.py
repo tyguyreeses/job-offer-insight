@@ -52,6 +52,10 @@ class OfferIntakeResponse(BaseModel):
 
 
 class TextConversationResponse(BaseModel):
+    class ConversationMessageResponse(BaseModel):
+        role: Literal["user", "assistant"]
+        content: str
+
     session_id: str
     status: str
     assistant_message: str
@@ -61,6 +65,7 @@ class TextConversationResponse(BaseModel):
     current_prompt_key: str | None
     errors: list[str]
     warnings: list[str]
+    messages: list[ConversationMessageResponse]
     offer: dict[str, Any] | None
 
 
@@ -96,6 +101,7 @@ def intake_offer_from_text(
         current_prompt_key=result.current_prompt_key,
         errors=result.errors,
         warnings=result.warnings,
+        messages=[TextConversationResponse.ConversationMessageResponse(**message) for message in result.messages],
         offer=offer_payload,
     )
 
@@ -133,6 +139,7 @@ def intake_offer_from_audio(
         current_prompt_key=result.current_prompt_key,
         errors=result.errors,
         warnings=result.warnings,
+        messages=[TextConversationResponse.ConversationMessageResponse(**message) for message in result.messages],
         offer=offer_payload,
     )
 

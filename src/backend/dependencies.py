@@ -12,7 +12,8 @@ from .domain.services.offer_service import Stage4OfferService
 from .domain.services.placeholders import UnimplementedComparisonService
 from .gen_ai.agent_registry import AgentRegistry, build_agent_registry
 from .gen_ai.audio_transcriber import ConfiguredAudioTranscriber
-from .gen_ai.protocols import Agent, AudioTranscriber
+from .gen_ai.entry_creation_agent import ConfiguredEntryCreationAgent
+from .gen_ai.protocols import Agent, AudioTranscriber, ChatAgent
 from .gen_ai.text_parser_agent import ConfiguredTextParserAgent
 from .storage.db import SQLiteDatabase, build_sqlite_database
 from .storage.repositories.comparison_repository import SQLiteComparisonRepository
@@ -33,6 +34,7 @@ class RuntimeContainer:
     comparison_repository: ComparisonRepository
     agent_registry: AgentRegistry
     text_parser_agent: Agent
+    entry_creation_agent: ChatAgent
     audio_transcriber: AudioTranscriber
     offer_service: OfferService
     comparison_service: ComparisonService
@@ -49,6 +51,10 @@ def build_runtime_container(config: RuntimeConfig, logger: logging.Logger) -> Ru
         registry=agent_registry,
         openai_config=config.openai,
     )
+    entry_creation_agent = ConfiguredEntryCreationAgent(
+        registry=agent_registry,
+        openai_config=config.openai,
+    )
     audio_transcriber = ConfiguredAudioTranscriber(openai_config=config.openai)
 
     return RuntimeContainer(
@@ -60,10 +66,12 @@ def build_runtime_container(config: RuntimeConfig, logger: logging.Logger) -> Ru
         comparison_repository=comparison_repository,
         agent_registry=agent_registry,
         text_parser_agent=text_parser_agent,
+        entry_creation_agent=entry_creation_agent,
         audio_transcriber=audio_transcriber,
         offer_service=Stage4OfferService(
             offer_repository=offer_repository,
             text_parser_agent=text_parser_agent,
+            entry_creation_agent=entry_creation_agent,
             audio_transcriber=audio_transcriber,
         ),
         comparison_service=UnimplementedComparisonService(

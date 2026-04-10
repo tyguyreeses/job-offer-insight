@@ -11,13 +11,13 @@ def _build_agent(enabled: bool) -> ConfiguredTextParserAgent:
     config = load_default_config()
     registry = AgentRegistry(
         agents={
-            "text_parser": AgentDefinition(
-                name="text_parser",
+            "structured_output": AgentDefinition(
+                name="structured_output",
                 type="structured-output",
                 enabled=enabled,
-                model=config.agents.text_parser.model,
+                model=config.agents.structured_output.model,
                 prompt="ignored for this test",
-                max_output_tokens=config.agents.text_parser.max_output_tokens,
+                max_output_tokens=config.agents.structured_output.max_output_tokens,
             )
         }
     )

@@ -4,12 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Navbar } from "../components/Navbar";
 import { createBrowserAudioRecorder, type AudioRecorderController } from "../services/audioRecorder";
 import { sendAudioTurn, sendTextTurn } from "../services/offersApi";
-import type { IntakeAction, TextTurnResponse } from "../types/intake";
-
-interface AssistantMessage {
-  id: number;
-  text: string;
-}
+import type { ConversationMessage, IntakeAction, TextTurnResponse } from "../types/intake";
 
 type ModeState = "chooser" | "chooser-exit" | "text" | "audio";
 type AudioLabelPhase = "steady" | "fade-out" | "fade-in";
@@ -19,7 +14,6 @@ export function AddEntryPage(): JSX.Element {
   const [inputText, setInputText] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [conversation, setConversation] = useState<TextTurnResponse | null>(null);
-  const [assistantMessages, setAssistantMessages] = useState<AssistantMessage[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -34,18 +28,6 @@ export function AddEntryPage(): JSX.Element {
   const audioLabelTimeoutsRef = useRef<number[]>([]);
 
   useEffect(() => {
-    if (conversation?.assistant_message) {
-      setAssistantMessages((previous) => [
-        ...previous,
-        {
-          id: previous.length + 1,
-          text: conversation.assistant_message
-        }
-      ]);
-    }
-  }, [conversation?.assistant_message]);
-
-  useEffect(() => {
     return () => {
       if (audioCenteringTimeoutRef.current !== null) {
         window.clearTimeout(audioCenteringTimeoutRef.current);
@@ -56,9 +38,9 @@ export function AddEntryPage(): JSX.Element {
     };
   }, []);
 
-  const latestAssistantMessage = useMemo(
-    () => assistantMessages[assistantMessages.length - 1] ?? null,
-    [assistantMessages]
+  const transcript = useMemo<ConversationMessage[]>(
+    () => conversation?.messages ?? [],
+    [conversation?.messages]
   );
 
   const transitionAudioLabel = (nextLabel: string): void => {
@@ -312,16 +294,21 @@ export function AddEntryPage(): JSX.Element {
             className="conversation-panel motion-fade-enter"
             style={{ ["--motion-delay" as string]: "80ms", ["--motion-duration" as string]: "220ms" }}
           >
-            {latestAssistantMessage ? (
-              <div
-                className="assistant-message motion-fade-enter"
-                style={{
-                  ["--motion-delay" as string]: "0ms",
-                  ["--motion-duration" as string]: "200ms",
-                  ["--motion-from-y" as string]: "6px"
-                }}
-              >
-                {latestAssistantMessage.text}
+            {transcript.length > 0 ? (
+              <div className="transcript-panel">
+                {transcript.map((entry, index) => (
+                  <div
+                    key={`${entry.role}-${index}-${entry.content.slice(0, 16)}`}
+                    className={`assistant-message transcript-message transcript-message-${entry.role} motion-fade-enter`}
+                    style={{
+                      ["--motion-delay" as string]: "0ms",
+                      ["--motion-duration" as string]: "200ms",
+                      ["--motion-from-y" as string]: "6px"
+                    }}
+                  >
+                    {entry.content}
+                  </div>
+                ))}
               </div>
             ) : null}
 
@@ -375,16 +362,21 @@ export function AddEntryPage(): JSX.Element {
             className="conversation-panel audio-conversation-panel motion-fade-enter"
             style={{ ["--motion-delay" as string]: "120ms", ["--motion-duration" as string]: "220ms" }}
           >
-            {latestAssistantMessage ? (
-              <div
-                className="assistant-message motion-fade-enter"
-                style={{
-                  ["--motion-delay" as string]: "0ms",
-                  ["--motion-duration" as string]: "200ms",
-                  ["--motion-from-y" as string]: "6px"
-                }}
-              >
-                {latestAssistantMessage.text}
+            {transcript.length > 0 ? (
+              <div className="transcript-panel">
+                {transcript.map((entry, index) => (
+                  <div
+                    key={`${entry.role}-${index}-${entry.content.slice(0, 16)}`}
+                    className={`assistant-message transcript-message transcript-message-${entry.role} motion-fade-enter`}
+                    style={{
+                      ["--motion-delay" as string]: "0ms",
+                      ["--motion-duration" as string]: "200ms",
+                      ["--motion-from-y" as string]: "6px"
+                    }}
+                  >
+                    {entry.content}
+                  </div>
+                ))}
               </div>
             ) : null}
 

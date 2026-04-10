@@ -11,7 +11,8 @@ from uuid import uuid4
 
 from ...domain.models import OfferRecord
 from ...gen_ai.audio_transcriber import AudioTranscriptionError
-from ...gen_ai.protocols import Agent, AudioTranscriber
+from ...gen_ai.entry_creation_agent import EntryCreationAgentError
+from ...gen_ai.protocols import Agent, AudioTranscriber, ChatAgent
 from ...gen_ai.text_parser_agent import TextParserError
 from ...storage.repositories.interfaces import OfferRepository
 from ...utils.logging import get_logger
@@ -80,6 +81,7 @@ class TextConversationResult:
     current_prompt_key: str | None
     errors: list[str]
     warnings: list[str]
+    messages: list[dict[str, str]]
     offer: OfferRecord | None
 
 
@@ -89,6 +91,7 @@ class ConversationSession:
     payload: dict[str, Any]
     step: str = _STEP_COLLECT_REQUIRED
     source_input_type: str = "text"
+    messages: list[dict[str, str]] = field(default_factory=list)
 
 
 class ConversationSessionNotFound(RuntimeError):
@@ -422,6 +425,24 @@ def _assistant_message_for_blocked_finish(missing_required_fields: list[str]) ->
     return f"I still need required information before saving: {required_list}."
 
 
+def _append_message(session: ConversationSession, role: str, content: str) -> None:
+    text = content.strip()
+    if text == "":
+        return
+    session.messages.append({"role": role, "content": text})
+
+
+def _fallback_assistant_message(
+    *,
+    step: str,
+    missing_required_fields: list[str],
+    blocked_finish: bool,
+) -> str:
+    if blocked_finish:
+        return _assistant_message_for_blocked_finish(missing_required_fields)
+    return _assistant_message_for_step(step, missing_required_fields)
+
+
 def _advance_on_skip(session: ConversationSession) -> None:
     if session.step == _STEP_COLLECT_MONETARY:
         session.step = _STEP_COLLECT_NON_MONETARY
@@ -457,6 +478,7 @@ class Stage4OfferService:
     offer_repository: OfferRepository
     text_parser_agent: Agent
     audio_transcriber: AudioTranscriber
+    entry_creation_agent: ChatAgent | None = None
     text_conversation_sessions: dict[str, ConversationSession] = field(default_factory=dict)
 
     def describe_capabilities(self) -> dict[str, str]:
@@ -480,6 +502,46 @@ class Stage4OfferService:
             raise ConversationSessionNotFound(f"Conversation session not found: {session_id}")
         return existing
 
+    def _build_assistant_message(
+        self,
+        *,
+        session: ConversationSession,
+        step: str,
+        missing_required_fields: list[str],
+        blocked_finish: bool,
+        errors: list[str],
+        warnings: list[str],
+    ) -> str:
+        if self.entry_creation_agent is None:
+            return _fallback_assistant_message(
+                step=step,
+                missing_required_fields=missing_required_fields,
+                blocked_finish=blocked_finish,
+            )
+
+        state = {
+            "step": step,
+            "missing_required_fields": missing_required_fields,
+            "can_finish": step == _STEP_ANYTHING_ELSE and len(missing_required_fields) == 0,
+            "current_prompt_key": _current_prompt_key_for_step(step),
+            "errors": errors,
+            "warnings": warnings,
+            "structured_payload": session.payload,
+            "source_input_type": session.source_input_type,
+            "blocked_finish": blocked_finish,
+        }
+        try:
+            return self.entry_creation_agent.reply(
+                transcript=session.messages,
+                state=state,
+            )
+        except EntryCreationAgentError:
+            return _fallback_assistant_message(
+                step=step,
+                missing_required_fields=missing_required_fields,
+                blocked_finish=blocked_finish,
+            )
+
     def intake_text_offer(
         self,
         *,
@@ -497,30 +559,18 @@ class Stage4OfferService:
         current_prompt_key = _current_prompt_key_for_step(session.step)
 
         if action == "submit":
+            _append_message(session, "user", message)
             if current_prompt_key in (_PROMPT_KEY_MONETARY, _PROMPT_KEY_NON_MONETARY) and _is_typed_omission(message):
                 warnings.extend(_apply_prompt_omission_defaults(session.payload, current_prompt_key))
                 _advance_on_skip(session)
-            else:
+            elif message:
                 try:
                     extracted_payload = self.text_parser_agent.parse(message)
                 except TextParserError as exc:
-                    missing_required_fields = _missing_required_fields(session.payload)
-                    return TextConversationResult(
-                        session_id=session.session_id,
-                        status="extraction_failed",
-                        assistant_message=f"Unable to extract structured offer data: {exc}",
-                        step=session.step,
-                        can_finish=(
-                            session.step == _STEP_ANYTHING_ELSE and len(missing_required_fields) == 0
-                        ),
-                        missing_required_fields=missing_required_fields,
-                        current_prompt_key=current_prompt_key,
-                        errors=[f"Unable to extract structured offer data: {exc}"],
-                        warnings=warnings,
-                        offer=None,
-                    )
-                session.payload = _merge_payloads(session.payload, extracted_payload)
-                _normalize_compensation(session.payload)
+                    errors.append(f"Unable to extract structured offer data: {exc}")
+                else:
+                    session.payload = _merge_payloads(session.payload, extracted_payload)
+                    _normalize_compensation(session.payload)
 
                 if session.step == _STEP_COLLECT_REQUIRED:
                     if len(_missing_required_fields(session.payload)) == 0:
@@ -535,42 +585,40 @@ class Stage4OfferService:
             _advance_on_skip(session)
 
         elif action == "finish":
+            _append_message(session, "user", message)
             if message:
                 if not _is_typed_omission(message):
                     try:
                         extracted_payload = self.text_parser_agent.parse(message)
                     except TextParserError as exc:
-                        missing_required_fields = _missing_required_fields(session.payload)
-                        return TextConversationResult(
-                            session_id=session.session_id,
-                            status="extraction_failed",
-                            assistant_message=f"Unable to extract structured offer data: {exc}",
-                            step=session.step,
-                            can_finish=(
-                                session.step == _STEP_ANYTHING_ELSE and len(missing_required_fields) == 0
-                            ),
-                            missing_required_fields=missing_required_fields,
-                            current_prompt_key=current_prompt_key,
-                            errors=[f"Unable to extract structured offer data: {exc}"],
-                            warnings=warnings,
-                            offer=None,
-                        )
-                    session.payload = _merge_payloads(session.payload, extracted_payload)
-                    _normalize_compensation(session.payload)
+                        errors.append(f"Unable to extract structured offer data: {exc}")
+                    else:
+                        session.payload = _merge_payloads(session.payload, extracted_payload)
+                        _normalize_compensation(session.payload)
 
             missing_required_fields = _missing_required_fields(session.payload)
             if missing_required_fields:
                 session.step = _STEP_COLLECT_REQUIRED
+                assistant_message = self._build_assistant_message(
+                    session=session,
+                    step=session.step,
+                    missing_required_fields=missing_required_fields,
+                    blocked_finish=True,
+                    errors=errors,
+                    warnings=warnings,
+                )
+                _append_message(session, "assistant", assistant_message)
                 return TextConversationResult(
                     session_id=session.session_id,
                     status="blocked_required_fields",
-                    assistant_message=_assistant_message_for_blocked_finish(missing_required_fields),
+                    assistant_message=assistant_message,
                     step=session.step,
                     can_finish=False,
                     missing_required_fields=missing_required_fields,
                     current_prompt_key=_current_prompt_key_for_step(session.step),
-                    errors=[],
+                    errors=errors,
                     warnings=warnings,
+                    messages=list(session.messages),
                     offer=None,
                 )
 
@@ -588,16 +636,26 @@ class Stage4OfferService:
             if validation_errors:
                 session.step = _STEP_COLLECT_REQUIRED
                 missing_required_fields = _missing_required_fields(session.payload)
+                assistant_message = self._build_assistant_message(
+                    session=session,
+                    step=session.step,
+                    missing_required_fields=missing_required_fields,
+                    blocked_finish=True,
+                    errors=validation_errors,
+                    warnings=warnings,
+                )
+                _append_message(session, "assistant", assistant_message)
                 return TextConversationResult(
                     session_id=session.session_id,
                     status="blocked_required_fields",
-                    assistant_message=_assistant_message_for_blocked_finish(missing_required_fields),
+                    assistant_message=assistant_message,
                     step=session.step,
                     can_finish=False,
                     missing_required_fields=missing_required_fields,
                     current_prompt_key=_current_prompt_key_for_step(session.step),
                     errors=validation_errors,
                     warnings=warnings,
+                    messages=list(session.messages),
                     offer=None,
                 )
 
@@ -612,31 +670,52 @@ class Stage4OfferService:
                 payload=session.payload,
             )
             session.step = _STEP_COMPLETED
+            assistant_message = self._build_assistant_message(
+                session=session,
+                step=_STEP_COMPLETED,
+                missing_required_fields=[],
+                blocked_finish=False,
+                errors=[],
+                warnings=warnings,
+            )
+            _append_message(session, "assistant", assistant_message)
+            messages = list(session.messages)
             del self.text_conversation_sessions[session.session_id]
             return TextConversationResult(
                 session_id=session.session_id,
                 status="saved",
-                assistant_message=_assistant_message_for_step(_STEP_COMPLETED, []),
+                assistant_message=assistant_message,
                 step=_STEP_COMPLETED,
                 can_finish=True,
                 missing_required_fields=[],
                 current_prompt_key=None,
                 errors=[],
                 warnings=warnings,
+                messages=messages,
                 offer=record,
             )
 
         missing_required_fields = _missing_required_fields(session.payload)
+        assistant_message = self._build_assistant_message(
+            session=session,
+            step=session.step,
+            missing_required_fields=missing_required_fields,
+            blocked_finish=False,
+            errors=errors,
+            warnings=warnings,
+        )
+        _append_message(session, "assistant", assistant_message)
         return TextConversationResult(
             session_id=session.session_id,
             status="in_progress",
-            assistant_message=_assistant_message_for_step(session.step, missing_required_fields),
+            assistant_message=assistant_message,
             step=session.step,
             can_finish=(session.step == _STEP_ANYTHING_ELSE and len(missing_required_fields) == 0),
             missing_required_fields=missing_required_fields,
             current_prompt_key=_current_prompt_key_for_step(session.step),
             errors=errors,
             warnings=warnings,
+            messages=list(session.messages),
             offer=None,
         )
 
@@ -667,16 +746,19 @@ class Stage4OfferService:
 
         if not audio_bytes:
             missing_required_fields = _missing_required_fields(session.payload)
+            assistant_message = "Unable to transcribe audio input: Audio file is empty."
+            _append_message(session, "assistant", assistant_message)
             return TextConversationResult(
                 session_id=session.session_id,
                 status="transcription_failed",
-                assistant_message="Unable to transcribe audio input: Audio file is empty.",
+                assistant_message=assistant_message,
                 step=session.step,
                 can_finish=(session.step == _STEP_ANYTHING_ELSE and len(missing_required_fields) == 0),
                 missing_required_fields=missing_required_fields,
                 current_prompt_key=_current_prompt_key_for_step(session.step),
-                errors=["Unable to transcribe audio input: Audio file is empty."],
+                errors=[assistant_message],
                 warnings=[],
+                messages=list(session.messages),
                 offer=None,
             )
 
@@ -690,6 +772,7 @@ class Stage4OfferService:
             missing_required_fields = _missing_required_fields(session.payload)
             message = f"Unable to transcribe audio input: {exc}"
             logger.warning("Audio transcription failed for session_id=%s: %s", session.session_id, exc)
+            _append_message(session, "assistant", message)
             return TextConversationResult(
                 session_id=session.session_id,
                 status="transcription_failed",
@@ -700,6 +783,7 @@ class Stage4OfferService:
                 current_prompt_key=_current_prompt_key_for_step(session.step),
                 errors=[message],
                 warnings=[],
+                messages=list(session.messages),
                 offer=None,
             )
         return self.intake_text_offer(

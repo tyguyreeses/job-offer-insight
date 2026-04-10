@@ -28,6 +28,12 @@ const inProgressResponse = {
   current_prompt_key: "required_fields_bundle",
   errors: [],
   warnings: [],
+  messages: [
+    {
+      role: "assistant" as const,
+      content: "Please share the remaining required information: company_name."
+    }
+  ],
   offer: null
 };
 
@@ -56,7 +62,7 @@ describe("AddEntryPage", () => {
     });
   });
 
-  it("shows assistant message above text input after submit", async () => {
+  it("shows transcript messages above text input after submit", async () => {
     mockedSendTextTurn.mockResolvedValueOnce(inProgressResponse);
 
     render(<AddEntryPage />);
@@ -78,6 +84,9 @@ describe("AddEntryPage", () => {
         screen.getByText("Please share the remaining required information: company_name.")
       ).toBeInTheDocument();
     });
+    expect(screen.getByText("Please share the remaining required information: company_name.")).toHaveClass(
+      "transcript-message-assistant"
+    );
   });
 
   it("fades text button, centers audio button, and relabels it to Record", async () => {

@@ -6,6 +6,11 @@ export interface TextTurnRequest {
   message_text?: string;
 }
 
+export interface ConversationMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export interface TextTurnResponse {
   session_id: string;
   status:
@@ -26,5 +31,6 @@ export interface TextTurnResponse {
   current_prompt_key: string | null;
   errors: string[];
   warnings: string[];
+  messages: ConversationMessage[];
   offer: Record<string, unknown> | null;
 }

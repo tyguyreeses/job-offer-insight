@@ -122,6 +122,10 @@ Implement the Main Page UX for creating an offer and replace one-shot text intak
 - Ran second-pass parallel agent review:
   - `Code Linter`: no actionable findings remain
   - `Project-scope .myteam update`: no additional migrations required
+- Follow-up migration in progress (chatbot UX hardening):
+  - conversational `entry_creation` agent now owns assistant wording
+  - structured parser runs on every user turn (text and transcribed audio)
+  - intake responses now include full transcript messages for frontend chat rendering
 
 Validation results:
 - `PYTHONPATH=. pytest -q tests/backend` -> pass

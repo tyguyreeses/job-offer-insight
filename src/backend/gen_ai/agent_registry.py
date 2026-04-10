@@ -30,16 +30,25 @@ class AgentRegistry:
 
 
 def build_agent_registry(config: AgentsSection) -> AgentRegistry:
-    prompt = _resolve_prompt(config.text_parser.prompt)
+    entry_creation_prompt = _resolve_prompt(config.entry_creation.prompt)
+    structured_output_prompt = _resolve_prompt(config.structured_output.prompt)
     return AgentRegistry(
         agents={
-            "text_parser": AgentDefinition(
-                name="text_parser",
-                type=config.text_parser.type,
-                enabled=config.text_parser.enabled,
-                model=config.text_parser.model,
-                prompt=prompt,
-                max_output_tokens=config.text_parser.max_output_tokens,
+            "entry_creation": AgentDefinition(
+                name="entry_creation",
+                type=config.entry_creation.type,
+                enabled=config.entry_creation.enabled,
+                model=config.entry_creation.model,
+                prompt=entry_creation_prompt,
+                max_output_tokens=config.entry_creation.max_output_tokens,
+            ),
+            "structured_output": AgentDefinition(
+                name="structured_output",
+                type=config.structured_output.type,
+                enabled=config.structured_output.enabled,
+                model=config.structured_output.model,
+                prompt=structured_output_prompt,
+                max_output_tokens=config.structured_output.max_output_tokens,
             )
         }
     )

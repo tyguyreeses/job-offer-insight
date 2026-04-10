@@ -160,7 +160,8 @@ Endpoint paths may evolve, but external behavior must remain equivalent.
    - optional `session_id` for continuing a prior turn
    - required `audio_file` for `action=submit` (`.wav`, `.mp3`, `.m4a`, `.mp4`, `.mpeg`, `.mpga`, `.webm`)
 4. Audio and text intake return the same conversational response contract:
-   - `session_id`, `status`, `assistant_message`, `step`, `can_finish`, `missing_required_fields`, `current_prompt_key`, `errors`, `warnings`, `offer`
+   - `session_id`, `status`, `assistant_message`, `step`, `can_finish`, `missing_required_fields`, `current_prompt_key`, `errors`, `warnings`, `messages`, `offer`
+   - `messages` is a full chronological transcript list of `{ role, content }` entries (`user` and `assistant`)
 5. `skip_current` and `finish` on audio follow the same state machine and gating behavior as text.
 6. Audio transcription failures are returned as observable conversational status `transcription_failed`.
 7. Save accepted blanks as omitted fields.
@@ -197,7 +198,9 @@ Validation behavior:
 1. Missing required section or invalid value type results in startup failure with explicit error details.
 2. Unknown/extra keys are treated as config errors.
 3. Optional keys may use defaults defined by backend config types.
-4. `agents.text_parser` must be configured for AI text-intake parsing behavior.
+4. `agents.entry_creation` and `agents.structured_output` must be configured:
+   - `entry_creation` drives natural-language conversational assistant replies
+   - `structured_output` parses each user turn into mergeable structured offer data
 5. `openai.accepted_audio_extensions` defines the allowed file extensions for audio transcription intake validation.
 
 ## Persistence Contract

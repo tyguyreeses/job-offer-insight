@@ -12,6 +12,13 @@ class Agent(Protocol):
         """Parse intake text and return a schema-aligned payload object."""
 
 
+class ChatAgent(Protocol):
+    """Base protocol for chat-style assistant agents."""
+
+    def reply(self, *, transcript: list[dict[str, str]], state: dict[str, Any]) -> str:
+        """Generate one assistant reply for the current turn."""
+
+
 class AudioTranscriber(Protocol):
     """Protocol for audio -> transcript adapters used by intake flows."""
 

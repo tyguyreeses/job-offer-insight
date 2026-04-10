@@ -22,7 +22,8 @@ def _build_client(tmp_path: Path) -> TestClient:
     )
     agents_section = config.agents.model_copy(
         update={
-            "text_parser": config.agents.text_parser.model_copy(update={"enabled": False})
+            "entry_creation": config.agents.entry_creation.model_copy(update={"enabled": False}),
+            "structured_output": config.agents.structured_output.model_copy(update={"enabled": False}),
         }
     )
     config = config.model_copy(update={"database": database_section, "agents": agents_section})
@@ -67,6 +68,7 @@ def test_conversation_starts_with_required_bundle_prompt(tmp_path: Path) -> None
     assert payload["assistant_message"].startswith(
         "Please share the remaining required information:"
     )
+    assert payload["messages"][-1]["role"] == "assistant"
 
 
 def test_finish_is_blocked_until_required_fields_are_complete(tmp_path: Path) -> None:
@@ -92,6 +94,7 @@ def test_finish_is_blocked_until_required_fields_are_complete(tmp_path: Path) ->
     assert blocked["assistant_message"].startswith(
         "I still need required information before saving:"
     )
+    assert blocked["messages"][-1]["role"] == "assistant"
 
 
 def test_incremental_merge_skip_and_finish_saves_offer(tmp_path: Path) -> None:

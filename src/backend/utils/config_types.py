@@ -71,7 +71,8 @@ class AgentConfig(BaseModel):
 class AgentsSection(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    text_parser: AgentConfig
+    entry_creation: AgentConfig
+    structured_output: AgentConfig
 
 
 class RuntimeConfig(BaseModel):

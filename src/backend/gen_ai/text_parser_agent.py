@@ -173,9 +173,11 @@ class ConfiguredTextParserAgent:
         if json_payload is not None:
             return json_payload
 
-        agent = self.registry.get("text_parser")
+        agent = self.registry.get("structured_output")
         if not agent.enabled:
-            raise TextParserError("Text parser agent is disabled and non-JSON input cannot be parsed.")
+            raise TextParserError(
+                "Structured output parser agent is disabled and non-JSON input cannot be parsed."
+            )
 
         try:
             if agent.type == "structured-output":

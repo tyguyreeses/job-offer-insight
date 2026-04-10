@@ -121,6 +121,23 @@ body {
   font-size: 1rem;
 }
 
+.transcript-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.transcript-message {
+  align-self: flex-start;
+  text-align: left;
+}
+
+.transcript-message-user {
+  align-self: flex-end;
+  background: rgba(35, 100, 201, 0.14);
+  color: var(--color-text);
+}
+
 .input-label {
   text-align: left;
   font-size: 0.95rem;
