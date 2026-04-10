@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from ...domain.models import OfferRecord
-from ...storage.repositories.interfaces import ComparisonRepository, OfferRepository
+from ...storage.repositories.interfaces import (
+    ComparisonRepository,
+    OfferRepository,
+)
 from .offer_service import FieldPrompt, IntakeResult, TextConversationResult
 
 
@@ -71,8 +74,13 @@ class UnimplementedOfferService:
             offer=None,
         )
 
-    def list_offers(self) -> list[OfferRecord]:
-        return self.offer_repository.list_all()
+    def list_offers(
+        self,
+        *,
+        sort_by: Literal["created_at", "company_name", "role_title"] = "created_at",
+        sort_direction: Literal["asc", "desc"] = "desc",
+    ) -> list[OfferRecord]:
+        return self.offer_repository.list_all(sort_by=sort_by, sort_direction=sort_direction)
 
     def get_offer(self, offer_id: str) -> OfferRecord | None:
         return self.offer_repository.get_by_id(offer_id)

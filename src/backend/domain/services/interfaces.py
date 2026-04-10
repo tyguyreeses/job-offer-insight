@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from .offer_service import IntakeResult, TextConversationResult
 from ..models import OfferRecord
+
+OfferSortBy = Literal["created_at", "company_name", "role_title"]
+SortDirection = Literal["asc", "desc"]
 
 
 class OfferService(Protocol):
@@ -35,7 +38,12 @@ class OfferService(Protocol):
     ) -> TextConversationResult:
         """Intake conversational audio turns and return stateful outcomes."""
 
-    def list_offers(self) -> list[OfferRecord]:
+    def list_offers(
+        self,
+        *,
+        sort_by: OfferSortBy = "created_at",
+        sort_direction: SortDirection = "desc",
+    ) -> list[OfferRecord]:
         """Return all saved offers."""
 
     def get_offer(self, offer_id: str) -> OfferRecord | None:

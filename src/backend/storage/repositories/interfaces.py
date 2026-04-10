@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Protocol, Sequence
+from typing import Any, Literal, Mapping, Protocol, Sequence
 
 from ...domain.models import ComparisonRecord, OfferRecord
+
+OfferSortBy = Literal["created_at", "company_name", "role_title"]
+SortDirection = Literal["asc", "desc"]
 
 
 class OfferRepository(Protocol):
@@ -23,7 +26,12 @@ class OfferRepository(Protocol):
     def get_by_id(self, offer_id: str) -> OfferRecord | None:
         """Return one offer record by id."""
 
-    def list_all(self) -> list[OfferRecord]:
+    def list_all(
+        self,
+        *,
+        sort_by: OfferSortBy = "created_at",
+        sort_direction: SortDirection = "desc",
+    ) -> list[OfferRecord]:
         """Return all offer records."""
 
     def update(

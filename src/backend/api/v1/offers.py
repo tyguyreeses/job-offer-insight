@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field, model_validator
 
 from ...dependencies import get_offer_service
@@ -145,8 +145,15 @@ def intake_offer_from_audio(
 
 
 @router.get("", response_model=OfferListResponse)
-def list_offers(offer_service: OfferService = Depends(get_offer_service)) -> OfferListResponse:
-    offers = [offer_service.render_offer_payload(record) for record in offer_service.list_offers()]
+def list_offers(
+    sort_by: Literal["created_at", "company_name", "role_title"] = Query(default="created_at"),
+    sort_direction: Literal["asc", "desc"] = Query(default="desc"),
+    offer_service: OfferService = Depends(get_offer_service),
+) -> OfferListResponse:
+    offers = [
+        offer_service.render_offer_payload(record)
+        for record in offer_service.list_offers(sort_by=sort_by, sort_direction=sort_direction)
+    ]
     return OfferListResponse(offers=offers)
 
 
