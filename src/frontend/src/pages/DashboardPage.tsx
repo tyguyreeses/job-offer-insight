@@ -220,6 +220,14 @@ export function DashboardPage(): JSX.Element {
       .sort((left, right) => left.edit.order - right.edit.order);
   }, [offerSchema]);
 
+  const locationPath = useMemo(() => {
+    if (!offerSchema) {
+      return "location";
+    }
+    const locationField = offerSchema.fields.find((field) => field.id === "location");
+    return locationField?.storage_path ?? "location";
+  }, [offerSchema]);
+
   const requiredAllFieldIds = useMemo(() => {
     return new Set(offerSchema?.required.all_of ?? []);
   }, [offerSchema]);
@@ -574,6 +582,8 @@ export function DashboardPage(): JSX.Element {
           const payload = offer as unknown as Record<string, unknown>;
           const companyName = offerSchema ? asText(getPath(payload, offerSchema.identity.company_name_path)) : offer.company_name;
           const roleTitle = offerSchema ? asText(getPath(payload, offerSchema.identity.role_title_path)) : offer.role_title;
+          const location = asText(getPath(payload, locationPath)).trim();
+          const roleAndLocation = location ? `${roleTitle} • ${location}` : roleTitle;
 
           const isSelected = selectedOfferIds.includes(offer.id);
           const isDeleteConfirm = deleteConfirmId === offer.id;
@@ -615,7 +625,7 @@ export function DashboardPage(): JSX.Element {
                 }}
               >
                 <h2 className="dashboard-card-company">{companyName}</h2>
-                <p className="dashboard-card-role">{roleTitle}</p>
+                <p className="dashboard-card-role">{roleAndLocation}</p>
 
                 {offerSchema?.card_sections.map((section) => {
                   const fields = offerSchema.fields
