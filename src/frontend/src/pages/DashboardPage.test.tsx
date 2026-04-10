@@ -5,6 +5,7 @@ import {
   createDemoOffers,
   deleteOffer,
   fetchOfferById,
+  fetchOfferSchema,
   fetchOffers,
   updateOffer
 } from "../services/offersApi";
@@ -15,6 +16,7 @@ vi.mock("../services/offersApi", () => ({
   deleteOffer: vi.fn(),
   createDemoOffers: vi.fn(),
   fetchOfferById: vi.fn(),
+  fetchOfferSchema: vi.fn(),
   updateOffer: vi.fn()
 }));
 
@@ -22,6 +24,7 @@ const mockedFetchOffers = vi.mocked(fetchOffers);
 const mockedDeleteOffer = vi.mocked(deleteOffer);
 const mockedCreateDemoOffers = vi.mocked(createDemoOffers);
 const mockedFetchOfferById = vi.mocked(fetchOfferById);
+const mockedFetchOfferSchema = vi.mocked(fetchOfferSchema);
 const mockedUpdateOffer = vi.mocked(updateOffer);
 
 const defaultOffers = [
@@ -61,13 +64,83 @@ const defaultOffers = [
   }
 ];
 
+const defaultSchema = {
+  version: 1,
+  identity: { company_name_path: "company_name", role_title_path: "role_title" },
+  required: {
+    all_of: ["company-name", "role-title", "location"],
+    one_of: [["annual-base-salary-usd"], ["hourly-rate-usd", "hours-per-week"]]
+  },
+  card_sections: [
+    { section_id: "salary", title: "Salary" },
+    { section_id: "monetary", title: "Monetary benefits" },
+    { section_id: "non_monetary", title: "Non-monetary benefits" },
+    { section_id: "meta", title: "Date created" }
+  ],
+  edit_sections: [
+    { section_id: "core", title: "Core details" },
+    { section_id: "compensation", title: "Compensation" },
+    { section_id: "monetary", title: "Monetary benefits" },
+    { section_id: "non_monetary", title: "Non-monetary benefits" }
+  ],
+  fields: [
+    {
+      id: "company-name",
+      label: "Company name",
+      storage_path: "company_name",
+      data_type: "string",
+      group: "core",
+      card: { visible: false, section_id: "salary", order: 0, style: "labeled_value" },
+      edit: { visible: true, section_id: "core", order: 1, widget: "text" }
+    },
+    {
+      id: "role-title",
+      label: "Role title",
+      storage_path: "role_title",
+      data_type: "string",
+      group: "core",
+      card: { visible: false, section_id: "salary", order: 0, style: "labeled_value" },
+      edit: { visible: true, section_id: "core", order: 2, widget: "text" }
+    },
+    {
+      id: "location",
+      label: "Location",
+      storage_path: "location",
+      data_type: "string",
+      group: "core",
+      card: { visible: false, section_id: "salary", order: 0, style: "labeled_value" },
+      edit: { visible: true, section_id: "core", order: 3, widget: "text" }
+    },
+    {
+      id: "annual-base-salary-usd",
+      label: "Annual base salary (USD)",
+      storage_path: "compensation.annual_base_salary_usd",
+      data_type: "number",
+      group: "compensation",
+      card: { visible: true, section_id: "salary", order: 1, style: "value" },
+      edit: { visible: true, section_id: "compensation", order: 1, widget: "number" }
+    },
+    {
+      id: "signing-bonus-usd",
+      label: "Signing bonus (USD)",
+      storage_path: "compensation.signing_bonus_usd",
+      data_type: "number",
+      group: "compensation",
+      card: { visible: true, section_id: "monetary", order: 2, style: "labeled_value" },
+      edit: { visible: true, section_id: "compensation", order: 2, widget: "number" }
+    }
+  ]
+};
+
 describe("DashboardPage", () => {
   beforeEach(() => {
     mockedFetchOffers.mockReset();
     mockedDeleteOffer.mockReset();
     mockedCreateDemoOffers.mockReset();
     mockedFetchOfferById.mockReset();
+    mockedFetchOfferSchema.mockReset();
     mockedUpdateOffer.mockReset();
+    mockedFetchOfferSchema.mockResolvedValue(defaultSchema as never);
     vi.restoreAllMocks();
   });
 
@@ -118,7 +191,7 @@ describe("DashboardPage", () => {
     const zenithCard = screen.getByRole("heading", { name: "Zenith Labs" }).closest("article");
     expect(zenithCard).not.toBeNull();
     const card = within(zenithCard!);
-    expect(card.queryByText(/Signing bonus:/i)).not.toBeInTheDocument();
+    expect(card.queryByText(/Signing bonus/i)).not.toBeInTheDocument();
     expect(card.queryByText("N/A")).not.toBeInTheDocument();
     expect(card.queryByText("null")).not.toBeInTheDocument();
     expect(card.queryByText("None")).not.toBeInTheDocument();

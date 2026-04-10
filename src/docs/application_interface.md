@@ -197,6 +197,7 @@ Endpoint paths may evolve, but external behavior must remain equivalent.
 11. Seed demo offers via `POST /api/v1/offers/debug/demo-seed` (temporary debug utility).
 12. During conversational turns, the entry-creation agent may trigger the same save flow as `action=finish` by calling its configured `submit_entry` tool when the user indicates they are done.
 13. Successful save completion (including chat-agent-triggered submit) returns/propagates enough outcome state for the frontend to route to Dashboard.
+14. Frontend may retrieve normalized config-driven offer schema from `GET /api/v1/offers/schema`.
 
 ### Comparison
 
@@ -222,6 +223,7 @@ The config contract includes six required top-level sections:
 4. `openai`
 5. `workflow`
 6. `agents`
+7. `offer_schema`
 
 Validation behavior:
 
@@ -233,6 +235,11 @@ Validation behavior:
    - `parse_entry` parses user turns/conversation transcript into mergeable structured offer data
 5. `agents.entry_creation.tools` configures optional function tools the chat agent can call (for example `submit_entry`).
 6. `openai.accepted_audio_extensions` defines the allowed file extensions for audio transcription intake validation.
+7. `offer_schema` is the source of truth for:
+   - config-driven offer field definitions (`id`, `storage_path`, data type, required/default behavior)
+   - dashboard card section rendering metadata
+   - edit form section/field rendering metadata
+   - schema version and migration rules for stored payload evolution
 
 ## Persistence Contract
 

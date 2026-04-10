@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from src.backend.domain.offer_schema import build_configured_offer_schema
 from src.backend.gen_ai.agent_registry import AgentDefinition, AgentRegistry
 from src.backend.gen_ai.text_parser_agent import ConfiguredTextParserAgent, TextParserError
 from src.backend.utils.config_loader import load_default_config
@@ -25,6 +26,7 @@ def _build_agent(enabled: bool) -> ConfiguredTextParserAgent:
     return ConfiguredTextParserAgent(
         registry=registry,
         openai_config=config.openai,
+        offer_schema=build_configured_offer_schema(config.offer_schema),
     )
 
 
