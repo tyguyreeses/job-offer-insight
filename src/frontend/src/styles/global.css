@@ -373,10 +373,30 @@ body {
 }
 
 .edit-offer-section {
-  border: 1px solid rgba(35, 100, 201, 0.2);
+  border: 1px solid rgba(149, 176, 206, 0.68);
   border-radius: 14px;
   padding: 0.85rem;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.edit-offer-section-core {
+  background: #f5faff;
+  border-color: #bfdfff;
+}
+
+.edit-offer-section-compensation {
+  background: #f4f6f8;
+  border-color: #cdd5dd;
+}
+
+.edit-offer-section-monetary {
+  background: #f5faff;
+  border-color: #bfdfff;
+}
+
+.edit-offer-section-non_monetary {
+  background: #f4f6f8;
+  border-color: #cdd5dd;
 }
 
 .edit-offer-section h3 {
@@ -397,8 +417,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  font-size: 0.9rem;
-  color: var(--color-muted);
+  font-size: 0.92rem;
+  color: #2e4a68;
+  font-weight: 500;
 }
 
 .edit-offer-grid-full {
@@ -409,12 +430,20 @@ body {
 .edit-offer-grid textarea {
   width: 100%;
   border-radius: 10px;
-  border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #9fb3c8;
+  background: #ffffff;
   color: var(--color-text);
   font-family: var(--font-body);
-  font-size: 0.95rem;
-  padding: 0.52rem 0.65rem;
+  font-size: 0.98rem;
+  padding: 0.56rem 0.68rem;
+  transition: border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
+}
+
+.edit-offer-grid input:focus-visible,
+.edit-offer-grid textarea:focus-visible {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
 
 .edit-offer-grid textarea {

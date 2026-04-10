@@ -760,8 +760,12 @@ export function DashboardPage(): JSX.Element {
                   if (sectionFields.length === 0) {
                     return null;
                   }
+                  const sectionClassSuffix = section.section_id.replace(/[^a-zA-Z0-9_-]/g, "-");
                   return (
-                    <section key={section.section_id} className="edit-offer-section">
+                    <section
+                      key={section.section_id}
+                      className={`edit-offer-section edit-offer-section-${sectionClassSuffix}`}
+                    >
                       <h3>{section.title}</h3>
                       <div className="edit-offer-grid">
                         {sectionFields.map((field) => {
