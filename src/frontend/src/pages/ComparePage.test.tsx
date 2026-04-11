@@ -100,7 +100,7 @@ describe("ComparePage", () => {
       status: "completed",
       errors: [],
       draft_id: "draft-1",
-      ai_section: { text: "AI summary" }
+      ai_section: { format: "markdown", text: "### AI Summary\n- Tradeoff one\n- Tradeoff two" }
     } as never);
   });
 
@@ -198,5 +198,23 @@ describe("ComparePage", () => {
 
     fireEvent.click(savedButton);
     expect(await screen.findByLabelText("Available offers")).toBeInTheDocument();
+  });
+
+  it("renders generated AI section as markdown", async () => {
+    render(<ComparePage />);
+    await screen.findByText("Atlas");
+
+    fireEvent.click(screen.getByRole("button", { name: "Atlas" }));
+    fireEvent.click(screen.getByRole("button", { name: "Beacon" }));
+    fireEvent.click(screen.getByRole("button", { name: "Generate Comparison" }));
+
+    await waitFor(() => {
+      expect(mockedGenerateComparisonDraft).toHaveBeenCalled();
+      expect(mockedGenerateComparisonAISection).toHaveBeenCalledWith("draft-1");
+    });
+
+    expect(await screen.findByText("AI Summary")).toBeInTheDocument();
+    expect(screen.getByText("Tradeoff one")).toBeInTheDocument();
+    expect(screen.getByText("Tradeoff two")).toBeInTheDocument();
   });
 });

@@ -37,6 +37,96 @@ function comparisonCardLabel(
   return `${offerName(offersById.get(firstId), firstId)} • ${offerName(offersById.get(secondId), secondId)}`;
 }
 
+function renderMarkdownText(markdown: string): JSX.Element {
+  const nodes: JSX.Element[] = [];
+  let paragraphLines: string[] = [];
+  let listItems: string[] = [];
+  let listType: "ul" | "ol" | null = null;
+
+  const flushParagraph = (): void => {
+    if (paragraphLines.length === 0) {
+      return;
+    }
+    const text = paragraphLines.join(" ").trim();
+    if (text !== "") {
+      nodes.push(<p key={`p-${nodes.length}`}>{text}</p>);
+    }
+    paragraphLines = [];
+  };
+
+  const flushList = (): void => {
+    if (listType === null || listItems.length === 0) {
+      listType = null;
+      listItems = [];
+      return;
+    }
+    const key = `${listType}-${nodes.length}`;
+    if (listType === "ul") {
+      nodes.push(
+        <ul key={key}>
+          {listItems.map((item, index) => (
+            <li key={`${key}-${index}`}>{item}</li>
+          ))}
+        </ul>
+      );
+    } else {
+      nodes.push(
+        <ol key={key}>
+          {listItems.map((item, index) => (
+            <li key={`${key}-${index}`}>{item}</li>
+          ))}
+        </ol>
+      );
+    }
+    listType = null;
+    listItems = [];
+  };
+
+  for (const line of markdown.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (trimmed === "") {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
+    const unordered = trimmed.match(/^[-*]\s+(.*)$/);
+    const ordered = trimmed.match(/^\d+\.\s+(.*)$/);
+    if (unordered || ordered) {
+      flushParagraph();
+      const nextType: "ul" | "ol" = unordered ? "ul" : "ol";
+      if (listType !== null && listType !== nextType) {
+        flushList();
+      }
+      listType = nextType;
+      listItems.push((unordered ?? ordered)?.[1].trim() ?? "");
+      continue;
+    }
+
+    flushList();
+    const heading = trimmed.match(/^(#{1,6})\s+(.*)$/);
+    if (heading) {
+      flushParagraph();
+      const level = heading[1].length;
+      const title = heading[2].trim();
+      if (level <= 1) {
+        nodes.push(<h4 key={`h4-${nodes.length}`}>{title}</h4>);
+      } else if (level === 2) {
+        nodes.push(<h5 key={`h5-${nodes.length}`}>{title}</h5>);
+      } else {
+        nodes.push(<h6 key={`h6-${nodes.length}`}>{title}</h6>);
+      }
+      continue;
+    }
+    paragraphLines.push(trimmed);
+  }
+
+  flushParagraph();
+  flushList();
+
+  return <div className="compare-markdown">{nodes.length > 0 ? nodes : <p>{markdown}</p>}</div>;
+}
+
 export function ComparePage({
   prefillSelectedOfferIds = [],
   onPrefillConsumed,
@@ -431,11 +521,12 @@ export function ComparePage({
   };
 
   const renderAISection = (): JSX.Element => {
+    const aiText = generatedAISection ? asText(generatedAISection.text ?? generatedAISection.markdown) : "";
     return (
       <section className="compare-generated-section compare-generated-ai">
         <h3>AI-Generated Comparison</h3>
         {isGeneratingAI ? <p className="compare-generated-pending">Generating AI narrative...</p> : null}
-        {!isGeneratingAI && generatedAISection ? <p>{asText(generatedAISection.text)}</p> : null}
+        {!isGeneratingAI && generatedAISection ? renderMarkdownText(aiText) : null}
         {!isGeneratingAI && !generatedAISection ? <p className="compare-generated-pending">Pending...</p> : null}
       </section>
     );

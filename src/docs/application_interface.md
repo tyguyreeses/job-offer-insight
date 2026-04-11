@@ -251,6 +251,7 @@ Endpoint paths may evolve, but external behavior must remain equivalent.
 8. Generate draft AI section via `POST /api/v1/comparisons/generate/{draft_id}/ai`:
    - uses configured mode-specific comparison agent when enabled
    - falls back to deterministic narrative if AI agent unavailable
+   - AI section `text` is Markdown and includes `format: markdown`
 
 ### Observability
 

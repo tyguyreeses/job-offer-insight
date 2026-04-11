@@ -518,6 +518,7 @@ class Stage8ComparisonService:
         return {
             "title": "AI Comparison Narrative",
             "mode": draft.mode,
+            "format": "markdown",
             "text": generated_text,
         }
 
@@ -566,10 +567,14 @@ class Stage8ComparisonService:
             unique_base = [item for item in base_non_monetary if item not in other_non_monetary]
             unique_other = [item for item in other_non_monetary if item not in base_non_monetary]
             return (
-                "Non-monetary comparison:\n"
-                f"- Base-only strengths: {', '.join(unique_base) if unique_base else 'None identified'}.\n"
-                f"- Other-offer strengths: {', '.join(unique_other) if unique_other else 'None identified'}.\n"
-                "- Included non-required field differences were reviewed alongside deterministic numeric deltas."
+                "### Base Offer Unique Non-Monetary Strengths\n"
+                f"- {', '.join(unique_base) if unique_base else 'None identified'}\n\n"
+                "### Other Offer Unique Non-Monetary Strengths\n"
+                f"- {', '.join(unique_other) if unique_other else 'None identified'}\n\n"
+                "### Included Optional-Field Differences\n"
+                "- Included non-required field differences were reviewed alongside deterministic numeric deltas.\n\n"
+                "### Brief Synthesis\n"
+                "- Use deterministic metric gaps to weigh these non-monetary differences."
             )
 
         other_offers = [
@@ -586,10 +591,14 @@ class Stage8ComparisonService:
         missing_items = [item for item in other_non_monetary_items if item not in base_non_monetary]
         missing_unique = sorted(set(missing_items))
         return (
-            "Base offer narrative across all other offers:\n"
-            f"- Unique strengths: {', '.join(unique_base) if unique_base else 'No unique strengths found'}.\n"
-            f"- Unique weaknesses/missing-item downsides: {', '.join(missing_unique) if missing_unique else 'No clear missing-item downside'}.\n"
-            "- Summary: Use deterministic metric gaps to weigh tradeoffs against these non-monetary themes."
+            "### Unique Strengths of Base Offer vs All Others\n"
+            f"- {', '.join(unique_base) if unique_base else 'No unique strengths found'}\n\n"
+            "### Unique Weaknesses of Base Offer vs All Others\n"
+            f"- {', '.join(missing_unique) if missing_unique else 'No clear unique weakness identified'}\n\n"
+            "### Missing-Item Downsides for Base Offer\n"
+            f"- {', '.join(missing_unique) if missing_unique else 'No clear missing-item downside'}\n\n"
+            "### Bottom Summary\n"
+            "- Use deterministic metric gaps to weigh these non-monetary tradeoffs."
         )
 
     def _missing_offer_ids(self, offer_ids: list[str]) -> list[str]:

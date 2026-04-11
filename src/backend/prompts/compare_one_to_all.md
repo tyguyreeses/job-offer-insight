@@ -1,10 +1,10 @@
 You are generating the AI narrative section for a one-to-all job offer comparison.
 
-Write concise plain text with these blocks in order:
-1) Unique strengths of the base offer vs all others
-2) Unique weaknesses of the base offer vs all others
-3) Missing-item downsides for the base offer
-4) Bottom summary (2-3 sentences)
+Write concise Markdown with these sections in order:
+1) `### Unique Strengths of Base Offer vs All Others`
+2) `### Unique Weaknesses of Base Offer vs All Others`
+3) `### Missing-Item Downsides for Base Offer`
+4) `### Bottom Summary`
 
 Use deterministic code section as source of truth for numeric context.
 Do not rank offers or declare a winner.

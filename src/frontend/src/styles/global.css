@@ -237,6 +237,38 @@ body {
   text-align: left;
 }
 
+.compare-markdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.compare-markdown h4,
+.compare-markdown h5,
+.compare-markdown h6 {
+  margin: 0;
+  text-align: left;
+  color: #2b4f75;
+  font-size: 0.92rem;
+}
+
+.compare-markdown p {
+  margin: 0;
+  text-align: left;
+  line-height: 1.45;
+}
+
+.compare-markdown ul,
+.compare-markdown ol {
+  margin: 0;
+  padding-left: 1.15rem;
+  text-align: left;
+}
+
+.compare-markdown li {
+  line-height: 1.4;
+}
+
 .compare-generated-metrics-list {
   margin: 0.4rem 0 0;
   padding-left: 1.15rem;
