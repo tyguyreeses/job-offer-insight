@@ -37,6 +37,28 @@ const inProgressResponse = {
   offer: null
 };
 
+const readyToFinishResponse = {
+  ...inProgressResponse,
+  step: "anything_else" as const,
+  can_finish: true,
+  missing_required_fields: [],
+  current_prompt_key: "anything_else"
+};
+
+const savedResponse = {
+  ...inProgressResponse,
+  status: "saved" as const,
+  step: "completed" as const,
+  can_finish: true,
+  missing_required_fields: [],
+  current_prompt_key: null,
+  offer: {
+    id: "offer-1",
+    company_name: "Acme",
+    role_title: "Engineer"
+  }
+};
+
 describe("AddEntryPage", () => {
   beforeEach(() => {
     mockedSendTextTurn.mockReset();
@@ -252,5 +274,54 @@ describe("AddEntryPage", () => {
 
     const animatedSections = container.querySelectorAll(".motion-fade-enter, .motion-fade-exit");
     expect(animatedSections.length).toBeGreaterThan(0);
+  });
+
+  it("calls onOfferSaved after successful Finish save", async () => {
+    const onOfferSaved = vi.fn();
+    mockedSendTextTurn.mockResolvedValueOnce(readyToFinishResponse).mockResolvedValueOnce(savedResponse);
+
+    render(<AddEntryPage onOfferSaved={onOfferSaved} />);
+    fireEvent.click(screen.getByRole("button", { name: "Text" }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Add details")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("Add details"), {
+      target: {
+        value: "Ready to finish"
+      }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+    await screen.findByRole("button", { name: "Finish" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Finish" }));
+
+    await waitFor(() => {
+      expect(onOfferSaved).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("calls onOfferSaved when submit response is already saved", async () => {
+    const onOfferSaved = vi.fn();
+    mockedSendTextTurn.mockResolvedValueOnce(savedResponse);
+
+    render(<AddEntryPage onOfferSaved={onOfferSaved} />);
+    fireEvent.click(screen.getByRole("button", { name: "Text" }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Add details")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("Add details"), {
+      target: {
+        value: "Submit and save now"
+      }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    await waitFor(() => {
+      expect(onOfferSaved).toHaveBeenCalledTimes(1);
+    });
   });
 });

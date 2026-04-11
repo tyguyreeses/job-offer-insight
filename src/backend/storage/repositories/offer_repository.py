@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from ...domain.models import OfferRecord
 from ..db import SQLiteDatabase
+from .interfaces import OfferSortBy, SortDirection
 
 
 def _utc_now_iso() -> str:
@@ -90,14 +91,26 @@ class SQLiteOfferRepository:
             updated_at=row["updated_at"],
         )
 
-    def list_all(self) -> list[OfferRecord]:
+    def list_all(
+        self,
+        *,
+        sort_by: OfferSortBy = "created_at",
+        sort_direction: SortDirection = "desc",
+    ) -> list[OfferRecord]:
         self.database.initialize()
+        order_column_map = {
+            "created_at": "created_at",
+            "company_name": "company_name",
+            "role_title": "role_title",
+        }
+        order_column = order_column_map.get(sort_by, "created_at")
+        direction = "ASC" if sort_direction == "asc" else "DESC"
         with self.database.connection() as conn:
             rows = conn.execute(
-                """
+                f"""
                 SELECT id, company_name, role_title, payload_json, created_at, updated_at
                 FROM offers
-                ORDER BY created_at DESC
+                ORDER BY {order_column} {direction}, created_at DESC
                 """
             ).fetchall()
         return [

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from fastapi import Depends, Request
 
+from .domain.offer_schema import build_configured_offer_schema
 from .domain.services.interfaces import ComparisonService, OfferService
 from .domain.services.offer_service import Stage4OfferService
 from .domain.services.placeholders import UnimplementedComparisonService
@@ -47,9 +48,11 @@ def build_runtime_container(config: RuntimeConfig, logger: logging.Logger) -> Ru
     offer_repository = SQLiteOfferRepository(database=database)
     comparison_repository = SQLiteComparisonRepository(database=database)
     agent_registry = build_agent_registry(config.agents)
+    offer_schema = build_configured_offer_schema(config.offer_schema)
     text_parser_agent = ConfiguredTextParserAgent(
         registry=agent_registry,
         openai_config=config.openai,
+        offer_schema=offer_schema,
     )
     entry_creation_agent = ConfiguredEntryCreationAgent(
         registry=agent_registry,
@@ -73,6 +76,7 @@ def build_runtime_container(config: RuntimeConfig, logger: logging.Logger) -> Ru
             text_parser_agent=text_parser_agent,
             entry_creation_agent=entry_creation_agent,
             audio_transcriber=audio_transcriber,
+            offer_schema=offer_schema,
         ),
         comparison_service=UnimplementedComparisonService(
             comparison_repository=comparison_repository,

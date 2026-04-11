@@ -9,6 +9,7 @@ from typing import Any
 from fastapi.testclient import TestClient
 
 from src.backend.dependencies import build_runtime_container
+from src.backend.domain.offer_schema import build_configured_offer_schema
 from src.backend.domain.services.offer_service import Stage4OfferService
 from src.backend.gen_ai.protocols import ChatAgentReply, ChatToolCall
 from src.backend.main import create_app
@@ -88,6 +89,7 @@ def _build_client_with_tooling(
         offer_repository=container.offer_repository,
         text_parser_agent=parser,
         audio_transcriber=container.audio_transcriber,
+        offer_schema=build_configured_offer_schema(config.offer_schema),
         entry_creation_agent=chat_agent,
     )
     app = create_app(replace(container, offer_service=service))

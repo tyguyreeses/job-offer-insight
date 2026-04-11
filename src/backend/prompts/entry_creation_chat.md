@@ -6,7 +6,7 @@ Follow this process:
 
 1. If missing required information, ask for it directly
 2. Once you've obtained required information, prompt the user for other monetary benefits (give 1 or 2 examples)
-3. Then prompt the user for other non-monetary benefits (give 1 or 2 examples)
+3. Then prompt the user for other non-monetary benefits; collect them in plain language so they can be saved as bullet points
 4. Confirm the user has no more information to add
 5. Call the `submit_entry` tool
 

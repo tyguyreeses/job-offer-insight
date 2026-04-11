@@ -113,8 +113,12 @@ If user note exists, it is displayed below all other comparison page content.
 ## Edit Offer Flow
 
 1. Existing offers are editable.
-2. Editing uses a pre-filled structured form.
+2. Editing uses a pre-filled structured form containing core, compensation, monetary, and non-monetary fields.
 3. Editing does not route user through the initial open-ended AI intake flow.
+4. Clicking `Edit` opens a centered panel over Dashboard with blurred/disabled background.
+5. Edit panel uses fade-in/fade-out motion on open/close.
+6. If user attempts to close with unsaved edits, system asks for discard confirmation.
+7. Saving sends full payload update, closes the panel on success, and refreshes the edited card on Dashboard.
 
 ## Dashboard Page
 
@@ -138,6 +142,13 @@ If user note exists, it is displayed below all other comparison page content.
 8. Compare selection rules:
    - Maximum two selected cards
    - On selecting a third card, earliest selected card is automatically deselected
+9. Selected-card quick actions:
+   - When a card is selected/highlighted, show `Edit` and `Delete` actions on the card
+   - `Delete` uses a two-step confirm interaction (`Delete` -> `Confirm`) before removal
+   - On confirmed delete, remove the offer from persistence and the dashboard list
+10. Temporary debug seeding:
+   - Dashboard includes a `Create Demo Offers` button next to `Sort by`
+   - Clicking it seeds three preset demo offers and refreshes the list using current sort
 
 ## Compare Page
 
@@ -178,9 +189,15 @@ Endpoint paths may evolve, but external behavior must remain equivalent.
 6. Audio transcription failures are returned as observable conversational status `transcription_failed`.
 7. Save accepted blanks as omitted fields.
 8. Retrieve offer list and single offer details.
+   - `GET /api/v1/offers` supports sort controls:
+     - `sort_by`: `created_at | company_name | role_title` (default `created_at`)
+     - `sort_direction`: `asc | desc` (default `desc`)
 9. Update offer by ID via structured form payload.
-10. During conversational turns, the entry-creation agent may trigger the same save flow as `action=finish` by calling its configured `submit_entry` tool when the user indicates they are done.
-11. Successful save completion (including chat-agent-triggered submit) returns/propagates enough outcome state for the frontend to route to Dashboard.
+10. Delete offer by ID via `DELETE /api/v1/offers/{offer_id}`.
+11. Seed demo offers via `POST /api/v1/offers/debug/demo-seed` (temporary debug utility).
+12. During conversational turns, the entry-creation agent may trigger the same save flow as `action=finish` by calling its configured `submit_entry` tool when the user indicates they are done.
+13. Successful save completion (including chat-agent-triggered submit) returns/propagates enough outcome state for the frontend to route to Dashboard.
+14. Frontend may retrieve normalized config-driven offer schema from `GET /api/v1/offers/schema`.
 
 ### Comparison
 
@@ -206,6 +223,7 @@ The config contract includes six required top-level sections:
 4. `openai`
 5. `workflow`
 6. `agents`
+7. `offer_schema`
 
 Validation behavior:
 
@@ -217,6 +235,11 @@ Validation behavior:
    - `parse_entry` parses user turns/conversation transcript into mergeable structured offer data
 5. `agents.entry_creation.tools` configures optional function tools the chat agent can call (for example `submit_entry`).
 6. `openai.accepted_audio_extensions` defines the allowed file extensions for audio transcription intake validation.
+7. `offer_schema` is the source of truth for:
+   - config-driven offer field definitions (`id`, `storage_path`, data type, required/default behavior)
+   - dashboard card section rendering metadata
+   - edit form section/field rendering metadata
+   - schema version and migration rules for stored payload evolution
 
 ## Persistence Contract
 

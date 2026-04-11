@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
 from pydantic import BaseModel, Field, model_validator
 
 from ...dependencies import get_offer_service
@@ -49,6 +49,10 @@ class OfferIntakeResponse(BaseModel):
     warnings: list[str]
     missing_field_prompts: list[MissingFieldPromptResponse]
     offer: dict[str, Any] | None
+
+
+class OfferSchemaResponse(BaseModel):
+    offer_schema: dict[str, Any]
 
 
 class TextConversationResponse(BaseModel):
@@ -145,9 +149,27 @@ def intake_offer_from_audio(
 
 
 @router.get("", response_model=OfferListResponse)
-def list_offers(offer_service: OfferService = Depends(get_offer_service)) -> OfferListResponse:
-    offers = [offer_service.render_offer_payload(record) for record in offer_service.list_offers()]
+def list_offers(
+    sort_by: Literal["created_at", "company_name", "role_title"] = Query(default="created_at"),
+    sort_direction: Literal["asc", "desc"] = Query(default="desc"),
+    offer_service: OfferService = Depends(get_offer_service),
+) -> OfferListResponse:
+    offers = [
+        offer_service.render_offer_payload(record)
+        for record in offer_service.list_offers(sort_by=sort_by, sort_direction=sort_direction)
+    ]
     return OfferListResponse(offers=offers)
+
+
+@router.post("/debug/demo-seed", response_model=OfferListResponse)
+def seed_demo_offers(offer_service: OfferService = Depends(get_offer_service)) -> OfferListResponse:
+    created = [offer_service.render_offer_payload(record) for record in offer_service.seed_demo_offers()]
+    return OfferListResponse(offers=created)
+
+
+@router.get("/schema", response_model=OfferSchemaResponse)
+def get_offer_schema(offer_service: OfferService = Depends(get_offer_service)) -> OfferSchemaResponse:
+    return OfferSchemaResponse(offer_schema=offer_service.get_offer_schema())
 
 
 @router.get("/{offer_id}", response_model=OfferResponse)
@@ -179,3 +201,11 @@ def update_offer(
         missing_field_prompts=[MissingFieldPromptResponse(**prompt.__dict__) for prompt in result.missing_field_prompts],
         offer=offer_payload,
     )
+
+
+@router.delete("/{offer_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
+def delete_offer(offer_id: str, offer_service: OfferService = Depends(get_offer_service)) -> Response:
+    deleted = offer_service.delete_offer(offer_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Offer not found: {offer_id}")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

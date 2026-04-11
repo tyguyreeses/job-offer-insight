@@ -1,7 +1,6 @@
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Navbar } from "../components/Navbar";
 import { createBrowserAudioRecorder, type AudioRecorderController } from "../services/audioRecorder";
 import { sendAudioTurn, sendTextTurn } from "../services/offersApi";
 import type { IntakeAction, TextTurnResponse } from "../types/intake";
@@ -31,7 +30,11 @@ function AssistantMessagePanel({ message }: { message: string }): JSX.Element | 
   );
 }
 
-export function AddEntryPage(): JSX.Element {
+interface AddEntryPageProps {
+  onOfferSaved?: () => void;
+}
+
+export function AddEntryPage({ onOfferSaved }: AddEntryPageProps): JSX.Element {
   const [mode, setMode] = useState<ModeState>("chooser");
   const [inputText, setInputText] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -127,6 +130,9 @@ export function AddEntryPage(): JSX.Element {
       const response = await sendTextTurn(requestPayload);
       setConversation(response);
       setSessionId(response.session_id);
+      if (response.status === "saved") {
+        onOfferSaved?.();
+      }
       if (action === "submit") {
         setInputText("");
       }
@@ -157,6 +163,9 @@ export function AddEntryPage(): JSX.Element {
       const response = await sendAudioTurn(requestPayload);
       setConversation(response);
       setSessionId(response.session_id);
+      if (response.status === "saved") {
+        onOfferSaved?.();
+      }
       setRecordedAudioBlob(null);
       setRecordingFailureCount(0);
     } catch (error) {
@@ -233,6 +242,9 @@ export function AddEntryPage(): JSX.Element {
       const response = await sendAudioTurn(requestPayload);
       setConversation(response);
       setSessionId(response.session_id);
+      if (response.status === "saved") {
+        onOfferSaved?.();
+      }
       setRecordingFailureCount(0);
     } catch (error) {
       setErrorText(error instanceof Error ? error.message : "Unable to process your request.");
@@ -264,9 +276,7 @@ export function AddEntryPage(): JSX.Element {
   const isProcessingLabel = audioButtonLabel === "Processing...";
 
   return (
-    <div className="app-shell">
-      <Navbar />
-      <main className="main-panel">
+    <main className="main-panel">
         <h1
           className="main-title motion-fade-enter"
           style={{ ["--motion-delay" as string]: "0ms", ["--motion-duration" as string]: "220ms" }}
@@ -428,7 +438,6 @@ export function AddEntryPage(): JSX.Element {
             <p className="edit-later-note">You will be able to edit this information later.</p>
           </section>
         ) : null}
-      </main>
-    </div>
+    </main>
   );
 }
