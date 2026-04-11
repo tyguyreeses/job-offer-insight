@@ -144,3 +144,78 @@ def test_comparisons_list_returns_saved_entries(tmp_path: Path) -> None:
     assert len(comparisons) == 1
     assert comparisons[0]["comparison_mode"] == "one_to_one"
     assert comparisons[0]["note"] == "Saved note"
+
+
+def test_one_to_one_save_overrides_existing_same_offer_pair(tmp_path: Path) -> None:
+    client, offers = _build_client_and_repo(tmp_path)
+    left_id = _seed_offer(offers, company_name="Atlas", role_title="Engineer")
+    right_id = _seed_offer(offers, company_name="Beacon", role_title="Engineer")
+
+    first = client.post(
+        "/api/v1/comparisons",
+        json={
+            "mode": "one_to_one",
+            "base_offer_id": left_id,
+            "selected_offer_ids": [left_id, right_id],
+            "note": "First",
+        },
+    )
+    assert first.status_code == 200
+    first_id = first.json()["comparison"]["id"]
+
+    second = client.post(
+        "/api/v1/comparisons",
+        json={
+            "mode": "one_to_one",
+            "base_offer_id": right_id,
+            "selected_offer_ids": [right_id, left_id],
+            "note": "Second",
+        },
+    )
+    assert second.status_code == 200
+    second_payload = second.json()["comparison"]
+    assert second_payload["id"] == first_id
+    assert second_payload["base_offer_id"] == right_id
+    assert second_payload["note"] == "Second"
+
+    listing = client.get("/api/v1/comparisons")
+    assert listing.status_code == 200
+    assert len(listing.json()["comparisons"]) == 1
+
+
+def test_one_to_all_save_overrides_existing_same_base_offer(tmp_path: Path) -> None:
+    client, offers = _build_client_and_repo(tmp_path)
+    base_id = _seed_offer(offers, company_name="Atlas", role_title="Engineer")
+    _seed_offer(offers, company_name="Beacon", role_title="Engineer")
+
+    first = client.post(
+        "/api/v1/comparisons",
+        json={
+            "mode": "one_to_all",
+            "base_offer_id": base_id,
+            "selected_offer_ids": [base_id],
+            "note": "First",
+        },
+    )
+    assert first.status_code == 200
+    first_payload = first.json()["comparison"]
+
+    _seed_offer(offers, company_name="Canyon", role_title="Engineer")
+    second = client.post(
+        "/api/v1/comparisons",
+        json={
+            "mode": "one_to_all",
+            "base_offer_id": base_id,
+            "selected_offer_ids": [base_id],
+            "note": "Second",
+        },
+    )
+    assert second.status_code == 200
+    second_payload = second.json()["comparison"]
+    assert second_payload["id"] == first_payload["id"]
+    assert second_payload["note"] == "Second"
+    assert len(second_payload["selected_offer_ids"]) == 3
+
+    listing = client.get("/api/v1/comparisons")
+    assert listing.status_code == 200
+    assert len(listing.json()["comparisons"]) == 1

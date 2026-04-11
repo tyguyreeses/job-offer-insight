@@ -92,12 +92,30 @@ class Stage7ComparisonService:
                 comparison=None,
             )
 
+        note_value = _normalize_note(note)
+        existing_match = self._find_existing_one_to_one(selected_offer_ids)
+        if existing_match is not None:
+            updated = self.comparison_repository.update(
+                comparison_id=existing_match.id,
+                comparison_mode="one_to_one",
+                base_offer_id=base_offer_id,
+                selected_offer_ids=selected_offer_ids,
+                summary_text=_PLACEHOLDER_SUMMARY_TEXT,
+                note=note_value,
+            )
+            if updated is not None:
+                self._delete_other_matches_one_to_one(
+                    keep_comparison_id=updated.id,
+                    selected_offer_ids=selected_offer_ids,
+                )
+                return ComparisonCreateResult(status="saved", errors=[], comparison=updated)
+
         created = self.comparison_repository.create(
             comparison_mode="one_to_one",
             base_offer_id=base_offer_id,
             selected_offer_ids=selected_offer_ids,
             summary_text=_PLACEHOLDER_SUMMARY_TEXT,
-            note=_normalize_note(note),
+            note=note_value,
         )
         return ComparisonCreateResult(status="saved", errors=[], comparison=created)
 
@@ -131,12 +149,30 @@ class Stage7ComparisonService:
             )
 
         snapshot_ids = [base_offer_id, *compared_offer_ids]
+        note_value = _normalize_note(note)
+        existing_match = self._find_existing_one_to_all(base_offer_id)
+        if existing_match is not None:
+            updated = self.comparison_repository.update(
+                comparison_id=existing_match.id,
+                comparison_mode="one_to_all",
+                base_offer_id=base_offer_id,
+                selected_offer_ids=snapshot_ids,
+                summary_text=_PLACEHOLDER_SUMMARY_TEXT,
+                note=note_value,
+            )
+            if updated is not None:
+                self._delete_other_matches_one_to_all(
+                    keep_comparison_id=updated.id,
+                    base_offer_id=base_offer_id,
+                )
+                return ComparisonCreateResult(status="saved", errors=[], comparison=updated)
+
         created = self.comparison_repository.create(
             comparison_mode="one_to_all",
             base_offer_id=base_offer_id,
             selected_offer_ids=snapshot_ids,
             summary_text=_PLACEHOLDER_SUMMARY_TEXT,
-            note=_normalize_note(note),
+            note=note_value,
         )
         return ComparisonCreateResult(status="saved", errors=[], comparison=created)
 
@@ -146,6 +182,52 @@ class Stage7ComparisonService:
             if self.offer_repository.get_by_id(offer_id) is None:
                 missing.append(offer_id)
         return missing
+
+    def _find_existing_one_to_one(self, selected_offer_ids: list[str]) -> ComparisonRecord | None:
+        target_ids = set(selected_offer_ids)
+        for comparison in self.comparison_repository.list_all():
+            if comparison.comparison_mode != "one_to_one":
+                continue
+            if set(comparison.selected_offer_ids) == target_ids:
+                return comparison
+        return None
+
+    def _find_existing_one_to_all(self, base_offer_id: str) -> ComparisonRecord | None:
+        for comparison in self.comparison_repository.list_all():
+            if comparison.comparison_mode != "one_to_all":
+                continue
+            if comparison.base_offer_id == base_offer_id:
+                return comparison
+        return None
+
+    def _delete_other_matches_one_to_one(
+        self,
+        *,
+        keep_comparison_id: str,
+        selected_offer_ids: list[str],
+    ) -> None:
+        target_ids = set(selected_offer_ids)
+        for comparison in self.comparison_repository.list_all():
+            if comparison.id == keep_comparison_id:
+                continue
+            if comparison.comparison_mode != "one_to_one":
+                continue
+            if set(comparison.selected_offer_ids) == target_ids:
+                self.comparison_repository.delete(comparison.id)
+
+    def _delete_other_matches_one_to_all(
+        self,
+        *,
+        keep_comparison_id: str,
+        base_offer_id: str,
+    ) -> None:
+        for comparison in self.comparison_repository.list_all():
+            if comparison.id == keep_comparison_id:
+                continue
+            if comparison.comparison_mode != "one_to_all":
+                continue
+            if comparison.base_offer_id == base_offer_id:
+                self.comparison_repository.delete(comparison.id)
 
 
 def _normalize_selected_offer_ids(selected_offer_ids: list[str]) -> list[str]:
