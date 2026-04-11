@@ -2,11 +2,12 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 
 import { createComparison, fetchComparisonById, fetchComparisons } from "../services/comparisonsApi";
-import { fetchOffers } from "../services/offersApi";
+import { fetchOfferSchema, fetchOffers } from "../services/offersApi";
 import { ComparePage } from "./ComparePage";
 
 vi.mock("../services/offersApi", () => ({
-  fetchOffers: vi.fn()
+  fetchOffers: vi.fn(),
+  fetchOfferSchema: vi.fn()
 }));
 
 vi.mock("../services/comparisonsApi", () => ({
@@ -16,6 +17,7 @@ vi.mock("../services/comparisonsApi", () => ({
 }));
 
 const mockedFetchOffers = vi.mocked(fetchOffers);
+const mockedFetchOfferSchema = vi.mocked(fetchOfferSchema);
 const mockedFetchComparisons = vi.mocked(fetchComparisons);
 const mockedFetchComparisonById = vi.mocked(fetchComparisonById);
 const mockedCreateComparison = vi.mocked(createComparison);
@@ -25,13 +27,46 @@ const offers = [
   { id: "offer-2", company_name: "Beacon", role_title: "Architect" }
 ];
 
+const defaultSchema = {
+  version: 1,
+  identity: { company_name_path: "company_name", role_title_path: "role_title" },
+  required: { all_of: [], one_of: [] },
+  card_sections: [
+    { section_id: "salary", title: "Salary" },
+    { section_id: "monetary", title: "Monetary benefits" }
+  ],
+  edit_sections: [],
+  fields: [
+    {
+      id: "annual-base-salary-usd",
+      label: "Annual base salary (USD)",
+      storage_path: "compensation.annual_base_salary_usd",
+      data_type: "number",
+      group: "compensation",
+      card: { visible: true, section_id: "salary", order: 1, style: "value" },
+      edit: { visible: false, section_id: "core", order: 1, widget: "text" }
+    },
+    {
+      id: "signing-bonus-usd",
+      label: "Signing bonus (USD)",
+      storage_path: "compensation.signing_bonus_usd",
+      data_type: "number",
+      group: "compensation",
+      card: { visible: true, section_id: "monetary", order: 2, style: "labeled_value" },
+      edit: { visible: false, section_id: "core", order: 2, widget: "text" }
+    }
+  ]
+};
+
 describe("ComparePage", () => {
   beforeEach(() => {
     mockedFetchOffers.mockReset();
+    mockedFetchOfferSchema.mockReset();
     mockedFetchComparisons.mockReset();
     mockedFetchComparisonById.mockReset();
     mockedCreateComparison.mockReset();
     mockedFetchOffers.mockResolvedValue({ offers } as never);
+    mockedFetchOfferSchema.mockResolvedValue(defaultSchema as never);
     mockedFetchComparisons.mockResolvedValue({ comparisons: [] } as never);
     mockedCreateComparison.mockResolvedValue({
       status: "saved",

@@ -1,13 +1,107 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { createComparison, fetchComparisonById, fetchComparisons } from "../services/comparisonsApi";
-import { fetchOffers } from "../services/offersApi";
+import { fetchOfferSchema, fetchOffers } from "../services/offersApi";
 import type { ComparisonPayload } from "../types/comparisons";
-import type { OfferSummaryPayload } from "../types/offers";
+import type { OfferSchemaField, OfferSchemaPayload, OfferSummaryPayload } from "../types/offers";
 
 interface ComparePageProps {
   prefillSelectedOfferIds?: string[];
   onPrefillConsumed?: () => void;
+}
+
+function getPath(payload: Record<string, unknown>, path: string): unknown {
+  const parts = path.split(".");
+  let cursor: unknown = payload;
+  for (const part of parts) {
+    if (!cursor || typeof cursor !== "object" || Array.isArray(cursor)) {
+      return undefined;
+    }
+    cursor = (cursor as Record<string, unknown>)[part];
+  }
+  return cursor;
+}
+
+function asText(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function asNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
+function asStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter((item) => item.length > 0);
+}
+
+function formatUsd(amount: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0
+  }).format(amount);
+}
+
+function formatDate(createdAt?: string): string | null {
+  if (!createdAt) {
+    return null;
+  }
+  const parsed = new Date(createdAt);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return `${String(parsed.getUTCMonth() + 1).padStart(2, "0")}-${String(parsed.getUTCDate()).padStart(2, "0")}-${parsed.getUTCFullYear()}`;
+}
+
+function formatFieldValue(field: OfferSchemaField, value: unknown): string | null {
+  if (field.data_type === "list_string") {
+    return null;
+  }
+  if (field.storage_path.endsWith("created_at")) {
+    return formatDate(typeof value === "string" ? value : undefined);
+  }
+  if (field.data_type === "number" || field.data_type === "integer") {
+    const parsed = asNumber(value);
+    if (parsed === null) {
+      return null;
+    }
+    if (field.storage_path.includes("_usd")) {
+      return formatUsd(parsed);
+    }
+    if (field.storage_path.includes("percent")) {
+      return `${parsed}%`;
+    }
+    return `${parsed}`;
+  }
+  const text = asText(value).trim();
+  return text === "" ? null : text;
+}
+
+function isPresent(value: unknown): boolean {
+  if (value === null || value === undefined) {
+    return false;
+  }
+  if (typeof value === "string") {
+    return value.trim() !== "";
+  }
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+  return true;
 }
 
 function offerName(offer: OfferSummaryPayload | undefined, fallbackId: string): string {
@@ -32,6 +126,8 @@ export function ComparePage({
   prefillSelectedOfferIds = [],
   onPrefillConsumed
 }: ComparePageProps): JSX.Element {
+  const [offerSchema, setOfferSchema] = useState<OfferSchemaPayload | null>(null);
+  const [isSchemaLoading, setIsSchemaLoading] = useState(true);
   const [offers, setOffers] = useState<OfferSummaryPayload[]>([]);
   const [comparisons, setComparisons] = useState<ComparisonPayload[]>([]);
   const [isLoadingOffers, setIsLoadingOffers] = useState(true);
@@ -49,6 +145,31 @@ export function ComparePage({
   const offersById = useMemo(() => {
     return new Map(offers.map((offer) => [offer.id, offer]));
   }, [offers]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsSchemaLoading(true);
+    setErrorText(null);
+    void fetchOfferSchema()
+      .then((schema) => {
+        if (!cancelled) {
+          setOfferSchema(schema);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setErrorText(error instanceof Error ? error.message : "Unable to load offer schema.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsSchemaLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -189,10 +310,76 @@ export function ComparePage({
 
   const renderOfferPanel = (offerId: string, side: "left" | "right"): JSX.Element => {
     const offer = offersById.get(offerId);
+    if (!offer || !offerSchema) {
+      return (
+        <article className={`compare-canvas-panel compare-canvas-panel-${side}`} data-testid={`compare-panel-${side}`}>
+          <h3>Offer unavailable</h3>
+          <p>{offerId}</p>
+        </article>
+      );
+    }
+    const payload = offer as unknown as Record<string, unknown>;
+    const companyName = asText(getPath(payload, offerSchema.identity.company_name_path));
+    const roleTitle = asText(getPath(payload, offerSchema.identity.role_title_path));
+    const locationField = offerSchema.fields.find((field) => field.id === "location");
+    const locationPath = locationField?.storage_path ?? "location";
+    const location = asText(getPath(payload, locationPath)).trim();
+    const roleAndLocation = location ? `${roleTitle} • ${location}` : roleTitle;
+
     return (
-      <article className={`compare-canvas-panel compare-canvas-panel-${side}`} data-testid={`compare-panel-${side}`}>
-        <h3>{offer?.company_name ?? "Offer unavailable"}</h3>
-        <p>{offer?.role_title ?? offerId}</p>
+      <article className={`dashboard-card compare-static-card compare-canvas-panel-${side}`} data-testid={`compare-panel-${side}`}>
+        <h2 className="dashboard-card-company">{companyName}</h2>
+        <p className="dashboard-card-role">{roleAndLocation}</p>
+
+        {offerSchema.card_sections.map((section) => {
+          const fields = offerSchema.fields
+            .filter((field) => field.card.visible && field.card.section_id === section.section_id)
+            .sort((left, right) => left.card.order - right.card.order);
+
+          const renderedRows = fields
+            .map((field) => {
+              const rawValue = getPath(payload, field.storage_path);
+              if (!isPresent(rawValue)) {
+                return null;
+              }
+              if (field.card.style === "list") {
+                const items = asStringList(rawValue);
+                if (items.length === 0) {
+                  return null;
+                }
+                return (
+                  <ul key={`${offer.id}-${field.id}`}>
+                    {items.map((item) => (
+                      <li key={`${offer.id}-${field.id}-${item}`}>{item}</li>
+                    ))}
+                  </ul>
+                );
+              }
+
+              const formatted = formatFieldValue(field, rawValue);
+              if (!formatted) {
+                return null;
+              }
+
+              if (field.card.style === "value") {
+                return <p key={`${offer.id}-${field.id}`}>{formatted}</p>;
+              }
+
+              return <p key={`${offer.id}-${field.id}`}>{`${field.label}: ${formatted}`}</p>;
+            })
+            .filter((node): node is JSX.Element => node !== null);
+
+          if (renderedRows.length === 0) {
+            return null;
+          }
+
+          return (
+            <section key={`${offer.id}-${section.section_id}`} className="dashboard-card-section">
+              <h3>{section.title}</h3>
+              {renderedRows}
+            </section>
+          );
+        })}
       </article>
     );
   };
@@ -205,14 +392,14 @@ export function ComparePage({
         <>
           <section className="compare-canvas-grid">
             {renderOfferPanel(activeComparison.base_offer_id, "left")}
-            <article className="compare-canvas-panel compare-canvas-panel-middle">
+            <article className="compare-canvas-middle">
               <h3>Comparison Summary</h3>
               <p>{activeComparison.summary_text}</p>
             </article>
             {activeComparison.comparison_mode === "one_to_one" ? (
               renderOfferPanel(ids[1], "right")
             ) : (
-              <article className="compare-canvas-panel compare-canvas-panel-right">
+              <article className="compare-canvas-right-placeholder">
                 <h3>All Other Entries</h3>
                 <p>{`Snapshot includes ${Math.max(ids.length - 1, 0)} other offers.`}</p>
               </article>
@@ -239,14 +426,14 @@ export function ComparePage({
         <>
           <section className="compare-canvas-grid">
             {renderOfferPanel(draftSelectedOfferIds[0], "left")}
-            <article className="compare-canvas-panel compare-canvas-panel-middle">
+            <article className="compare-canvas-middle">
               <h3>Comparison Summary</h3>
               <p>Comparison summary placeholder.</p>
             </article>
             {mode === "one_to_one" ? (
               renderOfferPanel(draftSelectedOfferIds[1], "right")
             ) : (
-              <article className="compare-canvas-panel compare-canvas-panel-right">
+              <article className="compare-canvas-right-placeholder">
                 <h3>All Other Entries</h3>
                 <p>This area remains a placeholder in Stage 7.</p>
               </article>
@@ -295,6 +482,7 @@ export function ComparePage({
     <main className="main-panel compare-panel">
       <h1 className="main-title">Compare</h1>
 
+      {isSchemaLoading ? <p className="dashboard-status">Loading schema...</p> : null}
       {isLoadingOffers ? <p className="dashboard-status">Loading offers...</p> : null}
       {isLoadingComparisons ? <p className="dashboard-status">Loading comparisons...</p> : null}
       {errorText ? <p className="error-text">{errorText}</p> : null}

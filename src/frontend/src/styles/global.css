@@ -150,11 +150,8 @@ body {
 }
 
 .compare-canvas {
-  min-height: 300px;
-  border-radius: var(--radius-card);
-  border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.92);
-  padding: 1rem;
+  min-height: 560px;
+  padding: 0.4rem 0.2rem;
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
@@ -170,26 +167,43 @@ body {
 .compare-canvas-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.8rem;
+  gap: 1.2rem;
+  align-items: start;
 }
 
-.compare-canvas-panel {
-  border-radius: 14px;
-  border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.95);
-  padding: 0.9rem;
-  min-height: 150px;
+.compare-static-card {
+  cursor: default;
 }
 
-.compare-canvas-panel h3 {
+.compare-static-card:hover,
+.compare-static-card:focus-visible {
+  box-shadow: none;
+  transform: none;
+}
+
+.compare-canvas-middle,
+.compare-canvas-right-placeholder {
+  min-height: 470px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.compare-canvas-middle h3,
+.compare-canvas-right-placeholder h3 {
   margin: 0 0 0.45rem;
   font-family: var(--font-display);
   font-size: 1.05rem;
+  color: var(--color-muted);
+  text-align: center;
 }
 
-.compare-canvas-panel p {
+.compare-canvas-middle p,
+.compare-canvas-right-placeholder p {
   margin: 0;
   color: var(--color-muted);
+  text-align: center;
 }
 
 .compare-note {
@@ -906,6 +920,15 @@ body {
 
   .compare-canvas-grid {
     grid-template-columns: 1fr;
+  }
+
+  .compare-canvas {
+    min-height: 420px;
+  }
+
+  .compare-canvas-middle,
+  .compare-canvas-right-placeholder {
+    min-height: 160px;
   }
 }
 
