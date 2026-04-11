@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Any, Literal, Protocol
 
 from .offer_service import IntakeResult, TextConversationResult
-from ..models import OfferRecord
+from ..models import ComparisonRecord, OfferRecord
+from .comparison_service import ComparisonCreateResult, ComparisonMode
 
 OfferSortBy = Literal["created_at", "company_name", "role_title"]
 SortDirection = Literal["asc", "desc"]
@@ -70,3 +71,19 @@ class ComparisonService(Protocol):
 
     def describe_capabilities(self) -> dict[str, str]:
         """Return high-level service status/capabilities."""
+
+    def create_comparison(
+        self,
+        *,
+        mode: ComparisonMode,
+        selected_offer_ids: list[str],
+        base_offer_id: str | None,
+        note: str | None,
+    ) -> ComparisonCreateResult:
+        """Create and return one saved comparison."""
+
+    def list_comparisons(self) -> list[ComparisonRecord]:
+        """Return all saved comparisons."""
+
+    def get_comparison(self, comparison_id: str) -> ComparisonRecord | None:
+        """Return one saved comparison by id."""

@@ -5,11 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from ...domain.models import OfferRecord
+from ...domain.models import ComparisonRecord, OfferRecord
 from ...storage.repositories.interfaces import (
     ComparisonRepository,
     OfferRepository,
 )
+from .comparison_service import ComparisonCreateResult
 from .offer_service import FieldPrompt, IntakeResult, TextConversationResult
 
 
@@ -122,3 +123,28 @@ class UnimplementedComparisonService:
             "status": "placeholder",
             "message": "Comparison behavior will be implemented in later stages.",
         }
+
+    def create_comparison(
+        self,
+        *,
+        mode: Literal["one_to_one", "one_to_all"],
+        selected_offer_ids: list[str],
+        base_offer_id: str | None,
+        note: str | None,
+    ) -> ComparisonCreateResult:
+        _ = mode
+        _ = selected_offer_ids
+        _ = base_offer_id
+        _ = note
+        return ComparisonCreateResult(
+            status="not_implemented",
+            errors=["Comparison save is not implemented."],
+            comparison=None,
+        )
+
+    def list_comparisons(self) -> list[ComparisonRecord]:
+        return []
+
+    def get_comparison(self, comparison_id: str) -> ComparisonRecord | None:
+        _ = comparison_id
+        return None
