@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useState } from "react";
 
 import {
   createComparison,
@@ -522,10 +522,23 @@ export function ComparePage({
 
   const renderAISection = (): JSX.Element => {
     const aiText = generatedAISection ? asText(generatedAISection.text ?? generatedAISection.markdown) : "";
+    const generatingLabel = "generating...";
     return (
       <section className="compare-generated-section compare-generated-ai">
         <h3>AI-Generated Comparison</h3>
-        {isGeneratingAI ? <p className="compare-generated-pending">Generating AI narrative...</p> : null}
+        {isGeneratingAI ? (
+          <p className="compare-generated-pending audio-main-label-processing">
+            {generatingLabel.split("").map((character, index) => (
+              <span
+                key={`compare-processing-char-${index}-${character === " " ? "space" : character}`}
+                className="processing-label-char"
+                style={{ ["--processing-index" as string]: index } as CSSProperties}
+              >
+                {character}
+              </span>
+            ))}
+          </p>
+        ) : null}
         {!isGeneratingAI && generatedAISection ? renderMarkdownText(aiText) : null}
         {!isGeneratingAI && !generatedAISection ? <p className="compare-generated-pending">Pending...</p> : null}
       </section>
