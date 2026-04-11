@@ -202,8 +202,16 @@ body {
   min-height: 470px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
   gap: 0.5rem;
+}
+
+.compare-summary-content {
+  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
 }
 
 .compare-canvas-middle h3,
@@ -236,8 +244,18 @@ body {
   gap: 0.65rem;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 1.35rem 1.45rem 1.7rem;
+  padding: 1.2rem 1.45rem 1.3rem;
   margin: 0 -0.8rem;
+}
+
+.compare-row-label {
+  margin: 0 0 0.1rem;
+  padding-left: 0.2rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
+  text-transform: uppercase;
 }
 
 .compare-offer-card,
@@ -256,7 +274,7 @@ body {
 }
 
 .compare-saved-row {
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.1rem;
 }
 
 .dashboard-card-shell-collapsing {

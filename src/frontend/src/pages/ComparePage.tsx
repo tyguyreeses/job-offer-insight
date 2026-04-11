@@ -495,16 +495,20 @@ export function ComparePage({
           <section className="compare-canvas-grid">
             {renderOfferPanel(activeComparison.base_offer_id, "left")}
             <article className="compare-canvas-middle">
-              <h3>Comparison Summary</h3>
-              <p>{activeComparison.summary_text}</p>
+              <div className="compare-summary-content">
+                <h3>Comparison Summary</h3>
+                <p>{activeComparison.summary_text}</p>
+              </div>
               <div className="compare-summary-save-slot" />
             </article>
             {activeComparison.comparison_mode === "one_to_one" ? (
               renderOfferPanel(ids[1], "right")
             ) : (
               <article className="compare-canvas-right-placeholder">
-                <h3>All Other Entries</h3>
-                <p>{`Snapshot includes ${Math.max(ids.length - 1, 0)} other offers.`}</p>
+                <div className="compare-summary-content">
+                  <h3>All Other Entries</h3>
+                  <p>{`Snapshot includes ${Math.max(ids.length - 1, 0)} other offers.`}</p>
+                </div>
               </article>
             )}
           </section>
@@ -519,16 +523,20 @@ export function ComparePage({
           <section className="compare-canvas-grid">
             {renderOfferPanel(draftSelectedOfferIds[0], "left")}
             <article className="compare-canvas-middle">
-              <h3>Comparison Summary</h3>
-              <p>Comparison summary placeholder.</p>
+              <div className="compare-summary-content">
+                <h3>Comparison Summary</h3>
+                <p>Comparison summary placeholder.</p>
+              </div>
               <div className="compare-summary-save-slot">{renderSaveButton()}</div>
             </article>
             {mode === "one_to_one" ? (
               renderOfferPanel(draftSelectedOfferIds[1], "right")
             ) : (
               <article className="compare-canvas-right-placeholder">
-                <h3>All Other Entries</h3>
-                <p>This area remains a placeholder in Stage 7.</p>
+                <div className="compare-summary-content">
+                  <h3>All Other Entries</h3>
+                  <p>This area remains a placeholder in Stage 7.</p>
+                </div>
               </article>
             )}
           </section>
@@ -566,35 +574,39 @@ export function ComparePage({
       </section>
 
       {activeSavedComparisonId === null ? (
-        <section className="compare-row" aria-label="Available offers">
-          {offers.map((offer) => {
-            const isSelected = draftSelectedOfferIds.includes(offer.id);
-            const animationClass =
-              cardAnimationState[`offer-${offer.id}`] === "select"
-                ? "dashboard-card-flip-select"
-                : cardAnimationState[`offer-${offer.id}`] === "deselect"
-                  ? "dashboard-card-flip-deselect"
-                  : "";
-            return (
-              <div key={offer.id} className="dashboard-card-shell">
-                <button
-                  type="button"
-                  className={`compare-offer-card dashboard-card selectable ${
-                    isSelected ? "dashboard-card-selected" : ""
-                  } ${animationClass}`.trim()}
-                  aria-pressed={isSelected}
-                  onClick={() => {
-                    toggleDraftOfferSelection(offer.id);
-                  }}
-                >
-                  <h2 className="dashboard-card-company">{offer.company_name}</h2>
-                </button>
-              </div>
-            );
-          })}
-        </section>
+        <>
+          <p className="compare-row-label">Job Entries</p>
+          <section className="compare-row" aria-label="Available offers">
+            {offers.map((offer) => {
+              const isSelected = draftSelectedOfferIds.includes(offer.id);
+              const animationClass =
+                cardAnimationState[`offer-${offer.id}`] === "select"
+                  ? "dashboard-card-flip-select"
+                  : cardAnimationState[`offer-${offer.id}`] === "deselect"
+                    ? "dashboard-card-flip-deselect"
+                    : "";
+              return (
+                <div key={offer.id} className="dashboard-card-shell">
+                  <button
+                    type="button"
+                    className={`compare-offer-card dashboard-card selectable ${
+                      isSelected ? "dashboard-card-selected" : ""
+                    } ${animationClass}`.trim()}
+                    aria-pressed={isSelected}
+                    onClick={() => {
+                      toggleDraftOfferSelection(offer.id);
+                    }}
+                  >
+                    <h2 className="dashboard-card-company">{offer.company_name}</h2>
+                  </button>
+                </div>
+              );
+            })}
+          </section>
+        </>
       ) : null}
 
+      <p className="compare-row-label">Saved Comparisons</p>
       <section className="compare-row compare-saved-row" aria-label="Saved comparisons">
         {comparisons.map((comparison) => {
           const isSelected = comparison.id === activeSavedComparisonId;
