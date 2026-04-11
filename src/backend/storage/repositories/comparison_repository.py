@@ -36,6 +36,8 @@ class SQLiteComparisonRepository:
     def create(
         self,
         *,
+        comparison_mode: str,
+        base_offer_id: str,
         selected_offer_ids: Sequence[str],
         summary_text: str,
         note: str | None = None,
@@ -51,18 +53,31 @@ class SQLiteComparisonRepository:
                 """
                 INSERT INTO comparisons (
                     id,
+                    comparison_mode,
+                    base_offer_id,
                     selected_offer_ids_json,
                     summary_text,
                     note,
                     created_at,
                     updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (record_id, selected_offer_ids_json, summary_text, note, now, now),
+                (
+                    record_id,
+                    comparison_mode,
+                    base_offer_id,
+                    selected_offer_ids_json,
+                    summary_text,
+                    note,
+                    now,
+                    now,
+                ),
             )
 
         return ComparisonRecord(
             id=record_id,
+            comparison_mode=comparison_mode,
+            base_offer_id=base_offer_id,
             selected_offer_ids=_json_to_ids(selected_offer_ids_json),
             summary_text=summary_text,
             note=note,
@@ -75,7 +90,7 @@ class SQLiteComparisonRepository:
         with self.database.connection() as conn:
             row = conn.execute(
                 """
-                SELECT id, selected_offer_ids_json, summary_text, note, created_at, updated_at
+                SELECT id, comparison_mode, base_offer_id, selected_offer_ids_json, summary_text, note, created_at, updated_at
                 FROM comparisons
                 WHERE id = ?
                 """,
@@ -85,6 +100,8 @@ class SQLiteComparisonRepository:
             return None
         return ComparisonRecord(
             id=row["id"],
+            comparison_mode=row["comparison_mode"],
+            base_offer_id=row["base_offer_id"],
             selected_offer_ids=_json_to_ids(row["selected_offer_ids_json"]),
             summary_text=row["summary_text"],
             note=row["note"],
@@ -97,7 +114,7 @@ class SQLiteComparisonRepository:
         with self.database.connection() as conn:
             rows = conn.execute(
                 """
-                SELECT id, selected_offer_ids_json, summary_text, note, created_at, updated_at
+                SELECT id, comparison_mode, base_offer_id, selected_offer_ids_json, summary_text, note, created_at, updated_at
                 FROM comparisons
                 ORDER BY created_at DESC
                 """
@@ -105,6 +122,8 @@ class SQLiteComparisonRepository:
         return [
             ComparisonRecord(
                 id=row["id"],
+                comparison_mode=row["comparison_mode"],
+                base_offer_id=row["base_offer_id"],
                 selected_offer_ids=_json_to_ids(row["selected_offer_ids_json"]),
                 summary_text=row["summary_text"],
                 note=row["note"],
@@ -118,6 +137,8 @@ class SQLiteComparisonRepository:
         self,
         *,
         comparison_id: str,
+        comparison_mode: str | None = None,
+        base_offer_id: str | None = None,
         selected_offer_ids: Sequence[str] | None = None,
         summary_text: str | None = None,
         note: str | None = None,
@@ -127,6 +148,8 @@ class SQLiteComparisonRepository:
         if existing is None:
             return None
 
+        resolved_comparison_mode = comparison_mode if comparison_mode is not None else existing.comparison_mode
+        resolved_base_offer_id = base_offer_id if base_offer_id is not None else existing.base_offer_id
         resolved_selected_offer_ids = list(selected_offer_ids or existing.selected_offer_ids)
         resolved_summary_text = summary_text if summary_text is not None else existing.summary_text
         resolved_note = note if note is not None else existing.note
@@ -137,10 +160,12 @@ class SQLiteComparisonRepository:
             conn.execute(
                 """
                 UPDATE comparisons
-                SET selected_offer_ids_json = ?, summary_text = ?, note = ?, updated_at = ?
+                SET comparison_mode = ?, base_offer_id = ?, selected_offer_ids_json = ?, summary_text = ?, note = ?, updated_at = ?
                 WHERE id = ?
                 """,
                 (
+                    resolved_comparison_mode,
+                    resolved_base_offer_id,
                     selected_offer_ids_json,
                     resolved_summary_text,
                     resolved_note,
@@ -151,6 +176,8 @@ class SQLiteComparisonRepository:
 
         return ComparisonRecord(
             id=comparison_id,
+            comparison_mode=resolved_comparison_mode,
+            base_offer_id=resolved_base_offer_id,
             selected_offer_ids=resolved_selected_offer_ids,
             summary_text=resolved_summary_text,
             note=resolved_note,

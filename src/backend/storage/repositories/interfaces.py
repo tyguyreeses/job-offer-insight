@@ -57,6 +57,8 @@ class ComparisonRepository(Protocol):
     def create(
         self,
         *,
+        comparison_mode: str,
+        base_offer_id: str,
         selected_offer_ids: Sequence[str],
         summary_text: str,
         note: str | None = None,
@@ -74,6 +76,8 @@ class ComparisonRepository(Protocol):
         self,
         *,
         comparison_id: str,
+        comparison_mode: str | None = None,
+        base_offer_id: str | None = None,
         selected_offer_ids: Sequence[str] | None = None,
         summary_text: str | None = None,
         note: str | None = None,

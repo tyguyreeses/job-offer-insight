@@ -8,9 +8,9 @@ from dataclasses import dataclass
 from fastapi import Depends, Request
 
 from .domain.offer_schema import build_configured_offer_schema
+from .domain.services.comparison_service import Stage7ComparisonService
 from .domain.services.interfaces import ComparisonService, OfferService
 from .domain.services.offer_service import Stage4OfferService
-from .domain.services.placeholders import UnimplementedComparisonService
 from .gen_ai.agent_registry import AgentRegistry, build_agent_registry
 from .gen_ai.audio_transcriber import ConfiguredAudioTranscriber
 from .gen_ai.entry_creation_agent import ConfiguredEntryCreationAgent
@@ -78,7 +78,7 @@ def build_runtime_container(config: RuntimeConfig, logger: logging.Logger) -> Ru
             audio_transcriber=audio_transcriber,
             offer_schema=offer_schema,
         ),
-        comparison_service=UnimplementedComparisonService(
+        comparison_service=Stage7ComparisonService(
             comparison_repository=comparison_repository,
             offer_repository=offer_repository,
         ),

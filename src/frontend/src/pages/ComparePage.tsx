@@ -1,0 +1,660 @@
+import type { CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import { createComparison, deleteComparison, fetchComparisonById, fetchComparisons } from "../services/comparisonsApi";
+import { fetchOfferSchema, fetchOffers } from "../services/offersApi";
+import type { ComparisonPayload } from "../types/comparisons";
+import type { OfferSchemaPayload, OfferSummaryPayload } from "../types/offers";
+import { asStringList, asText, formatFieldValue, getPath, isPresent } from "../utils/offerDisplay";
+
+interface ComparePageProps {
+  prefillSelectedOfferIds?: string[];
+  onPrefillConsumed?: () => void;
+}
+
+function offerName(offer: OfferSummaryPayload | undefined, fallbackId: string): string {
+  return offer?.company_name || `Unknown (${fallbackId.slice(0, 8)})`;
+}
+
+function comparisonCardLabel(
+  comparison: ComparisonPayload,
+  offersById: Map<string, OfferSummaryPayload>
+): string {
+  if (comparison.comparison_mode === "one_to_all") {
+    const baseName = offerName(offersById.get(comparison.base_offer_id), comparison.base_offer_id);
+    const otherCount = Math.max(comparison.selected_offer_ids.length - 1, 0);
+    return `${baseName} • all ${otherCount} other entries`;
+  }
+  const firstId = comparison.selected_offer_ids[0];
+  const secondId = comparison.selected_offer_ids[1];
+  return `${offerName(offersById.get(firstId), firstId)} • ${offerName(offersById.get(secondId), secondId)}`;
+}
+
+export function ComparePage({
+  prefillSelectedOfferIds = [],
+  onPrefillConsumed
+}: ComparePageProps): JSX.Element {
+  type SaveButtonPhase = "steady" | "fade-out" | "fade-in";
+  const [offerSchema, setOfferSchema] = useState<OfferSchemaPayload | null>(null);
+  const [isSchemaLoading, setIsSchemaLoading] = useState(true);
+  const [offers, setOffers] = useState<OfferSummaryPayload[]>([]);
+  const [comparisons, setComparisons] = useState<ComparisonPayload[]>([]);
+  const [isLoadingOffers, setIsLoadingOffers] = useState(true);
+  const [isLoadingComparisons, setIsLoadingComparisons] = useState(true);
+  const [errorText, setErrorText] = useState<string | null>(null);
+  const [draftSelectedOfferIds, setDraftSelectedOfferIds] = useState<string[]>([]);
+  const [activeSavedComparisonId, setActiveSavedComparisonId] = useState<string | null>(null);
+  const [activeSavedComparison, setActiveSavedComparison] = useState<ComparisonPayload | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveCompletedAt, setSaveCompletedAt] = useState<number | null>(null);
+  const [saveButtonLabel, setSaveButtonLabel] = useState("Save Comparison");
+  const [saveButtonPhase, setSaveButtonPhase] = useState<SaveButtonPhase>("steady");
+  const [isDeletingComparisonId, setIsDeletingComparisonId] = useState<string | null>(null);
+  const [fadingComparisonIds, setFadingComparisonIds] = useState<string[]>([]);
+  const [collapsingComparisonIds, setCollapsingComparisonIds] = useState<string[]>([]);
+  const [cardAnimationState, setCardAnimationState] = useState<Record<string, "select" | "deselect">>({});
+  const animationTimeoutRef = useRef<Record<string, number>>({});
+  const saveLabelTimeoutsRef = useRef<number[]>([]);
+  const deleteFadeTimeoutRef = useRef<Record<string, number>>({});
+  const deleteCollapseTimeoutRef = useRef<Record<string, number>>({});
+
+  const DELETE_FADE_DURATION_MS = 280;
+  const DELETE_COLLAPSE_DURATION_MS = 460;
+
+  const offersById = useMemo(() => {
+    return new Map(offers.map((offer) => [offer.id, offer]));
+  }, [offers]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsSchemaLoading(true);
+    setErrorText(null);
+    void fetchOfferSchema()
+      .then((schema) => {
+        if (!cancelled) {
+          setOfferSchema(schema);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setErrorText(error instanceof Error ? error.message : "Unable to load offer schema.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsSchemaLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoadingOffers(true);
+    setErrorText(null);
+    void fetchOffers()
+      .then((response) => {
+        if (!cancelled) {
+          setOffers(response.offers);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setErrorText(error instanceof Error ? error.message : "Unable to load offers.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingOffers(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const refreshComparisons = async (): Promise<void> => {
+    const response = await fetchComparisons();
+    setComparisons(response.comparisons);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoadingComparisons(true);
+    setErrorText(null);
+    void fetchComparisons()
+      .then((response) => {
+        if (!cancelled) {
+          setComparisons(response.comparisons);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setErrorText(error instanceof Error ? error.message : "Unable to load comparisons.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingComparisons(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (prefillSelectedOfferIds.length === 0) {
+      return;
+    }
+    setActiveSavedComparisonId(null);
+    setActiveSavedComparison(null);
+    setDraftSelectedOfferIds(prefillSelectedOfferIds.slice(0, 2));
+    onPrefillConsumed?.();
+  }, [prefillSelectedOfferIds, onPrefillConsumed]);
+
+  useEffect(() => {
+    return () => {
+      for (const timeoutId of saveLabelTimeoutsRef.current) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, []);
+
+  const transitionSaveLabel = (nextLabel: string): void => {
+    if (saveButtonLabel === nextLabel) {
+      return;
+    }
+    for (const timeoutId of saveLabelTimeoutsRef.current) {
+      window.clearTimeout(timeoutId);
+    }
+    saveLabelTimeoutsRef.current = [];
+
+    setSaveButtonPhase("fade-out");
+    const swapTimeout = window.setTimeout(() => {
+      setSaveButtonLabel(nextLabel);
+      setSaveButtonPhase("fade-in");
+    }, 120);
+    saveLabelTimeoutsRef.current.push(swapTimeout);
+
+    const settleTimeout = window.setTimeout(() => {
+      setSaveButtonPhase("steady");
+      saveLabelTimeoutsRef.current = [];
+    }, 260);
+    saveLabelTimeoutsRef.current.push(settleTimeout);
+  };
+
+  const scheduleCardAnimation = (cardId: string, mode: "select" | "deselect"): void => {
+    setCardAnimationState((existing) => ({ ...existing, [cardId]: mode }));
+    if (animationTimeoutRef.current[cardId] !== undefined) {
+      window.clearTimeout(animationTimeoutRef.current[cardId]);
+    }
+    animationTimeoutRef.current[cardId] = window.setTimeout(() => {
+      setCardAnimationState((existing) => {
+        const next = { ...existing };
+        delete next[cardId];
+        return next;
+      });
+      delete animationTimeoutRef.current[cardId];
+    }, 500);
+  };
+
+  const toggleDraftOfferSelection = (offerId: string): void => {
+    setDraftSelectedOfferIds((current) => {
+      if (current.includes(offerId)) {
+        scheduleCardAnimation(`offer-${offerId}`, "deselect");
+        return current.filter((id) => id !== offerId);
+      }
+      scheduleCardAnimation(`offer-${offerId}`, "select");
+      if (current.length < 2) {
+        return [...current, offerId];
+      }
+      scheduleCardAnimation(`offer-${current[0]}`, "deselect");
+      return [current[1], offerId];
+    });
+  };
+
+  const handleSelectSavedComparison = async (comparisonId: string): Promise<void> => {
+    setErrorText(null);
+    if (activeSavedComparisonId === comparisonId) {
+      scheduleCardAnimation(`saved-${comparisonId}`, "deselect");
+      setActiveSavedComparisonId(null);
+      setActiveSavedComparison(null);
+      return;
+    }
+    if (activeSavedComparisonId !== null && activeSavedComparisonId !== comparisonId) {
+      scheduleCardAnimation(`saved-${activeSavedComparisonId}`, "deselect");
+    }
+    scheduleCardAnimation(`saved-${comparisonId}`, "select");
+    setActiveSavedComparisonId(comparisonId);
+    try {
+      const detail = await fetchComparisonById(comparisonId);
+      setActiveSavedComparison(detail);
+    } catch (error: unknown) {
+      setErrorText(error instanceof Error ? error.message : "Unable to load saved comparison detail.");
+    }
+  };
+
+  const handleSaveDraft = async (): Promise<void> => {
+    if (draftSelectedOfferIds.length === 0) {
+      return;
+    }
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const mode = draftSelectedOfferIds.length === 1 ? "one_to_all" : "one_to_one";
+      const result = await createComparison({
+        mode,
+        selected_offer_ids: draftSelectedOfferIds,
+        base_offer_id: draftSelectedOfferIds[0],
+        note: null
+      });
+      if (result.status !== "saved") {
+        setSaveError(result.errors[0] ?? "Unable to save comparison.");
+        return;
+      }
+      setSaveCompletedAt(Date.now());
+      await refreshComparisons();
+    } catch (error: unknown) {
+      setSaveError(error instanceof Error ? error.message : "Unable to save comparison.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteComparisonClick = async (comparisonId: string): Promise<void> => {
+    if (isDeletingComparisonId !== null) {
+      return;
+    }
+    setIsDeletingComparisonId(comparisonId);
+    setErrorText(null);
+    try {
+      await deleteComparison(comparisonId);
+      setFadingComparisonIds((current) =>
+        current.includes(comparisonId) ? current : [...current, comparisonId]
+      );
+      if (activeSavedComparisonId === comparisonId) {
+        setActiveSavedComparisonId(null);
+        setActiveSavedComparison(null);
+      }
+
+      if (deleteFadeTimeoutRef.current[comparisonId] !== undefined) {
+        window.clearTimeout(deleteFadeTimeoutRef.current[comparisonId]);
+      }
+      if (deleteCollapseTimeoutRef.current[comparisonId] !== undefined) {
+        window.clearTimeout(deleteCollapseTimeoutRef.current[comparisonId]);
+      }
+
+      deleteFadeTimeoutRef.current[comparisonId] = window.setTimeout(() => {
+        setFadingComparisonIds((current) => current.filter((id) => id !== comparisonId));
+        setCollapsingComparisonIds((current) =>
+          current.includes(comparisonId) ? current : [...current, comparisonId]
+        );
+        delete deleteFadeTimeoutRef.current[comparisonId];
+      }, DELETE_FADE_DURATION_MS);
+
+      deleteCollapseTimeoutRef.current[comparisonId] = window.setTimeout(() => {
+        setComparisons((current) => current.filter((comparison) => comparison.id !== comparisonId));
+        setCollapsingComparisonIds((current) => current.filter((id) => id !== comparisonId));
+        setIsDeletingComparisonId((current) => (current === comparisonId ? null : current));
+        delete deleteCollapseTimeoutRef.current[comparisonId];
+      }, DELETE_FADE_DURATION_MS + DELETE_COLLAPSE_DURATION_MS);
+    } catch (error: unknown) {
+      setErrorText(error instanceof Error ? error.message : "Unable to delete saved comparison.");
+      setIsDeletingComparisonId(null);
+    }
+  };
+
+  const canSaveDraft = activeSavedComparisonId === null && draftSelectedOfferIds.length > 0;
+  const showSavedState = saveCompletedAt !== null && Date.now() - saveCompletedAt < 1500;
+  const desiredSaveLabel = isSaving ? "Processing..." : showSavedState ? "Saved" : "Save Comparison";
+
+  useEffect(() => {
+    transitionSaveLabel(desiredSaveLabel);
+    if (!showSavedState) {
+      return;
+    }
+    const timeoutId = window.setTimeout(() => {
+      setSaveCompletedAt(null);
+    }, 1500);
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [desiredSaveLabel, showSavedState]);
+
+  const renderOfferPanel = (offerId: string, side: "left" | "right"): JSX.Element => {
+    const offer = offersById.get(offerId);
+    if (!offer || !offerSchema) {
+      return (
+        <article className={`compare-canvas-panel compare-canvas-panel-${side}`} data-testid={`compare-panel-${side}`}>
+          <h3>Offer unavailable</h3>
+          <p>{offerId}</p>
+        </article>
+      );
+    }
+    const payload = offer as unknown as Record<string, unknown>;
+    const companyName = asText(getPath(payload, offerSchema.identity.company_name_path));
+    const roleTitle = asText(getPath(payload, offerSchema.identity.role_title_path));
+    const locationField = offerSchema.fields.find((field) => field.id === "location");
+    const locationPath = locationField?.storage_path ?? "location";
+    const location = asText(getPath(payload, locationPath)).trim();
+    const roleAndLocation = location ? `${roleTitle} • ${location}` : roleTitle;
+
+    return (
+      <article className={`dashboard-card compare-static-card compare-canvas-panel-${side}`} data-testid={`compare-panel-${side}`}>
+        <h2 className="dashboard-card-company">{companyName}</h2>
+        <p className="dashboard-card-role">{roleAndLocation}</p>
+
+        {offerSchema.card_sections.map((section) => {
+          const fields = offerSchema.fields
+            .filter((field) => field.card.visible && field.card.section_id === section.section_id)
+            .sort((left, right) => left.card.order - right.card.order);
+
+          const renderedRows = fields
+            .map((field) => {
+              const rawValue = getPath(payload, field.storage_path);
+              if (!isPresent(rawValue)) {
+                return null;
+              }
+              if (field.card.style === "list") {
+                const items = asStringList(rawValue);
+                if (items.length === 0) {
+                  return null;
+                }
+                return (
+                  <ul key={`${offer.id}-${field.id}`}>
+                    {items.map((item) => (
+                      <li key={`${offer.id}-${field.id}-${item}`}>{item}</li>
+                    ))}
+                  </ul>
+                );
+              }
+
+              const formatted = formatFieldValue(field, rawValue);
+              if (!formatted) {
+                return null;
+              }
+
+              if (field.card.style === "value") {
+                return <p key={`${offer.id}-${field.id}`}>{formatted}</p>;
+              }
+
+              return <p key={`${offer.id}-${field.id}`}>{`${field.label}: ${formatted}`}</p>;
+            })
+            .filter((node): node is JSX.Element => node !== null);
+
+          if (renderedRows.length === 0) {
+            return null;
+          }
+
+          return (
+            <section key={`${offer.id}-${section.section_id}`} className="dashboard-card-section">
+              <h3>{section.title}</h3>
+              {renderedRows}
+            </section>
+          );
+        })}
+      </article>
+    );
+  };
+
+  const renderCanvas = (): JSX.Element => {
+    const renderSaveButton = (): JSX.Element => (
+      <button
+        type="button"
+        className={`action-button selectable compare-save-button-inline ${
+          isSaving ? "audio-main-processing" : ""
+        } ${showSavedState ? "compare-save-button-success" : ""} ${
+          canSaveDraft ? "motion-fade-enter" : "motion-fade-exit"
+        }`}
+        style={
+          {
+            ["--motion-delay" as string]: "0ms",
+            ["--motion-duration" as string]: "180ms"
+          } as CSSProperties
+        }
+        onClick={() => {
+          if (!canSaveDraft || isSaving) {
+            return;
+          }
+          void handleSaveDraft();
+        }}
+        disabled={!canSaveDraft || isSaving}
+        aria-label={saveButtonLabel}
+      >
+        <span
+          className={`audio-main-label audio-main-label-${saveButtonPhase} ${
+            saveButtonLabel === "Processing..." ? "audio-main-label-processing" : ""
+          }`}
+        >
+          {saveButtonLabel === "Processing..."
+            ? saveButtonLabel.split("").map((character, index) => (
+                <span
+                  key={`compare-save-processing-char-${index}-${character === " " ? "space" : character}`}
+                  className="processing-label-char"
+                  style={{ ["--processing-index" as string]: index } as CSSProperties}
+                >
+                  {character}
+                </span>
+              ))
+            : saveButtonLabel}
+        </span>
+      </button>
+    );
+
+    const activeComparison = activeSavedComparison;
+    if (activeComparison !== null) {
+      const ids = activeComparison.selected_offer_ids;
+      return (
+        <>
+          <section className="compare-canvas-grid">
+            {renderOfferPanel(activeComparison.base_offer_id, "left")}
+            <article className="compare-canvas-middle">
+              <div className="compare-summary-content">
+                <h3>Comparison Summary</h3>
+                <p>{activeComparison.summary_text}</p>
+              </div>
+              <div className="compare-summary-save-slot" />
+            </article>
+            {activeComparison.comparison_mode === "one_to_one" ? (
+              renderOfferPanel(ids[1], "right")
+            ) : (
+              <article className="compare-canvas-right-placeholder">
+                <div className="compare-summary-content">
+                  <h3>All Other Entries</h3>
+                  <p>{`Snapshot includes ${Math.max(ids.length - 1, 0)} other offers.`}</p>
+                </div>
+              </article>
+            )}
+          </section>
+        </>
+      );
+    }
+
+    if (draftSelectedOfferIds.length > 0) {
+      const mode = draftSelectedOfferIds.length === 1 ? "one_to_all" : "one_to_one";
+      return (
+        <>
+          <section className="compare-canvas-grid">
+            {renderOfferPanel(draftSelectedOfferIds[0], "left")}
+            <article className="compare-canvas-middle">
+              <div className="compare-summary-content">
+                <h3>Comparison Summary</h3>
+                <p>Comparison summary placeholder.</p>
+              </div>
+              <div className="compare-summary-save-slot">{renderSaveButton()}</div>
+            </article>
+            {mode === "one_to_one" ? (
+              renderOfferPanel(draftSelectedOfferIds[1], "right")
+            ) : (
+              <article className="compare-canvas-right-placeholder">
+                <div className="compare-summary-content">
+                  <h3>All Other Entries</h3>
+                  <p>This area remains a placeholder in Stage 7.</p>
+                </div>
+              </article>
+            )}
+          </section>
+          {saveError ? <p className="error-text">{saveError}</p> : null}
+        </>
+      );
+    }
+
+    return (
+      <p className="compare-empty-message">
+        Create new comparison or select previously saved comparison
+      </p>
+    );
+  };
+
+  useEffect(() => {
+    return () => {
+      for (const timeoutId of Object.values(animationTimeoutRef.current)) {
+        window.clearTimeout(timeoutId);
+      }
+      for (const timeoutId of Object.values(deleteFadeTimeoutRef.current)) {
+        window.clearTimeout(timeoutId);
+      }
+      for (const timeoutId of Object.values(deleteCollapseTimeoutRef.current)) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, []);
+
+  return (
+    <main className="main-panel compare-panel">
+      <h1 className="main-title">Compare</h1>
+
+      {isSchemaLoading ? <p className="dashboard-status">Loading schema...</p> : null}
+      {isLoadingOffers ? <p className="dashboard-status">Loading offers...</p> : null}
+      {isLoadingComparisons ? <p className="dashboard-status">Loading comparisons...</p> : null}
+      {errorText ? <p className="error-text">{errorText}</p> : null}
+
+      <section className="compare-canvas" data-testid="compare-canvas">
+        {renderCanvas()}
+      </section>
+
+      {activeSavedComparisonId === null ? (
+        <>
+          <p className="compare-row-label">Job Entries</p>
+          <section className="compare-row" aria-label="Available offers">
+            {offers.map((offer) => {
+              const isSelected = draftSelectedOfferIds.includes(offer.id);
+              const animationClass =
+                cardAnimationState[`offer-${offer.id}`] === "select"
+                  ? "dashboard-card-flip-select"
+                  : cardAnimationState[`offer-${offer.id}`] === "deselect"
+                    ? "dashboard-card-flip-deselect"
+                    : "";
+              return (
+                <div key={offer.id} className="dashboard-card-shell">
+                  <article
+                    className={`compare-offer-card dashboard-card selectable ${
+                      isSelected ? "dashboard-card-selected" : ""
+                    } ${animationClass}`.trim()}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={isSelected}
+                    onClick={() => {
+                      toggleDraftOfferSelection(offer.id);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        toggleDraftOfferSelection(offer.id);
+                      }
+                    }}
+                  >
+                    <h2 className="dashboard-card-company">{offer.company_name}</h2>
+                  </article>
+                </div>
+              );
+            })}
+          </section>
+        </>
+      ) : null}
+
+      <p className="compare-row-label">Saved Comparisons</p>
+      <section className="compare-row compare-saved-row" aria-label="Saved comparisons">
+        {comparisons.map((comparison) => {
+          const isSelected = comparison.id === activeSavedComparisonId;
+          const isDeleting = isDeletingComparisonId === comparison.id;
+          const isFading = fadingComparisonIds.includes(comparison.id);
+          const isCollapsing = collapsingComparisonIds.includes(comparison.id);
+          const isPendingRemoval = isFading || isCollapsing;
+          const animationClass =
+            cardAnimationState[`saved-${comparison.id}`] === "select"
+              ? "dashboard-card-flip-select"
+              : cardAnimationState[`saved-${comparison.id}`] === "deselect"
+                ? "dashboard-card-flip-deselect"
+                : "";
+          return (
+            <div
+              key={comparison.id}
+              className={`dashboard-card-shell compare-saved-shell ${
+                isCollapsing ? "dashboard-card-shell-collapsing" : ""
+              }`.trim()}
+            >
+                <button
+                  type="button"
+                  className="compare-entry-delete-button"
+                  aria-label={`Delete ${comparisonCardLabel(comparison, offersById)}`}
+                  disabled={isDeleting || isPendingRemoval}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void handleDeleteComparisonClick(comparison.id);
+                }}
+                >
+                  <span
+                    className={`compare-entry-delete-label ${
+                      isDeleting ? "compare-entry-delete-label-processing" : ""
+                    }`}
+                  >
+                    {isDeleting
+                      ? "...".split("").map((character, index) => (
+                          <span
+                            key={`compare-delete-processing-char-${comparison.id}-${index}`}
+                            className="processing-label-char"
+                            style={{ ["--processing-index" as string]: index } as CSSProperties}
+                          >
+                            {character}
+                          </span>
+                        ))
+                      : "×"}
+                  </span>
+                </button>
+              <article
+                className={`compare-saved-card dashboard-card selectable ${
+                  isSelected ? "dashboard-card-selected" : ""
+                } ${animationClass} ${isPendingRemoval ? "dashboard-card-deleting" : ""}`.trim()}
+                role="button"
+                tabIndex={isPendingRemoval ? -1 : 0}
+                aria-pressed={isSelected}
+                onClick={() => {
+                  if (isPendingRemoval) {
+                    return;
+                  }
+                  void handleSelectSavedComparison(comparison.id);
+                }}
+                onKeyDown={(event) => {
+                  if (isPendingRemoval) {
+                    return;
+                  }
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    void handleSelectSavedComparison(comparison.id);
+                  }
+                }}
+              >
+                <h2 className="dashboard-card-company">{comparisonCardLabel(comparison, offersById)}</h2>
+              </article>
+            </div>
+          );
+        })}
+      </section>
+    </main>
+  );
+}

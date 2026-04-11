@@ -215,17 +215,38 @@ describe("DashboardPage", () => {
     expect(third).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("shows edit/delete buttons only for selected cards", async () => {
+  it("shows compare button on selected cards and forwards selected ids", async () => {
+    mockedFetchOffers.mockResolvedValueOnce({ offers: defaultOffers });
+    const onCompareSelected = vi.fn();
+
+    render(<DashboardPage onCompareSelected={onCompareSelected} />);
+    await screen.findByText("Zenith Labs");
+
+    expect(screen.queryByRole("button", { name: "Compare" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("offer-card-offer-3"));
+    fireEvent.click(screen.getByRole("button", { name: "Compare" }));
+    expect(onCompareSelected).toHaveBeenCalledWith(["offer-3"]);
+
+    fireEvent.click(screen.getByTestId("offer-card-offer-2"));
+    const compareButtons = screen.getAllByRole("button", { name: "Compare" });
+    fireEvent.click(compareButtons[0]);
+    expect(onCompareSelected).toHaveBeenLastCalledWith(["offer-3", "offer-2"]);
+  });
+
+  it("shows edit/compare/delete buttons only for selected cards", async () => {
     mockedFetchOffers.mockResolvedValueOnce({ offers: defaultOffers });
     render(<DashboardPage />);
     await screen.findByText("Zenith Labs");
 
     expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Compare" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("offer-card-offer-3"));
 
     expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Compare" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
   });
 

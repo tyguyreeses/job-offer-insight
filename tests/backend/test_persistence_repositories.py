@@ -72,6 +72,8 @@ def test_comparison_save_list_and_detail_persistence(tmp_path: Path) -> None:
     )
 
     saved = comparisons.create(
+        comparison_mode="one_to_one",
+        base_offer_id=left_offer.id,
         selected_offer_ids=[left_offer.id, right_offer.id],
         summary_text="Comparison summary placeholder.",
         note="Prefer mission alignment.",
@@ -79,6 +81,8 @@ def test_comparison_save_list_and_detail_persistence(tmp_path: Path) -> None:
 
     detail = comparisons.get_by_id(saved.id)
     assert detail is not None
+    assert detail.comparison_mode == "one_to_one"
+    assert detail.base_offer_id == left_offer.id
     assert detail.selected_offer_ids == [left_offer.id, right_offer.id]
     assert detail.summary_text == "Comparison summary placeholder."
     assert detail.note == "Prefer mission alignment."

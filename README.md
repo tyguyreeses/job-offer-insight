@@ -4,17 +4,14 @@ Stage-based implementation of a job-offer review app.
 
 ## Current Stage
 
-- Active branch: `stage_6.1_config_driven`
-- Stage 6/6.1 focus:
-  - Dashboard page with horizontal side-scroll offer cards
-  - Card section ordering and optional-field omission rendering (no `null`/`N/A` placeholders)
-  - Max-two selection with oldest-selection auto-deselect on third selection
-  - Backend/frontend sorting integration via `Sort by` controls
-  - Automatic Add Entry -> Dashboard transition after successful save (`Finish` or chat-agent tool-driven submit)
-  - Offer edit flow with modal-based updates from dashboard
-  - Offer delete endpoint and dashboard delete interactions
-  - Config-driven offer schema powering backend validation/parsing and frontend rendering
-  - Demo offer seed endpoint for dashboard development/testing
+- Active branch: `stage_7`
+- Stage 7 focus:
+  - Compare page supports one-to-one and one-to-all draft layouts
+  - Compare canvas preserves layout height and keeps controls in a stable position
+  - Saved comparisons are listable/selectable from the compare page
+  - Saved comparison selection can be toggled off to return to the draft builder
+  - One-to-all saves are de-duplicated by base offer (latest save overrides prior one-to-all for that base)
+  - Save comparison flow includes animated button states and success feedback
 
 ## Backend Config Foundation (Stage 1)
 

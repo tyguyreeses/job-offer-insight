@@ -11,7 +11,7 @@ Job Offer Insight provides:
 2. Offer dashboard browsing and selection for comparison.
 3. Comparison page with explicit placeholder behavior while comparison logic is intentionally deferred.
 4. Editing existing offers through a structured form.
-5. Saving/retrieving comparison records including an optional user note.
+5. Saving/retrieving comparison records including optional note storage.
 
 Comparison ranking/scoring logic is intentionally out of scope for this version.
 
@@ -63,7 +63,7 @@ A saved comparison record includes:
 2. Summary text (placeholder content for now)
 3. Optional user note
 
-If user note exists, it is displayed below all other comparison page content.
+Optional note may be stored with the comparison record. The current compare page does not render note text.
 
 ## UI Contract
 
@@ -152,23 +152,35 @@ If user note exists, it is displayed below all other comparison page content.
 
 ## Compare Page
 
-### One-to-one mode
-
-Triggered when two cards are selected.
-
-1. Left section: first selected offer card
-2. Middle section: empty placeholder summary area
-3. Right section: second selected offer card
-
-### One-to-all mode
-
-Triggered when one card is selected and user requests one-to-all compare flow.
-
-1. Left section: selected base offer card
-2. Middle section: empty placeholder summary area
-3. Right section: empty placeholder area
-
-No ranking/scoring output is shown in this version.
+1. Compare page always includes a large center comparison canvas.
+2. Initial empty state (when no draft selection and no saved comparison selected) shows:
+   - `Create new comparison or select previously saved comparison`
+3. Direct compare mode builder:
+   - top row shows simplified selectable offer cards (company-focused labels)
+   - max-two selection rule applies to this builder row
+4. Saved comparisons row:
+   - bottom row remains visible while browsing, creating, and viewing saved comparisons
+   - saved cards are selectable and only one saved card can be active at a time
+5. When a saved comparison card is selected:
+   - top builder row is hidden
+   - center canvas switches to the saved comparison detail
+   - bottom saved row stays visible for quick switching
+6. One-to-one canvas layout:
+   - Left: selected/base offer card
+   - Middle: placeholder summary area
+   - Right: second selected offer card
+7. One-to-all canvas layout:
+   - Left: selected base offer card
+   - Middle: placeholder summary area
+   - Right: placeholder panel (no ranking/scoring output)
+8. Dashboard-to-compare flow:
+   - Dashboard shows a `Compare` action when one or more offers are selected
+   - clicking `Compare` opens Compare page with draft selection prefilled
+   - one selected offer opens one-to-all draft canvas
+   - two selected offers open one-to-one draft canvas
+9. Optional note behavior:
+   - save flow accepts optional note text for persistence
+   - compare page does not currently render note text
 
 ## API Contract (External Behavior)
 
@@ -201,10 +213,23 @@ Endpoint paths may evolve, but external behavior must remain equivalent.
 
 ### Comparison
 
-1. Accept up to two selected offer IDs for one-to-one.
-2. Accept one selected base offer for one-to-all placeholder layout.
-3. Persist saved comparison with IDs, placeholder summary, and optional note.
-4. Return saved comparisons for listing and detail display.
+1. Create saved comparisons via `POST /api/v1/comparisons` with:
+   - `mode`: `one_to_one | one_to_all`
+   - `selected_offer_ids`: selected IDs from draft context
+   - `base_offer_id`: required base selection anchor
+   - optional `note`
+2. Validation behavior:
+   - `one_to_one` requires exactly 2 selected IDs
+   - all referenced offers must exist
+3. One-to-all persistence behavior:
+   - request identifies base offer
+   - backend snapshots base + all other current offers as saved selected IDs
+4. Save response includes:
+   - comparison `id`, `comparison_mode`, `base_offer_id`, `selected_offer_ids`
+   - placeholder `summary_text`
+   - optional `note`
+5. List saved comparisons via `GET /api/v1/comparisons`.
+6. Retrieve saved comparison detail via `GET /api/v1/comparisons/{comparison_id}`.
 
 ### Observability
 

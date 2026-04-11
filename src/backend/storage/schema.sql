@@ -12,6 +12,8 @@ CREATE INDEX IF NOT EXISTS idx_offers_company_name ON offers (company_name);
 
 CREATE TABLE IF NOT EXISTS comparisons (
     id TEXT PRIMARY KEY,
+    comparison_mode TEXT NOT NULL,
+    base_offer_id TEXT NOT NULL,
     selected_offer_ids_json TEXT NOT NULL,
     summary_text TEXT NOT NULL,
     note TEXT,

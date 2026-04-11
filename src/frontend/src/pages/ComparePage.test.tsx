@@ -1,0 +1,173 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { vi } from "vitest";
+
+import { createComparison, fetchComparisonById, fetchComparisons } from "../services/comparisonsApi";
+import { fetchOfferSchema, fetchOffers } from "../services/offersApi";
+import { ComparePage } from "./ComparePage";
+
+vi.mock("../services/offersApi", () => ({
+  fetchOffers: vi.fn(),
+  fetchOfferSchema: vi.fn()
+}));
+
+vi.mock("../services/comparisonsApi", () => ({
+  fetchComparisons: vi.fn(),
+  fetchComparisonById: vi.fn(),
+  createComparison: vi.fn()
+}));
+
+const mockedFetchOffers = vi.mocked(fetchOffers);
+const mockedFetchOfferSchema = vi.mocked(fetchOfferSchema);
+const mockedFetchComparisons = vi.mocked(fetchComparisons);
+const mockedFetchComparisonById = vi.mocked(fetchComparisonById);
+const mockedCreateComparison = vi.mocked(createComparison);
+
+const offers = [
+  { id: "offer-1", company_name: "Atlas", role_title: "Engineer" },
+  { id: "offer-2", company_name: "Beacon", role_title: "Architect" }
+];
+
+const defaultSchema = {
+  version: 1,
+  identity: { company_name_path: "company_name", role_title_path: "role_title" },
+  required: { all_of: [], one_of: [] },
+  card_sections: [
+    { section_id: "salary", title: "Salary" },
+    { section_id: "monetary", title: "Monetary benefits" }
+  ],
+  edit_sections: [],
+  fields: [
+    {
+      id: "annual-base-salary-usd",
+      label: "Annual base salary (USD)",
+      storage_path: "compensation.annual_base_salary_usd",
+      data_type: "number",
+      group: "compensation",
+      card: { visible: true, section_id: "salary", order: 1, style: "value" },
+      edit: { visible: false, section_id: "core", order: 1, widget: "text" }
+    },
+    {
+      id: "signing-bonus-usd",
+      label: "Signing bonus (USD)",
+      storage_path: "compensation.signing_bonus_usd",
+      data_type: "number",
+      group: "compensation",
+      card: { visible: true, section_id: "monetary", order: 2, style: "labeled_value" },
+      edit: { visible: false, section_id: "core", order: 2, widget: "text" }
+    }
+  ]
+};
+
+describe("ComparePage", () => {
+  beforeEach(() => {
+    mockedFetchOffers.mockReset();
+    mockedFetchOfferSchema.mockReset();
+    mockedFetchComparisons.mockReset();
+    mockedFetchComparisonById.mockReset();
+    mockedCreateComparison.mockReset();
+    mockedFetchOffers.mockResolvedValue({ offers } as never);
+    mockedFetchOfferSchema.mockResolvedValue(defaultSchema as never);
+    mockedFetchComparisons.mockResolvedValue({ comparisons: [] } as never);
+    mockedCreateComparison.mockResolvedValue({
+      status: "saved",
+      errors: [],
+      comparison: null
+    } as never);
+  });
+
+  it("renders the empty-state canvas message initially", async () => {
+    render(<ComparePage />);
+
+    await screen.findByText("Create new comparison or select previously saved comparison");
+    expect(screen.getByTestId("compare-canvas")).toBeInTheDocument();
+  });
+
+  it("renders one-to-all draft canvas when one offer is selected", async () => {
+    render(<ComparePage />);
+    await screen.findByText("Atlas");
+
+    fireEvent.click(screen.getByRole("button", { name: "Atlas" }));
+
+    expect(await screen.findByText("All Other Entries")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save Comparison" })).toBeInTheDocument();
+  });
+
+  it("loads saved comparison detail, hides builder row, and keeps saved row visible", async () => {
+    mockedFetchComparisons.mockResolvedValue({
+      comparisons: [
+        {
+          id: "comparison-1",
+          comparison_mode: "one_to_one",
+          base_offer_id: "offer-1",
+          selected_offer_ids: ["offer-1", "offer-2"],
+          summary_text: "Comparison summary placeholder.",
+          note: "Saved detail note",
+          created_at: "2026-04-11T00:00:00Z",
+          updated_at: "2026-04-11T00:00:00Z"
+        }
+      ]
+    } as never);
+    mockedFetchComparisonById.mockResolvedValue({
+      id: "comparison-1",
+      comparison_mode: "one_to_one",
+      base_offer_id: "offer-1",
+      selected_offer_ids: ["offer-1", "offer-2"],
+      summary_text: "Comparison summary placeholder.",
+      note: "Saved detail note",
+      created_at: "2026-04-11T00:00:00Z",
+      updated_at: "2026-04-11T00:00:00Z"
+    } as never);
+
+    render(<ComparePage />);
+    await screen.findByRole("button", { name: "Atlas • Beacon" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Atlas • Beacon" }));
+
+    await waitFor(() => {
+      expect(mockedFetchComparisonById).toHaveBeenCalledWith("comparison-1");
+    });
+
+    expect(screen.queryByText("Saved detail note")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Available offers")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Saved comparisons")).toBeInTheDocument();
+  });
+
+  it("allows deselecting an active saved comparison to return to builder view", async () => {
+    mockedFetchComparisons.mockResolvedValue({
+      comparisons: [
+        {
+          id: "comparison-1",
+          comparison_mode: "one_to_one",
+          base_offer_id: "offer-1",
+          selected_offer_ids: ["offer-1", "offer-2"],
+          summary_text: "Comparison summary placeholder.",
+          note: null,
+          created_at: "2026-04-11T00:00:00Z",
+          updated_at: "2026-04-11T00:00:00Z"
+        }
+      ]
+    } as never);
+    mockedFetchComparisonById.mockResolvedValue({
+      id: "comparison-1",
+      comparison_mode: "one_to_one",
+      base_offer_id: "offer-1",
+      selected_offer_ids: ["offer-1", "offer-2"],
+      summary_text: "Comparison summary placeholder.",
+      note: null,
+      created_at: "2026-04-11T00:00:00Z",
+      updated_at: "2026-04-11T00:00:00Z"
+    } as never);
+
+    render(<ComparePage />);
+    const savedButton = await screen.findByRole("button", { name: "Atlas • Beacon" });
+
+    fireEvent.click(savedButton);
+    await waitFor(() => {
+      expect(mockedFetchComparisonById).toHaveBeenCalledWith("comparison-1");
+    });
+    expect(screen.queryByLabelText("Available offers")).not.toBeInTheDocument();
+
+    fireEvent.click(savedButton);
+    expect(await screen.findByLabelText("Available offers")).toBeInTheDocument();
+  });
+});
