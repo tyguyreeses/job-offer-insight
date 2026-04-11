@@ -12,6 +12,7 @@ Job Offer Insight provides:
 3. Comparison page with explicit placeholder behavior while comparison logic is intentionally deferred.
 4. Editing existing offers through a structured form.
 5. Saving/retrieving comparison records including optional note storage.
+6. Draft comparison generation (deterministic code section first, AI section second) before explicit save.
 
 Comparison ranking/scoring logic is intentionally out of scope for this version.
 
@@ -35,6 +36,10 @@ An offer is valid for save only if all required constraints are met:
    `hourly_rate_usd * hours_per_week * 52`
 3. Non-required compensation/benefit fields may be blank.
 4. `compensation.annualized_total_cash_usd` is an optional field and may be provided directly.
+5. API responses include deterministic derived monetary outputs:
+   - `derived_monetary.estimated_total_annual_monetary_benefits_usd`
+   - `derived_monetary.estimated_monthly_take_home_usd`
+6. Monthly take-home is deterministic and config-driven (global tax defaults + optional per-offer tax overrides).
 
 ### Missing Information Behavior
 
@@ -119,6 +124,10 @@ Optional note may be stored with the comparison record. The current compare page
 5. Edit panel uses fade-in/fade-out motion on open/close.
 6. If user attempts to close with unsaved edits, system asks for discard confirmation.
 7. Saving sends full payload update, closes the panel on success, and refreshes the edited card on Dashboard.
+8. Required fields are always visible in edit mode.
+9. Optional fields are shown only when populated or explicitly re-added via `+` controls grouped by section.
+10. Tax overrides are an optional addable section in edit mode.
+11. Clearing optional values stores omission and those fields remain hidden on subsequent edit loads unless re-added.
 
 ## Dashboard Page
 
@@ -179,8 +188,14 @@ Optional note may be stored with the comparison record. The current compare page
    - one selected offer opens one-to-all draft canvas
    - two selected offers open one-to-one draft canvas
 9. Optional note behavior:
+   - generated-comparison draft includes editable note space
    - save flow accepts optional note text for persistence
-   - compare page does not currently render note text
+10. Generation behavior:
+   - draft canvas includes `Generate Comparison`
+   - generate renders deterministic code section first
+   - AI section remains pending until completed
+   - generated result remains unsaved draft until `Save Comparison`
+   - context switches/navigation from unsaved generated draft prompt discard confirmation
 
 ## API Contract (External Behavior)
 
@@ -230,6 +245,12 @@ Endpoint paths may evolve, but external behavior must remain equivalent.
    - optional `note`
 5. List saved comparisons via `GET /api/v1/comparisons`.
 6. Retrieve saved comparison detail via `GET /api/v1/comparisons/{comparison_id}`.
+7. Generate draft comparison outputs via `POST /api/v1/comparisons/generate`:
+   - accepts same selection contract as save
+   - returns draft id + deterministic code section + AI pending state
+8. Generate draft AI section via `POST /api/v1/comparisons/generate/{draft_id}/ai`:
+   - uses configured mode-specific comparison agent when enabled
+   - falls back to deterministic narrative if AI agent unavailable
 
 ### Observability
 
@@ -240,15 +261,16 @@ Endpoint paths may evolve, but external behavior must remain equivalent.
 
 Runtime startup reads `src/config.yaml` and validates the config shape before serving requests.
 
-The config contract includes six required top-level sections:
+The config contract includes eight required top-level sections:
 
 1. `app`
 2. `logging`
 3. `database`
 4. `openai`
 5. `workflow`
-6. `agents`
-7. `offer_schema`
+6. `tax_profile`
+7. `agents`
+8. `offer_schema`
 
 Validation behavior:
 
@@ -258,6 +280,7 @@ Validation behavior:
 4. `agents.entry_creation` and `agents.parse_entry` must be configured:
    - `entry_creation` drives natural-language conversational assistant replies
    - `parse_entry` parses user turns/conversation transcript into mergeable structured offer data
+5. `agents.comparison_one_to_one` and `agents.comparison_one_to_all` must be configured for Stage 8 generation narratives.
 5. `agents.entry_creation.tools` configures optional function tools the chat agent can call (for example `submit_entry`).
 6. `openai.accepted_audio_extensions` defines the allowed file extensions for audio transcription intake validation.
 7. `offer_schema` is the source of truth for:

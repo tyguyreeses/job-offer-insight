@@ -210,6 +210,57 @@ body {
   gap: 0.45rem;
 }
 
+.compare-summary-content-stage8 {
+  align-items: stretch;
+}
+
+.compare-canvas-middle-stage8 {
+  min-height: 520px;
+}
+
+.compare-generated-section {
+  border: 1px solid rgba(149, 176, 206, 0.68);
+  border-radius: 12px;
+  padding: 0.7rem;
+  background: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.6rem;
+}
+
+.compare-generated-section h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  text-align: left;
+}
+
+.compare-generated-section p {
+  text-align: left;
+}
+
+.compare-generated-metrics-list {
+  margin: 0.4rem 0 0;
+  padding-left: 1.15rem;
+}
+
+.compare-generated-pending {
+  color: var(--color-muted);
+}
+
+.compare-note-label {
+  margin-top: 0.25rem;
+}
+
+.compare-note-input {
+  min-height: 100px;
+}
+
+.compare-stage8-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: center;
+}
+
 .compare-canvas-middle h3,
 .compare-canvas-right-placeholder h3 {
   margin: 0 0 0.45rem;
@@ -452,6 +503,13 @@ body {
   gap: 0.5rem;
 }
 
+.dashboard-card-derived-section {
+  border: 1px solid rgba(124, 154, 190, 0.35);
+  border-radius: 10px;
+  padding: 0.65rem;
+  background: rgba(244, 250, 255, 0.7);
+}
+
 .dashboard-card-section h3 {
   margin: 0;
   font-size: 1.02rem;
@@ -459,6 +517,21 @@ body {
   letter-spacing: 0.03em;
   color: var(--color-muted);
   transition: color 260ms ease;
+}
+
+.info-pill {
+  display: inline-flex;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  border: 1px solid rgba(111, 140, 171, 0.65);
+  color: #4a6787;
+  background: rgba(255, 255, 255, 0.86);
+  cursor: help;
+  vertical-align: text-bottom;
 }
 
 .dashboard-card-section p {
@@ -617,6 +690,44 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--color-muted);
+}
+
+.edit-offer-section-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.7rem;
+  margin-bottom: 0.55rem;
+}
+
+.edit-offer-addables {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.edit-add-field-button {
+  padding: 0.3rem 0.55rem;
+  font-size: 0.78rem;
+}
+
+.edit-offer-derived-summary {
+  border: 1px solid rgba(149, 176, 206, 0.68);
+  border-radius: 14px;
+  padding: 0.8rem;
+  background: #eef7ff;
+}
+
+.edit-offer-derived-summary h3 {
+  margin: 0 0 0.55rem;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.edit-offer-derived-summary p {
+  margin: 0.25rem 0;
 }
 
 .edit-offer-grid {

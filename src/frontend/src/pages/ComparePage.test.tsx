@@ -1,7 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 
-import { createComparison, fetchComparisonById, fetchComparisons } from "../services/comparisonsApi";
+import {
+  createComparison,
+  fetchComparisonById,
+  fetchComparisons,
+  generateComparisonAISection,
+  generateComparisonDraft
+} from "../services/comparisonsApi";
 import { fetchOfferSchema, fetchOffers } from "../services/offersApi";
 import { ComparePage } from "./ComparePage";
 
@@ -13,7 +19,10 @@ vi.mock("../services/offersApi", () => ({
 vi.mock("../services/comparisonsApi", () => ({
   fetchComparisons: vi.fn(),
   fetchComparisonById: vi.fn(),
-  createComparison: vi.fn()
+  createComparison: vi.fn(),
+  generateComparisonDraft: vi.fn(),
+  generateComparisonAISection: vi.fn(),
+  deleteComparison: vi.fn()
 }));
 
 const mockedFetchOffers = vi.mocked(fetchOffers);
@@ -21,6 +30,8 @@ const mockedFetchOfferSchema = vi.mocked(fetchOfferSchema);
 const mockedFetchComparisons = vi.mocked(fetchComparisons);
 const mockedFetchComparisonById = vi.mocked(fetchComparisonById);
 const mockedCreateComparison = vi.mocked(createComparison);
+const mockedGenerateComparisonDraft = vi.mocked(generateComparisonDraft);
+const mockedGenerateComparisonAISection = vi.mocked(generateComparisonAISection);
 
 const offers = [
   { id: "offer-1", company_name: "Atlas", role_title: "Engineer" },
@@ -65,6 +76,8 @@ describe("ComparePage", () => {
     mockedFetchComparisons.mockReset();
     mockedFetchComparisonById.mockReset();
     mockedCreateComparison.mockReset();
+    mockedGenerateComparisonDraft.mockReset();
+    mockedGenerateComparisonAISection.mockReset();
     mockedFetchOffers.mockResolvedValue({ offers } as never);
     mockedFetchOfferSchema.mockResolvedValue(defaultSchema as never);
     mockedFetchComparisons.mockResolvedValue({ comparisons: [] } as never);
@@ -72,6 +85,22 @@ describe("ComparePage", () => {
       status: "saved",
       errors: [],
       comparison: null
+    } as never);
+    mockedGenerateComparisonDraft.mockResolvedValue({
+      status: "draft_ready",
+      errors: [],
+      draft_id: "draft-1",
+      mode: "one_to_one",
+      base_offer_id: "offer-1",
+      selected_offer_ids: ["offer-1", "offer-2"],
+      code_section: { metrics: [] },
+      ai_section_pending: true
+    } as never);
+    mockedGenerateComparisonAISection.mockResolvedValue({
+      status: "completed",
+      errors: [],
+      draft_id: "draft-1",
+      ai_section: { text: "AI summary" }
     } as never);
   });
 

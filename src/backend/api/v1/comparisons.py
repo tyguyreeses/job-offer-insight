@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel
@@ -38,6 +38,24 @@ class ComparisonCreateResponse(BaseModel):
     comparison: ComparisonResponse | None
 
 
+class ComparisonGenerateCodeResponse(BaseModel):
+    status: str
+    errors: list[str]
+    draft_id: str | None
+    mode: Literal["one_to_one", "one_to_all"] | None
+    base_offer_id: str | None
+    selected_offer_ids: list[str]
+    code_section: dict[str, Any] | None
+    ai_section_pending: bool
+
+
+class ComparisonGenerateAIResponse(BaseModel):
+    status: str
+    errors: list[str]
+    draft_id: str | None
+    ai_section: dict[str, Any] | None
+
+
 class ComparisonListResponse(BaseModel):
     comparisons: list[ComparisonResponse]
 
@@ -70,6 +88,43 @@ def create_comparison(
         status=result.status,
         errors=result.errors,
         comparison=_to_response(result.comparison) if result.comparison is not None else None,
+    )
+
+
+@router.post("/generate", response_model=ComparisonGenerateCodeResponse)
+def generate_comparison_draft(
+    request: ComparisonCreateRequest,
+    comparison_service: ComparisonService = Depends(get_comparison_service),
+) -> ComparisonGenerateCodeResponse:
+    result = comparison_service.generate_comparison_draft(
+        mode=request.mode,
+        selected_offer_ids=request.selected_offer_ids,
+        base_offer_id=request.base_offer_id,
+        note=request.note,
+    )
+    return ComparisonGenerateCodeResponse(
+        status=result.status,
+        errors=result.errors,
+        draft_id=result.draft_id,
+        mode=result.mode,
+        base_offer_id=result.base_offer_id,
+        selected_offer_ids=result.selected_offer_ids,
+        code_section=result.code_section,
+        ai_section_pending=result.ai_section_pending,
+    )
+
+
+@router.post("/generate/{draft_id}/ai", response_model=ComparisonGenerateAIResponse)
+def generate_comparison_ai_section(
+    draft_id: str,
+    comparison_service: ComparisonService = Depends(get_comparison_service),
+) -> ComparisonGenerateAIResponse:
+    result = comparison_service.generate_comparison_ai_section(draft_id=draft_id)
+    return ComparisonGenerateAIResponse(
+        status=result.status,
+        errors=result.errors,
+        draft_id=result.draft_id,
+        ai_section=result.ai_section,
     )
 
 

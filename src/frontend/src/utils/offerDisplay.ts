@@ -93,3 +93,25 @@ export function isPresent(value: unknown): boolean {
   }
   return true;
 }
+
+export function getDerivedMonetary(payload: Record<string, unknown>): {
+  annualBenefits: number | null;
+  monthlyTakeHome: number | null;
+  explanation: string | null;
+} {
+  const derived = getPath(payload, "derived_monetary");
+  if (!derived || typeof derived !== "object" || Array.isArray(derived)) {
+    return {
+      annualBenefits: null,
+      monthlyTakeHome: null,
+      explanation: null
+    };
+  }
+  const asRecord = derived as Record<string, unknown>;
+  const explanationRaw = asRecord.explanation;
+  return {
+    annualBenefits: asNumber(asRecord.estimated_total_annual_monetary_benefits_usd),
+    monthlyTakeHome: asNumber(asRecord.estimated_monthly_take_home_usd),
+    explanation: typeof explanationRaw === "string" && explanationRaw.trim() ? explanationRaw : null
+  };
+}

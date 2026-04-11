@@ -11,6 +11,7 @@ type NavItem = "Dashboard" | "Add Entry" | "Compare";
 export default function App(): JSX.Element {
   const [activeItem, setActiveItem] = useState<NavItem>("Add Entry");
   const [comparePrefillSelectedOfferIds, setComparePrefillSelectedOfferIds] = useState<string[]>([]);
+  const [compareHasUnsavedDraft, setCompareHasUnsavedDraft] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,7 +34,21 @@ export default function App(): JSX.Element {
 
   return (
     <div className="app-shell">
-      <Navbar activeItem={activeItem} onNavigate={setActiveItem} />
+      <Navbar
+        activeItem={activeItem}
+        onNavigate={(item) => {
+          if (item === activeItem) {
+            return;
+          }
+          if (activeItem === "Compare" && compareHasUnsavedDraft) {
+            const shouldDiscard = window.confirm("Discard unsaved generated comparison?");
+            if (!shouldDiscard) {
+              return;
+            }
+          }
+          setActiveItem(item);
+        }}
+      />
       {activeItem === "Dashboard" ? (
         <DashboardPage
           onCompareSelected={(selectedOfferIds) => {
@@ -55,6 +70,7 @@ export default function App(): JSX.Element {
           onPrefillConsumed={() => {
             setComparePrefillSelectedOfferIds([]);
           }}
+          onUnsavedDraftStateChange={setCompareHasUnsavedDraft}
         />
       ) : null}
     </div>

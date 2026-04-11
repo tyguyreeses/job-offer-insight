@@ -31,6 +31,19 @@ workflow:
   enable_non_monetary_summary: true
   allow_placeholder_comparisons: true
 
+tax_profile:
+  default_state: "CO"
+  default_filing_status: "single"
+  federal_tax_rate: 0.22
+  fica_tax_rate: 0.0765
+  default_pre_tax_deduction_percent: 0
+  state_tax_rates:
+    CO: 0.044
+    CA: 0.093
+    TX: 0.0
+    WA: 0.0
+    NY: 0.06
+
 agents:
   entry_creation:
     type: non-structured
@@ -48,6 +61,18 @@ agents:
     model: "gpt-5-mini"
     max_output_tokens: 1200
     prompt: "extract_offer.md"
+  comparison_one_to_one:
+    type: non-structured
+    enabled: true
+    model: "gpt-5-mini"
+    max_output_tokens: 1200
+    prompt: "compare_one_to_one.md"
+  comparison_one_to_all:
+    type: non-structured
+    enabled: true
+    model: "gpt-5-mini"
+    max_output_tokens: 1500
+    prompt: "compare_one_to_all.md"
 
 offer_schema:
   version: 1
@@ -77,6 +102,8 @@ offer_schema:
       title: "Monetary benefits"
     - section_id: "non_monetary"
       title: "Non-monetary benefits"
+    - section_id: "tax_overrides"
+      title: "Tax overrides"
   fields:
     - id: "company-name"
       label: "Company name"
@@ -392,6 +419,54 @@ offer_schema:
         section_id: "non_monetary"
         order: 1
         widget: "textarea_list"
+
+    - id: "tax-override-state"
+      label: "Tax override state"
+      storage_path: "tax_overrides.state"
+      data_type: "string"
+      group: "meta"
+      default_when_omitted: ""
+      card:
+        visible: false
+        section_id: "meta"
+        order: 2
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "tax_overrides"
+        order: 1
+        widget: "text"
+    - id: "tax-override-filing-status"
+      label: "Tax override filing status"
+      storage_path: "tax_overrides.filing_status"
+      data_type: "string"
+      group: "meta"
+      default_when_omitted: ""
+      card:
+        visible: false
+        section_id: "meta"
+        order: 3
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "tax_overrides"
+        order: 2
+        widget: "text"
+    - id: "tax-override-pre-tax-percent"
+      label: "Tax override pre-tax deduction (%)"
+      storage_path: "tax_overrides.pre_tax_deduction_percent"
+      data_type: "number"
+      group: "meta"
+      card:
+        visible: false
+        section_id: "meta"
+        order: 4
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "tax_overrides"
+        order: 3
+        widget: "number"
 
     - id: "created-at"
       label: "Date created"

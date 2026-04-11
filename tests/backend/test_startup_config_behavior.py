@@ -41,6 +41,15 @@ workflow:
   enable_non_monetary_summary: true
   allow_placeholder_comparisons: true
 
+tax_profile:
+  default_state: "CO"
+  default_filing_status: "single"
+  federal_tax_rate: 0.22
+  fica_tax_rate: 0.0765
+  default_pre_tax_deduction_percent: 0
+  state_tax_rates:
+    CO: 0.044
+
 agents:
   entry_creation:
     type: non-structured
@@ -54,6 +63,18 @@ agents:
     model: "gpt-5.2"
     max_output_tokens: 1200
     prompt: "Return only a JSON object."
+  comparison_one_to_one:
+    type: non-structured
+    enabled: true
+    model: "gpt-5.2"
+    max_output_tokens: 1200
+    prompt: "Compare one-to-one."
+  comparison_one_to_all:
+    type: non-structured
+    enabled: true
+    model: "gpt-5.2"
+    max_output_tokens: 1200
+    prompt: "Compare one-to-all."
 
 offer_schema:
   version: 1
@@ -160,10 +181,9 @@ def test_app_build_fails_with_invalid_config(tmp_path: Path) -> None:
 
 def test_app_build_fails_when_agents_section_missing(tmp_path: Path) -> None:
     config_path = tmp_path / "missing_agents_config.yaml"
-    invalid_config = VALID_CONFIG.replace(
-        "\nagents:\n  entry_creation:\n    type: non-structured\n    enabled: true\n    model: \"gpt-5.2\"\n    max_output_tokens: 500\n    prompt: \"You are a helper.\"\n  parse_entry:\n    type: structured-output\n    enabled: true\n    model: \"gpt-5.2\"\n    max_output_tokens: 1200\n    prompt: \"Return only a JSON object.\"\n",
-        "",
-    )
+    before_agents, after_agents = VALID_CONFIG.split("\nagents:\n", 1)
+    _, offer_schema_block = after_agents.split("\noffer_schema:\n", 1)
+    invalid_config = f"{before_agents}\noffer_schema:\n{offer_schema_block}"
     _write_config(config_path, invalid_config)
 
     with pytest.raises(ConfigLoadError):

@@ -1,6 +1,8 @@
 import type {
   ComparisonCreateRequest,
   ComparisonCreateResponse,
+  ComparisonGenerateAIResponse,
+  ComparisonGenerateCodeResponse,
   ComparisonListResponse,
   ComparisonPayload
 } from "../types/comparisons";
@@ -35,6 +37,34 @@ export async function createComparison(
     throw new Error(`Comparison create request failed with status ${response.status}`);
   }
   return (await response.json()) as ComparisonCreateResponse;
+}
+
+export async function generateComparisonDraft(
+  request: ComparisonCreateRequest
+): Promise<ComparisonGenerateCodeResponse> {
+  const response = await fetch("/api/v1/comparisons/generate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+  if (!response.ok) {
+    throw new Error(`Comparison generate request failed with status ${response.status}`);
+  }
+  return (await response.json()) as ComparisonGenerateCodeResponse;
+}
+
+export async function generateComparisonAISection(
+  draftId: string
+): Promise<ComparisonGenerateAIResponse> {
+  const response = await fetch(`/api/v1/comparisons/generate/${draftId}/ai`, {
+    method: "POST"
+  });
+  if (!response.ok) {
+    throw new Error(`Comparison AI generate request failed with status ${response.status}`);
+  }
+  return (await response.json()) as ComparisonGenerateAIResponse;
 }
 
 export async function deleteComparison(comparisonId: string): Promise<void> {

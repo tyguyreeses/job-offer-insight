@@ -16,7 +16,9 @@ from ...gen_ai.entry_creation_agent import EntryCreationAgentError
 from ...gen_ai.protocols import Agent, AudioTranscriber, ChatAgent, ChatAgentReply
 from ...gen_ai.text_parser_agent import TextParserError
 from ...storage.repositories.interfaces import OfferRepository
+from ...utils.config_types import TaxProfileSection
 from ...utils.logging import get_logger
+from .monetary_calculations import compute_derived_monetary_summary
 
 logger = get_logger(__name__)
 
@@ -442,6 +444,7 @@ class Stage4OfferService:
     text_parser_agent: Agent
     audio_transcriber: AudioTranscriber
     offer_schema: ConfiguredOfferSchema
+    tax_config: TaxProfileSection
     entry_creation_agent: ChatAgent | None = None
     text_conversation_sessions: dict[str, ConversationSession] = field(default_factory=dict)
 
@@ -968,7 +971,12 @@ class Stage4OfferService:
         )
 
     def render_offer_payload(self, record: OfferRecord) -> dict[str, Any]:
-        return _record_to_payload(record, self.offer_schema)
+        payload = _record_to_payload(record, self.offer_schema)
+        payload["derived_monetary"] = compute_derived_monetary_summary(
+            payload,
+            tax_config=self.tax_config,
+        ).as_payload()
+        return payload
 
     def get_offer_schema(self) -> dict[str, Any]:
         return self.offer_schema.as_public_payload()

@@ -2,11 +2,11 @@
 
 ## Metadata
 - Stage ID: `8`
-- Status: `Not Started`
-- Completed: `false`
-- Started On: ``
-- Completed On: ``
-- Branch: ``
+- Status: `Completed`
+- Completed: `true`
+- Started On: `2026-04-11`
+- Completed On: `2026-04-11`
+- Branch: `stage_8`
 - Depends On: `Stage 7`
 - Primary Docs: `src/docs/application_interface.md`, `PLAN.md`, `end-goal.md`
 
@@ -58,20 +58,20 @@ Prepare the comparison system for real generated output by refining offer displa
 - Stage 8 generation requirements are decision-complete for `one_to_one` and `one_to_all`
 
 ## Implementation Checklist
-- [ ] Update interface docs for new derived monetary metrics and edit-form visibility rules
-- [ ] Add/validate config shape for global tax defaults and per-offer tax overrides
-- [ ] Implement backend deterministic calculators for:
+- [x] Update interface docs for new derived monetary metrics and edit-form visibility rules
+- [x] Add/validate config shape for global tax defaults and per-offer tax overrides
+- [x] Implement backend deterministic calculators for:
   - estimated annual monetary total
   - estimated monthly take-home
-- [ ] Surface derived metrics in dashboard cards, compare cards, and edit panel summary
-- [ ] Implement edit form `+` add-field workflow grouped by section
-- [ ] Implement optional tax-overrides section reveal via add-field workflow
-- [ ] Add `Generate Comparison` draft workflow with pending states and progressive rendering (code first, AI second)
-- [ ] Add unsaved generated-result discard confirmation on context switches/navigation
-- [ ] Implement one-to-one and one-to-all deterministic numeric generation contracts
-- [ ] Implement one-to-one and one-to-all AI generation contracts
-- [ ] Add/update config-defined comparison agents and prompt files in `src/backend/prompts`
-- [ ] Add/update backend and frontend tests for derived metrics, comparison generation flow, and edit visibility behavior
+- [x] Surface derived metrics in dashboard cards, compare cards, and edit panel summary
+- [x] Implement edit form `+` add-field workflow grouped by section
+- [x] Implement optional tax-overrides section reveal via add-field workflow
+- [x] Add `Generate Comparison` draft workflow with pending states and progressive rendering (code first, AI second)
+- [x] Add unsaved generated-result discard confirmation on context switches/navigation
+- [x] Implement one-to-one and one-to-all deterministic numeric generation contracts
+- [x] Implement one-to-one and one-to-all AI generation contracts
+- [x] Add/update config-defined comparison agents and prompt files in `src/backend/prompts`
+- [x] Add/update backend and frontend tests for derived metrics, comparison generation flow, and edit visibility behavior
 
 ## Deliverables
 - Updated contract and implementation base for comparison generation work
@@ -80,8 +80,8 @@ Prepare the comparison system for real generated output by refining offer displa
 - Decision-complete and implemented generation behavior for `one_to_one` and `one_to_all`
 
 ## Test Gate
-- [ ] Run backend tests: `python -m pytest -q`
-- [ ] Run frontend tests: `cd src/frontend && npm test`
+- [x] Run backend tests: `python -m pytest -q`
+- [x] Run frontend tests: `cd src/frontend && npm test`
 - [ ] Verify derived totals/take-home use deterministic formulas and config defaults
 - [ ] Verify per-offer override behavior (state, filing status, pre-tax %) updates take-home output
 - [ ] Verify required edit fields are always visible

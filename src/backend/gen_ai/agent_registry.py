@@ -40,6 +40,8 @@ class AgentRegistry:
 def build_agent_registry(config: AgentsSection) -> AgentRegistry:
     entry_creation_prompt = _resolve_prompt(config.entry_creation.prompt)
     parse_entry_prompt = _resolve_prompt(config.parse_entry.prompt)
+    comparison_one_to_one_prompt = _resolve_prompt(config.comparison_one_to_one.prompt)
+    comparison_one_to_all_prompt = _resolve_prompt(config.comparison_one_to_all.prompt)
     return AgentRegistry(
         agents={
             "entry_creation": AgentDefinition(
@@ -59,7 +61,25 @@ def build_agent_registry(config: AgentsSection) -> AgentRegistry:
                 prompt=parse_entry_prompt,
                 max_output_tokens=config.parse_entry.max_output_tokens,
                 tools=_resolve_tools(config.parse_entry.tools),
-            )
+            ),
+            "comparison_one_to_one": AgentDefinition(
+                name="comparison_one_to_one",
+                type=config.comparison_one_to_one.type,
+                enabled=config.comparison_one_to_one.enabled,
+                model=config.comparison_one_to_one.model,
+                prompt=comparison_one_to_one_prompt,
+                max_output_tokens=config.comparison_one_to_one.max_output_tokens,
+                tools=_resolve_tools(config.comparison_one_to_one.tools),
+            ),
+            "comparison_one_to_all": AgentDefinition(
+                name="comparison_one_to_all",
+                type=config.comparison_one_to_all.type,
+                enabled=config.comparison_one_to_all.enabled,
+                model=config.comparison_one_to_all.model,
+                prompt=comparison_one_to_all_prompt,
+                max_output_tokens=config.comparison_one_to_all.max_output_tokens,
+                tools=_resolve_tools(config.comparison_one_to_all.tools),
+            ),
         }
     )
 
