@@ -98,9 +98,8 @@ def test_generate_one_to_one_draft_then_ai(tmp_path: Path) -> None:
     ai_payload = ai_response.json()
     assert ai_payload["status"] == "completed"
     assert "ai_section" in ai_payload
-    assert ai_payload["ai_section"]["format"] == "markdown"
-    assert "text" in ai_payload["ai_section"]
-    assert "###" in ai_payload["ai_section"]["text"]
+    assert isinstance(ai_payload["ai_section"], str)
+    assert "###" in ai_payload["ai_section"]
 
 
 def test_generate_one_to_all_includes_similarity_and_highest(tmp_path: Path) -> None:

@@ -53,7 +53,7 @@ class ComparisonGenerateAIResponse(BaseModel):
     status: str
     errors: list[str]
     draft_id: str | None
-    ai_section: dict[str, Any] | None
+    ai_section: Any | None
 
 
 class ComparisonListResponse(BaseModel):

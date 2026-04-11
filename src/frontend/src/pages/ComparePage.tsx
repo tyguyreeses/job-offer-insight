@@ -127,6 +127,24 @@ function renderMarkdownText(markdown: string): JSX.Element {
   return <div className="compare-markdown">{nodes.length > 0 ? nodes : <p>{markdown}</p>}</div>;
 }
 
+function aiSectionToMarkdown(aiSection: unknown): string {
+  if (typeof aiSection === "string") {
+    return aiSection;
+  }
+  if (aiSection && typeof aiSection === "object" && !Array.isArray(aiSection)) {
+    const record = aiSection as Record<string, unknown>;
+    const markdownCandidate = record.markdown ?? record.text ?? record.content;
+    if (typeof markdownCandidate === "string") {
+      return markdownCandidate;
+    }
+    return JSON.stringify(record, null, 2);
+  }
+  if (Array.isArray(aiSection)) {
+    return JSON.stringify(aiSection, null, 2);
+  }
+  return "";
+}
+
 export function ComparePage({
   prefillSelectedOfferIds = [],
   onPrefillConsumed,
@@ -146,7 +164,7 @@ export function ComparePage({
   const [draftNote, setDraftNote] = useState("");
   const [generatedDraftId, setGeneratedDraftId] = useState<string | null>(null);
   const [generatedCodeSection, setGeneratedCodeSection] = useState<Record<string, unknown> | null>(null);
-  const [generatedAISection, setGeneratedAISection] = useState<Record<string, unknown> | null>(null);
+  const [generatedAISection, setGeneratedAISection] = useState<unknown | null>(null);
   const [isGeneratingCode, setIsGeneratingCode] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -521,7 +539,7 @@ export function ComparePage({
   };
 
   const renderAISection = (): JSX.Element => {
-    const aiText = generatedAISection ? asText(generatedAISection.text ?? generatedAISection.markdown) : "";
+    const aiText = generatedAISection ? aiSectionToMarkdown(generatedAISection) : "";
     const generatingLabel = "generating...";
     return (
       <section className="compare-generated-section compare-generated-ai">

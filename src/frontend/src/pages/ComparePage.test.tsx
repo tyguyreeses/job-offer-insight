@@ -100,7 +100,7 @@ describe("ComparePage", () => {
       status: "completed",
       errors: [],
       draft_id: "draft-1",
-      ai_section: { format: "markdown", text: "### AI Summary\n- Tradeoff one\n- Tradeoff two" }
+      ai_section: "### AI Summary\n- Tradeoff one\n- Tradeoff two"
     } as never);
   });
 

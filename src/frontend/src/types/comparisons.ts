@@ -39,7 +39,7 @@ export interface ComparisonGenerateAIResponse {
   status: string;
   errors: string[];
   draft_id: string | null;
-  ai_section: Record<string, unknown> | null;
+  ai_section: unknown | null;
 }
 
 export interface ComparisonListResponse {

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass, field
 from typing import Any, Literal
 from uuid import uuid4
@@ -17,6 +18,7 @@ from .monetary_calculations import compute_derived_monetary_summary
 
 ComparisonMode = Literal["one_to_one", "one_to_all"]
 _PLACEHOLDER_SUMMARY_TEXT = "Comparison summary placeholder."
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -43,7 +45,7 @@ class ComparisonGenerateAIResult:
     status: str
     errors: list[str]
     draft_id: str | None
-    ai_section: dict[str, Any] | None
+    ai_section: Any | None
 
 
 @dataclass
@@ -55,7 +57,7 @@ class _GeneratedDraft:
     offers_by_id: dict[str, OfferRecord]
     code_section: dict[str, Any]
     note: str | None
-    ai_section: dict[str, Any] | None = None
+    ai_section: Any | None = None
 
 
 def _coerce_number(value: Any) -> float | None:
@@ -511,24 +513,34 @@ class Stage8ComparisonService:
             "notes": "Per metric, compares base vs highest other and identifies closest-by-value offer.",
         }
 
-    def _build_ai_section(self, draft: _GeneratedDraft) -> dict[str, Any]:
+    def _build_ai_section(self, draft: _GeneratedDraft) -> str:
         generated_text = self._run_ai_generation(draft)
         if generated_text is None:
             generated_text = self._fallback_ai_text(draft)
-        return {
-            "title": "AI Comparison Narrative",
-            "mode": draft.mode,
-            "format": "markdown",
-            "text": generated_text,
-        }
+            _LOGGER.debug(
+                "Comparison AI fallback output for draft_id=%s mode=%s:\n%s",
+                draft.draft_id,
+                draft.mode,
+                generated_text,
+            )
+        return generated_text
 
     def _run_ai_generation(self, draft: _GeneratedDraft) -> str | None:
         if self.agent_registry is None or self.openai_config is None:
+            _LOGGER.debug(
+                "Comparison AI generation skipped for draft_id=%s: agent registry or openai config unavailable.",
+                draft.draft_id,
+            )
             return None
         agent_name = "comparison_one_to_one" if draft.mode == "one_to_one" else "comparison_one_to_all"
         try:
             agent = self.agent_registry.get(agent_name)
             if not agent.enabled:
+                _LOGGER.debug(
+                    "Comparison AI generation skipped for draft_id=%s: agent=%s disabled.",
+                    draft.draft_id,
+                    agent_name,
+                )
                 return None
             user_input = json.dumps(
                 {
@@ -544,9 +556,25 @@ class Stage8ComparisonService:
                 ensure_ascii=True,
             )
             text = NonStructuredAgent(agent=agent, openai_config=self.openai_config).run(user_input)
+            _LOGGER.debug(
+                "Comparison AI agent raw output for draft_id=%s mode=%s agent=%s:\n%s",
+                draft.draft_id,
+                draft.mode,
+                agent_name,
+                text,
+            )
             cleaned = text.strip()
+            if cleaned == "":
+                _LOGGER.debug("Comparison AI agent output was empty after trim for draft_id=%s.", draft.draft_id)
             return cleaned if cleaned != "" else None
         except (AgentExecutionError, KeyError):
+            _LOGGER.debug(
+                "Comparison AI generation failed for draft_id=%s mode=%s agent=%s.",
+                draft.draft_id,
+                draft.mode,
+                agent_name,
+                exc_info=True,
+            )
             return None
 
     def _fallback_ai_text(self, draft: _GeneratedDraft) -> str:
