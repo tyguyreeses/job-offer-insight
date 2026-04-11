@@ -112,10 +112,6 @@ body {
   white-space: nowrap;
 }
 
-.dashboard-compare-button {
-  white-space: nowrap;
-}
-
 .dashboard-status {
   margin: 0;
   color: var(--color-muted);

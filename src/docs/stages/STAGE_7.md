@@ -17,9 +17,9 @@ Implement one-to-one and one-to-all compare layouts with placeholder sections an
 - Compare page layout behavior by mode
 - One-to-one: left + placeholder middle + right
 - One-to-all: left + placeholder middle + placeholder right
-- Save comparison (offer IDs + placeholder summary + optional user note)
+- Save comparison (offer IDs + placeholder summary + optional user note persistence)
 - Retrieve/display saved comparisons
-- Display optional note below all comparison page content
+- Optional note is saved but not rendered on compare page in this stage
 
 ## Out of Scope
 - Comparison scoring/ranking logic
@@ -34,7 +34,7 @@ Implement one-to-one and one-to-all compare layouts with placeholder sections an
 - [x] Implement one-to-all layout rendering contract
 - [x] Implement save comparison endpoint/service
 - [x] Implement saved comparison list/detail retrieval
-- [x] Render optional note below other comparison content
+- [x] Persist optional note with saved comparison records
 
 ## Deliverables
 - Working compare flows for one-to-one and one-to-all with placeholders
@@ -44,7 +44,7 @@ Implement one-to-one and one-to-all compare layouts with placeholder sections an
 - [x] One-to-one layout test (left+middle placeholder+right)
 - [x] One-to-all layout test (left+placeholder middle+placeholder right)
 - [x] Saved comparison persistence test (IDs + placeholder summary + optional note)
-- [x] Optional note display-position test
+- [x] Compare page does not render optional note text
 
 ## Exit Criteria
 - Compare flows match contract exactly with no scoring logic
@@ -60,4 +60,3 @@ Implement one-to-one and one-to-all compare layouts with placeholder sections an
 
 
 ### Final Decisions for This Stage
-

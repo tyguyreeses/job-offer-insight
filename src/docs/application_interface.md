@@ -11,7 +11,7 @@ Job Offer Insight provides:
 2. Offer dashboard browsing and selection for comparison.
 3. Comparison page with explicit placeholder behavior while comparison logic is intentionally deferred.
 4. Editing existing offers through a structured form.
-5. Saving/retrieving comparison records including an optional user note.
+5. Saving/retrieving comparison records including optional note storage.
 
 Comparison ranking/scoring logic is intentionally out of scope for this version.
 
@@ -63,7 +63,7 @@ A saved comparison record includes:
 2. Summary text (placeholder content for now)
 3. Optional user note
 
-If user note exists, it is displayed below all other comparison page content.
+Optional note may be stored with the comparison record. The current compare page does not render note text.
 
 ## UI Contract
 
@@ -179,8 +179,8 @@ If user note exists, it is displayed below all other comparison page content.
    - one selected offer opens one-to-all draft canvas
    - two selected offers open one-to-one draft canvas
 9. Optional note behavior:
-   - save flow accepts optional note text
-   - when note exists for an active saved comparison, render it below all comparison content
+   - save flow accepts optional note text for persistence
+   - compare page does not currently render note text
 
 ## API Contract (External Behavior)
 

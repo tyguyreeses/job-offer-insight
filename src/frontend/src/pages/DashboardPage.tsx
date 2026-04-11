@@ -15,6 +15,7 @@ import type {
   OfferSummaryPayload,
   SortDirection
 } from "../types/offers";
+import { asNumber, asStringList, asText, formatFieldValue, getPath, isPresent } from "../utils/offerDisplay";
 
 interface SortOption {
   label: string;
@@ -35,18 +36,6 @@ const SORT_OPTIONS: SortOption[] = [
   { label: "Role (Z-A)", sortBy: "role_title", sortDirection: "desc" }
 ];
 
-function getPath(payload: Record<string, unknown>, path: string): unknown {
-  const parts = path.split(".");
-  let cursor: unknown = payload;
-  for (const part of parts) {
-    if (!cursor || typeof cursor !== "object" || Array.isArray(cursor)) {
-      return undefined;
-    }
-    cursor = (cursor as Record<string, unknown>)[part];
-  }
-  return cursor;
-}
-
 function setPath(payload: Record<string, unknown>, path: string, value: unknown): void {
   const parts = path.split(".");
   let cursor: Record<string, unknown> = payload;
@@ -58,75 +47,6 @@ function setPath(payload: Record<string, unknown>, path: string, value: unknown)
     cursor = cursor[part] as Record<string, unknown>;
   }
   cursor[parts[parts.length - 1]] = value;
-}
-
-function asText(value: unknown): string {
-  return typeof value === "string" ? value : "";
-}
-
-function asNumber(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === "string" && value.trim() !== "") {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-  return null;
-}
-
-function asStringList(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value
-    .map((item) => (typeof item === "string" ? item.trim() : ""))
-    .filter((item) => item.length > 0);
-}
-
-function formatUsd(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0
-  }).format(amount);
-}
-
-function formatDate(createdAt?: string): string | null {
-  if (!createdAt) {
-    return null;
-  }
-  const parsed = new Date(createdAt);
-  if (Number.isNaN(parsed.getTime())) {
-    return null;
-  }
-  return `${String(parsed.getUTCMonth() + 1).padStart(2, "0")}-${String(parsed.getUTCDate()).padStart(2, "0")}-${parsed.getUTCFullYear()}`;
-}
-
-function formatFieldValue(field: OfferSchemaField, value: unknown): string | null {
-  if (field.data_type === "list_string") {
-    return null;
-  }
-  if (field.storage_path.endsWith("created_at")) {
-    return formatDate(typeof value === "string" ? value : undefined);
-  }
-  if (field.data_type === "number" || field.data_type === "integer") {
-    const parsed = asNumber(value);
-    if (parsed === null) {
-      return null;
-    }
-    if (field.storage_path.includes("_usd")) {
-      return formatUsd(parsed);
-    }
-    if (field.storage_path.includes("percent")) {
-      return `${parsed}%`;
-    }
-    return `${parsed}`;
-  }
-  const text = asText(value).trim();
-  return text === "" ? null : text;
 }
 
 function listTextForForm(field: OfferSchemaField, value: unknown): string {
@@ -162,19 +82,6 @@ function parseFormValue(field: OfferSchemaField, value: string): unknown {
     return parsed;
   }
   return trimmed;
-}
-
-function isPresent(value: unknown): boolean {
-  if (value === null || value === undefined) {
-    return false;
-  }
-  if (typeof value === "string") {
-    return value.trim() !== "";
-  }
-  if (Array.isArray(value)) {
-    return value.length > 0;
-  }
-  return true;
 }
 
 export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.Element {
@@ -571,18 +478,6 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
         >
           {isSeedingDemo ? "Creating..." : "Create Demo Offers"}
         </button>
-        {selectedOfferIds.length > 0 ? (
-          <button
-            type="button"
-            className="action-button selectable dashboard-compare-button"
-            onClick={() => {
-              onCompareSelected?.(selectedOfferIds);
-            }}
-            disabled={isLoading || isSchemaLoading}
-          >
-            Compare
-          </button>
-        ) : null}
       </section>
 
       {isSchemaLoading ? <p className="dashboard-status">Loading schema...</p> : null}
@@ -705,6 +600,17 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
                       disabled={!offerSchema}
                     >
                       Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary-button selectable"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onCompareSelected?.(selectedOfferIds);
+                      }}
+                      disabled={isLoading || isSchemaLoading}
+                    >
+                      Compare
                     </button>
                     <button
                       type="button"
