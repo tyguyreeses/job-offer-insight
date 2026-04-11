@@ -127,8 +127,47 @@ describe("ComparePage", () => {
       expect(mockedFetchComparisonById).toHaveBeenCalledWith("comparison-1");
     });
 
-    expect(await screen.findByText("Saved detail note")).toBeInTheDocument();
+    expect(screen.queryByText("Saved detail note")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Available offers")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Saved comparisons")).toBeInTheDocument();
+  });
+
+  it("allows deselecting an active saved comparison to return to builder view", async () => {
+    mockedFetchComparisons.mockResolvedValue({
+      comparisons: [
+        {
+          id: "comparison-1",
+          comparison_mode: "one_to_one",
+          base_offer_id: "offer-1",
+          selected_offer_ids: ["offer-1", "offer-2"],
+          summary_text: "Comparison summary placeholder.",
+          note: null,
+          created_at: "2026-04-11T00:00:00Z",
+          updated_at: "2026-04-11T00:00:00Z"
+        }
+      ]
+    } as never);
+    mockedFetchComparisonById.mockResolvedValue({
+      id: "comparison-1",
+      comparison_mode: "one_to_one",
+      base_offer_id: "offer-1",
+      selected_offer_ids: ["offer-1", "offer-2"],
+      summary_text: "Comparison summary placeholder.",
+      note: null,
+      created_at: "2026-04-11T00:00:00Z",
+      updated_at: "2026-04-11T00:00:00Z"
+    } as never);
+
+    render(<ComparePage />);
+    const savedButton = await screen.findByRole("button", { name: "Atlas • Beacon" });
+
+    fireEvent.click(savedButton);
+    await waitFor(() => {
+      expect(mockedFetchComparisonById).toHaveBeenCalledWith("comparison-1");
+    });
+    expect(screen.queryByLabelText("Available offers")).not.toBeInTheDocument();
+
+    fireEvent.click(savedButton);
+    expect(await screen.findByLabelText("Available offers")).toBeInTheDocument();
   });
 });

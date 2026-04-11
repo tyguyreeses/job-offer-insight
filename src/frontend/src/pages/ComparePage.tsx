@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { createComparison, fetchComparisonById, fetchComparisons } from "../services/comparisonsApi";
@@ -126,6 +127,7 @@ export function ComparePage({
   prefillSelectedOfferIds = [],
   onPrefillConsumed
 }: ComparePageProps): JSX.Element {
+  type SaveButtonPhase = "steady" | "fade-out" | "fade-in";
   const [offerSchema, setOfferSchema] = useState<OfferSchemaPayload | null>(null);
   const [isSchemaLoading, setIsSchemaLoading] = useState(true);
   const [offers, setOffers] = useState<OfferSummaryPayload[]>([]);
@@ -136,11 +138,14 @@ export function ComparePage({
   const [draftSelectedOfferIds, setDraftSelectedOfferIds] = useState<string[]>([]);
   const [activeSavedComparisonId, setActiveSavedComparisonId] = useState<string | null>(null);
   const [activeSavedComparison, setActiveSavedComparison] = useState<ComparisonPayload | null>(null);
-  const [draftNote, setDraftNote] = useState("");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveCompletedAt, setSaveCompletedAt] = useState<number | null>(null);
+  const [saveButtonLabel, setSaveButtonLabel] = useState("Save Comparison");
+  const [saveButtonPhase, setSaveButtonPhase] = useState<SaveButtonPhase>("steady");
   const [cardAnimationState, setCardAnimationState] = useState<Record<string, "select" | "deselect">>({});
   const animationTimeoutRef = useRef<Record<string, number>>({});
+  const saveLabelTimeoutsRef = useRef<number[]>([]);
 
   const offersById = useMemo(() => {
     return new Map(offers.map((offer) => [offer.id, offer]));
@@ -236,6 +241,37 @@ export function ComparePage({
     onPrefillConsumed?.();
   }, [prefillSelectedOfferIds, onPrefillConsumed]);
 
+  useEffect(() => {
+    return () => {
+      for (const timeoutId of saveLabelTimeoutsRef.current) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, []);
+
+  const transitionSaveLabel = (nextLabel: string): void => {
+    if (saveButtonLabel === nextLabel) {
+      return;
+    }
+    for (const timeoutId of saveLabelTimeoutsRef.current) {
+      window.clearTimeout(timeoutId);
+    }
+    saveLabelTimeoutsRef.current = [];
+
+    setSaveButtonPhase("fade-out");
+    const swapTimeout = window.setTimeout(() => {
+      setSaveButtonLabel(nextLabel);
+      setSaveButtonPhase("fade-in");
+    }, 120);
+    saveLabelTimeoutsRef.current.push(swapTimeout);
+
+    const settleTimeout = window.setTimeout(() => {
+      setSaveButtonPhase("steady");
+      saveLabelTimeoutsRef.current = [];
+    }, 260);
+    saveLabelTimeoutsRef.current.push(settleTimeout);
+  };
+
   const scheduleCardAnimation = (cardId: string, mode: "select" | "deselect"): void => {
     setCardAnimationState((existing) => ({ ...existing, [cardId]: mode }));
     if (animationTimeoutRef.current[cardId] !== undefined) {
@@ -268,6 +304,12 @@ export function ComparePage({
 
   const handleSelectSavedComparison = async (comparisonId: string): Promise<void> => {
     setErrorText(null);
+    if (activeSavedComparisonId === comparisonId) {
+      scheduleCardAnimation(`saved-${comparisonId}`, "deselect");
+      setActiveSavedComparisonId(null);
+      setActiveSavedComparison(null);
+      return;
+    }
     if (activeSavedComparisonId !== null && activeSavedComparisonId !== comparisonId) {
       scheduleCardAnimation(`saved-${activeSavedComparisonId}`, "deselect");
     }
@@ -293,13 +335,13 @@ export function ComparePage({
         mode,
         selected_offer_ids: draftSelectedOfferIds,
         base_offer_id: draftSelectedOfferIds[0],
-        note: draftNote.trim() === "" ? null : draftNote.trim()
+        note: null
       });
       if (result.status !== "saved") {
         setSaveError(result.errors[0] ?? "Unable to save comparison.");
         return;
       }
-      setDraftNote("");
+      setSaveCompletedAt(Date.now());
       await refreshComparisons();
     } catch (error: unknown) {
       setSaveError(error instanceof Error ? error.message : "Unable to save comparison.");
@@ -307,6 +349,23 @@ export function ComparePage({
       setIsSaving(false);
     }
   };
+
+  const canSaveDraft = activeSavedComparisonId === null && draftSelectedOfferIds.length > 0;
+  const showSavedState = saveCompletedAt !== null && Date.now() - saveCompletedAt < 1500;
+  const desiredSaveLabel = isSaving ? "Processing..." : showSavedState ? "Saved" : "Save Comparison";
+
+  useEffect(() => {
+    transitionSaveLabel(desiredSaveLabel);
+    if (!showSavedState) {
+      return;
+    }
+    const timeoutId = window.setTimeout(() => {
+      setSaveCompletedAt(null);
+    }, 1500);
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [desiredSaveLabel, showSavedState]);
 
   const renderOfferPanel = (offerId: string, side: "left" | "right"): JSX.Element => {
     const offer = offersById.get(offerId);
@@ -385,6 +444,49 @@ export function ComparePage({
   };
 
   const renderCanvas = (): JSX.Element => {
+    const renderSaveButton = (): JSX.Element => (
+      <button
+        type="button"
+        className={`action-button selectable compare-save-button-inline ${
+          isSaving ? "audio-main-processing" : ""
+        } ${showSavedState ? "compare-save-button-success" : ""} ${
+          canSaveDraft ? "motion-fade-enter" : "motion-fade-exit"
+        }`}
+        style={
+          {
+            ["--motion-delay" as string]: "0ms",
+            ["--motion-duration" as string]: "180ms"
+          } as CSSProperties
+        }
+        onClick={() => {
+          if (!canSaveDraft || isSaving) {
+            return;
+          }
+          void handleSaveDraft();
+        }}
+        disabled={!canSaveDraft || isSaving}
+        aria-label={saveButtonLabel}
+      >
+        <span
+          className={`audio-main-label audio-main-label-${saveButtonPhase} ${
+            saveButtonLabel === "Processing..." ? "audio-main-label-processing" : ""
+          }`}
+        >
+          {saveButtonLabel === "Processing..."
+            ? saveButtonLabel.split("").map((character, index) => (
+                <span
+                  key={`compare-save-processing-char-${index}-${character === " " ? "space" : character}`}
+                  className="processing-label-char"
+                  style={{ ["--processing-index" as string]: index } as CSSProperties}
+                >
+                  {character}
+                </span>
+              ))
+            : saveButtonLabel}
+        </span>
+      </button>
+    );
+
     const activeComparison = activeSavedComparison;
     if (activeComparison !== null) {
       const ids = activeComparison.selected_offer_ids;
@@ -395,6 +497,7 @@ export function ComparePage({
             <article className="compare-canvas-middle">
               <h3>Comparison Summary</h3>
               <p>{activeComparison.summary_text}</p>
+              <div className="compare-summary-save-slot" />
             </article>
             {activeComparison.comparison_mode === "one_to_one" ? (
               renderOfferPanel(ids[1], "right")
@@ -405,17 +508,6 @@ export function ComparePage({
               </article>
             )}
           </section>
-          {activeComparison.note ? <p className="compare-note">{activeComparison.note}</p> : null}
-          <button
-            type="button"
-            className="secondary-button selectable"
-            onClick={() => {
-              setActiveSavedComparisonId(null);
-              setActiveSavedComparison(null);
-            }}
-          >
-            Create New Comparison
-          </button>
         </>
       );
     }
@@ -429,6 +521,7 @@ export function ComparePage({
             <article className="compare-canvas-middle">
               <h3>Comparison Summary</h3>
               <p>Comparison summary placeholder.</p>
+              <div className="compare-summary-save-slot">{renderSaveButton()}</div>
             </article>
             {mode === "one_to_one" ? (
               renderOfferPanel(draftSelectedOfferIds[1], "right")
@@ -439,26 +532,7 @@ export function ComparePage({
               </article>
             )}
           </section>
-          <label className="compare-note-input">
-            Optional note
-            <textarea
-              value={draftNote}
-              onChange={(event) => {
-                setDraftNote(event.target.value);
-              }}
-            />
-          </label>
           {saveError ? <p className="error-text">{saveError}</p> : null}
-          <button
-            type="button"
-            className="action-button selectable"
-            onClick={() => {
-              void handleSaveDraft();
-            }}
-            disabled={isSaving}
-          >
-            {isSaving ? "Saving..." : "Save Comparison"}
-          </button>
         </>
       );
     }
