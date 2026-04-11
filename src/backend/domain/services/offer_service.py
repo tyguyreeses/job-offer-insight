@@ -921,6 +921,16 @@ class Stage4OfferService:
         return created
 
     def update_offer(self, *, offer_id: str, payload: dict[str, Any]) -> IntakeResult:
+        existing = self.offer_repository.get_by_id(offer_id)
+        if existing is None:
+            return IntakeResult(
+                status="not_found",
+                errors=[f"Offer not found: {offer_id}"],
+                warnings=[],
+                missing_field_prompts=[],
+                offer=None,
+            )
+
         normalized_payload = dict(payload)
         _normalize_payload(normalized_payload, self.offer_schema)
 
@@ -929,16 +939,6 @@ class Stage4OfferService:
             return IntakeResult(
                 status="blocked_required_fields",
                 errors=required_errors,
-                warnings=[],
-                missing_field_prompts=[],
-                offer=None,
-            )
-
-        existing = self.offer_repository.get_by_id(offer_id)
-        if existing is None:
-            return IntakeResult(
-                status="not_found",
-                errors=[f"Offer not found: {offer_id}"],
                 warnings=[],
                 missing_field_prompts=[],
                 offer=None,
