@@ -7,11 +7,13 @@ description: |
 ## Git commit guidelines
 
 Please review all untracked files. 
-Confirm with the user whether or not these files should be committed.
+Confirm with the user whether these files should be committed.
 
 Always confirm with the user the changes in the commit before running `git commit`.
 
 Commit the files with a descriptive commit message.
+
+For extensive changes or multiple different scopes of changes, separate the changes into multiple commits respectively.
 
 When asking for approval for `git` commands, 
 make sure the approval prefix is just `git add` or `git commit`;
