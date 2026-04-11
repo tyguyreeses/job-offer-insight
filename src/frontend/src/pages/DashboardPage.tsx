@@ -22,6 +22,10 @@ interface SortOption {
   sortDirection: SortDirection;
 }
 
+interface DashboardPageProps {
+  onCompareSelected?: (selectedOfferIds: string[]) => void;
+}
+
 const SORT_OPTIONS: SortOption[] = [
   { label: "Newest", sortBy: "created_at", sortDirection: "desc" },
   { label: "Oldest", sortBy: "created_at", sortDirection: "asc" },
@@ -173,7 +177,7 @@ function isPresent(value: unknown): boolean {
   return true;
 }
 
-export function DashboardPage(): JSX.Element {
+export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.Element {
   const DELETE_FADE_DURATION_MS = 280;
   const DELETE_COLLAPSE_DURATION_MS = 460;
   const EDIT_PANEL_TRANSITION_MS = 240;
@@ -567,6 +571,18 @@ export function DashboardPage(): JSX.Element {
         >
           {isSeedingDemo ? "Creating..." : "Create Demo Offers"}
         </button>
+        {selectedOfferIds.length > 0 ? (
+          <button
+            type="button"
+            className="action-button selectable dashboard-compare-button"
+            onClick={() => {
+              onCompareSelected?.(selectedOfferIds);
+            }}
+            disabled={isLoading || isSchemaLoading}
+          >
+            Compare
+          </button>
+        ) : null}
       </section>
 
       {isSchemaLoading ? <p className="dashboard-status">Loading schema...</p> : null}
