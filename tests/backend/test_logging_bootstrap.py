@@ -28,4 +28,12 @@ def test_get_logger_preserves_app_logger_prefix() -> None:
 def test_debug_mode_keeps_third_party_loggers_quiet() -> None:
     setup_logger(debug=True, configured_level="INFO")
     assert logging.getLogger(APP_LOGGER_NAME).getEffectiveLevel() == logging.DEBUG
-    assert logging.getLogger("python_multipart").getEffectiveLevel() == logging.WARNING
+
+
+def test_logging_emits_only_app_namespace(capsys) -> None:
+    setup_logger(debug=True, configured_level="INFO")
+    get_logger("src.backend.api.v1.offers").error("app log")
+    logging.getLogger("python_multipart").error("third party log")
+    captured = capsys.readouterr()
+    assert "app log" in captured.err
+    assert "third party log" not in captured.err

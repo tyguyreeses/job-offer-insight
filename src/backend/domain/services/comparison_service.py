@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import logging
 from dataclasses import dataclass, field
 from typing import Any, Literal
 from uuid import uuid4
@@ -14,11 +13,12 @@ from ...gen_ai.agent_registry import AgentRegistry
 from ...gen_ai.agent_runtime import AgentExecutionError, NonStructuredAgent
 from ...storage.repositories.interfaces import ComparisonRepository, OfferRepository
 from ...utils.config_types import OpenAISection
+from ...utils.logging import get_logger
 from .monetary_calculations import compute_derived_monetary_summary
 
 ComparisonMode = Literal["one_to_one", "one_to_all"]
 _PLACEHOLDER_SUMMARY_TEXT = "Comparison summary placeholder."
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = get_logger(__name__)
 
 
 @dataclass(frozen=True)
