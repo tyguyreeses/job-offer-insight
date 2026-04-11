@@ -36,3 +36,12 @@ export async function createComparison(
   }
   return (await response.json()) as ComparisonCreateResponse;
 }
+
+export async function deleteComparison(comparisonId: string): Promise<void> {
+  const response = await fetch(`/api/v1/comparisons/${comparisonId}`, {
+    method: "DELETE"
+  });
+  if (!response.ok) {
+    throw new Error(`Comparison delete request failed with status ${response.status}`);
+  }
+}

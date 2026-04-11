@@ -87,3 +87,6 @@ class ComparisonService(Protocol):
 
     def get_comparison(self, comparison_id: str) -> ComparisonRecord | None:
         """Return one saved comparison by id."""
+
+    def delete_comparison(self, comparison_id: str) -> bool:
+        """Delete one saved comparison and return whether it existed."""

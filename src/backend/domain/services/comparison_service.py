@@ -58,6 +58,9 @@ class Stage7ComparisonService:
     def get_comparison(self, comparison_id: str) -> ComparisonRecord | None:
         return self.comparison_repository.get_by_id(comparison_id)
 
+    def delete_comparison(self, comparison_id: str) -> bool:
+        return self.comparison_repository.delete(comparison_id)
+
     def _create_one_to_one(
         self,
         *,

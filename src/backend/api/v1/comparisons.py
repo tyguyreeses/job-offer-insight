@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel
 
 from ...dependencies import get_comparison_service
@@ -90,3 +90,14 @@ def get_comparison(
     if comparison is None:
         raise HTTPException(status_code=404, detail=f"Comparison not found: {comparison_id}")
     return _to_response(comparison)
+
+
+@router.delete("/{comparison_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
+def delete_comparison(
+    comparison_id: str,
+    comparison_service: ComparisonService = Depends(get_comparison_service),
+) -> Response:
+    deleted = comparison_service.delete_comparison(comparison_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Comparison not found: {comparison_id}")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

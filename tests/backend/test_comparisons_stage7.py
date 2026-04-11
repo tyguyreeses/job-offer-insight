@@ -219,3 +219,27 @@ def test_one_to_all_save_overrides_existing_same_base_offer(tmp_path: Path) -> N
     listing = client.get("/api/v1/comparisons")
     assert listing.status_code == 200
     assert len(listing.json()["comparisons"]) == 1
+
+
+def test_delete_saved_comparison_removes_it(tmp_path: Path) -> None:
+    client, offers = _build_client_and_repo(tmp_path)
+    left_id = _seed_offer(offers, company_name="Atlas", role_title="Engineer")
+    right_id = _seed_offer(offers, company_name="Beacon", role_title="Engineer")
+
+    created = client.post(
+        "/api/v1/comparisons",
+        json={
+            "mode": "one_to_one",
+            "base_offer_id": left_id,
+            "selected_offer_ids": [left_id, right_id],
+            "note": None,
+        },
+    )
+    assert created.status_code == 200
+    comparison_id = created.json()["comparison"]["id"]
+
+    delete_response = client.delete(f"/api/v1/comparisons/{comparison_id}")
+    assert delete_response.status_code == 204
+
+    detail_response = client.get(f"/api/v1/comparisons/{comparison_id}")
+    assert detail_response.status_code == 404

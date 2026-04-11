@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { createComparison, fetchComparisonById, fetchComparisons } from "../services/comparisonsApi";
+import { createComparison, deleteComparison, fetchComparisonById, fetchComparisons } from "../services/comparisonsApi";
 import { fetchOfferSchema, fetchOffers } from "../services/offersApi";
 import type { ComparisonPayload } from "../types/comparisons";
 import type { OfferSchemaField, OfferSchemaPayload, OfferSummaryPayload } from "../types/offers";
@@ -143,9 +143,17 @@ export function ComparePage({
   const [saveCompletedAt, setSaveCompletedAt] = useState<number | null>(null);
   const [saveButtonLabel, setSaveButtonLabel] = useState("Save Comparison");
   const [saveButtonPhase, setSaveButtonPhase] = useState<SaveButtonPhase>("steady");
+  const [isDeletingComparisonId, setIsDeletingComparisonId] = useState<string | null>(null);
+  const [fadingComparisonIds, setFadingComparisonIds] = useState<string[]>([]);
+  const [collapsingComparisonIds, setCollapsingComparisonIds] = useState<string[]>([]);
   const [cardAnimationState, setCardAnimationState] = useState<Record<string, "select" | "deselect">>({});
   const animationTimeoutRef = useRef<Record<string, number>>({});
   const saveLabelTimeoutsRef = useRef<number[]>([]);
+  const deleteFadeTimeoutRef = useRef<Record<string, number>>({});
+  const deleteCollapseTimeoutRef = useRef<Record<string, number>>({});
+
+  const DELETE_FADE_DURATION_MS = 280;
+  const DELETE_COLLAPSE_DURATION_MS = 460;
 
   const offersById = useMemo(() => {
     return new Map(offers.map((offer) => [offer.id, offer]));
@@ -347,6 +355,49 @@ export function ComparePage({
       setSaveError(error instanceof Error ? error.message : "Unable to save comparison.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteComparisonClick = async (comparisonId: string): Promise<void> => {
+    if (isDeletingComparisonId !== null) {
+      return;
+    }
+    setIsDeletingComparisonId(comparisonId);
+    setErrorText(null);
+    try {
+      await deleteComparison(comparisonId);
+      setFadingComparisonIds((current) =>
+        current.includes(comparisonId) ? current : [...current, comparisonId]
+      );
+      if (activeSavedComparisonId === comparisonId) {
+        setActiveSavedComparisonId(null);
+        setActiveSavedComparison(null);
+      }
+
+      if (deleteFadeTimeoutRef.current[comparisonId] !== undefined) {
+        window.clearTimeout(deleteFadeTimeoutRef.current[comparisonId]);
+      }
+      if (deleteCollapseTimeoutRef.current[comparisonId] !== undefined) {
+        window.clearTimeout(deleteCollapseTimeoutRef.current[comparisonId]);
+      }
+
+      deleteFadeTimeoutRef.current[comparisonId] = window.setTimeout(() => {
+        setFadingComparisonIds((current) => current.filter((id) => id !== comparisonId));
+        setCollapsingComparisonIds((current) =>
+          current.includes(comparisonId) ? current : [...current, comparisonId]
+        );
+        delete deleteFadeTimeoutRef.current[comparisonId];
+      }, DELETE_FADE_DURATION_MS);
+
+      deleteCollapseTimeoutRef.current[comparisonId] = window.setTimeout(() => {
+        setComparisons((current) => current.filter((comparison) => comparison.id !== comparisonId));
+        setCollapsingComparisonIds((current) => current.filter((id) => id !== comparisonId));
+        setIsDeletingComparisonId((current) => (current === comparisonId ? null : current));
+        delete deleteCollapseTimeoutRef.current[comparisonId];
+      }, DELETE_FADE_DURATION_MS + DELETE_COLLAPSE_DURATION_MS);
+    } catch (error: unknown) {
+      setErrorText(error instanceof Error ? error.message : "Unable to delete saved comparison.");
+      setIsDeletingComparisonId(null);
     }
   };
 
@@ -557,6 +608,12 @@ export function ComparePage({
       for (const timeoutId of Object.values(animationTimeoutRef.current)) {
         window.clearTimeout(timeoutId);
       }
+      for (const timeoutId of Object.values(deleteFadeTimeoutRef.current)) {
+        window.clearTimeout(timeoutId);
+      }
+      for (const timeoutId of Object.values(deleteCollapseTimeoutRef.current)) {
+        window.clearTimeout(timeoutId);
+      }
     };
   }, []);
 
@@ -587,18 +644,25 @@ export function ComparePage({
                     : "";
               return (
                 <div key={offer.id} className="dashboard-card-shell">
-                  <button
-                    type="button"
+                  <article
                     className={`compare-offer-card dashboard-card selectable ${
                       isSelected ? "dashboard-card-selected" : ""
                     } ${animationClass}`.trim()}
+                    role="button"
+                    tabIndex={0}
                     aria-pressed={isSelected}
                     onClick={() => {
                       toggleDraftOfferSelection(offer.id);
                     }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        toggleDraftOfferSelection(offer.id);
+                      }
+                    }}
                   >
                     <h2 className="dashboard-card-company">{offer.company_name}</h2>
-                  </button>
+                  </article>
                 </div>
               );
             })}
@@ -610,6 +674,10 @@ export function ComparePage({
       <section className="compare-row compare-saved-row" aria-label="Saved comparisons">
         {comparisons.map((comparison) => {
           const isSelected = comparison.id === activeSavedComparisonId;
+          const isDeleting = isDeletingComparisonId === comparison.id;
+          const isFading = fadingComparisonIds.includes(comparison.id);
+          const isCollapsing = collapsingComparisonIds.includes(comparison.id);
+          const isPendingRemoval = isFading || isCollapsing;
           const animationClass =
             cardAnimationState[`saved-${comparison.id}`] === "select"
               ? "dashboard-card-flip-select"
@@ -617,19 +685,65 @@ export function ComparePage({
                 ? "dashboard-card-flip-deselect"
                 : "";
           return (
-            <div key={comparison.id} className="dashboard-card-shell">
-              <button
-                type="button"
+            <div
+              key={comparison.id}
+              className={`dashboard-card-shell compare-saved-shell ${
+                isCollapsing ? "dashboard-card-shell-collapsing" : ""
+              }`.trim()}
+            >
+                <button
+                  type="button"
+                  className="compare-entry-delete-button"
+                  aria-label={`Delete ${comparisonCardLabel(comparison, offersById)}`}
+                  disabled={isDeleting || isPendingRemoval}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void handleDeleteComparisonClick(comparison.id);
+                }}
+                >
+                  <span
+                    className={`compare-entry-delete-label ${
+                      isDeleting ? "compare-entry-delete-label-processing" : ""
+                    }`}
+                  >
+                    {isDeleting
+                      ? "...".split("").map((character, index) => (
+                          <span
+                            key={`compare-delete-processing-char-${comparison.id}-${index}`}
+                            className="processing-label-char"
+                            style={{ ["--processing-index" as string]: index } as CSSProperties}
+                          >
+                            {character}
+                          </span>
+                        ))
+                      : "×"}
+                  </span>
+                </button>
+              <article
                 className={`compare-saved-card dashboard-card selectable ${
                   isSelected ? "dashboard-card-selected" : ""
-                } ${animationClass}`.trim()}
+                } ${animationClass} ${isPendingRemoval ? "dashboard-card-deleting" : ""}`.trim()}
+                role="button"
+                tabIndex={isPendingRemoval ? -1 : 0}
                 aria-pressed={isSelected}
                 onClick={() => {
+                  if (isPendingRemoval) {
+                    return;
+                  }
                   void handleSelectSavedComparison(comparison.id);
+                }}
+                onKeyDown={(event) => {
+                  if (isPendingRemoval) {
+                    return;
+                  }
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    void handleSelectSavedComparison(comparison.id);
+                  }
                 }}
               >
                 <h2 className="dashboard-card-company">{comparisonCardLabel(comparison, offersById)}</h2>
-              </button>
+              </article>
             </div>
           );
         })}

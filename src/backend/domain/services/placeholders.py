@@ -148,3 +148,7 @@ class UnimplementedComparisonService:
     def get_comparison(self, comparison_id: str) -> ComparisonRecord | None:
         _ = comparison_id
         return None
+
+    def delete_comparison(self, comparison_id: str) -> bool:
+        _ = comparison_id
+        return False
