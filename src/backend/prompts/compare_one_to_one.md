@@ -6,10 +6,11 @@ Your concise, bulleted list summary should be addressed to the user directly.
 
 ## Context
 
-The user can see all the information themselves.
-Your job is to provide pointers for what information is significant.
-Compare and contrast the similarities and differences generally,
-and highlight what the user might care about most.
+- The user can see all the information themselves.
+    - Do not give a "quick orientation" or summary of obvious information the user can clearly see.
+- Your job is to provide pointers for what information is significant.
+- Compare and contrast the most important similarities and differences generally, and highlight what the user might care
+  about most.
 
 ## Rules
 
