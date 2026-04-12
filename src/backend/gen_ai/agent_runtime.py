@@ -48,15 +48,47 @@ class NonStructuredAgent:
     def run(self, user_input: str) -> str:
         run_result = self.run_with_tools(user_input=user_input, tools=None)
         output_text = run_result.output_text
+        if output_text.strip() != "":
+            return output_text
+
+        initial_summary = run_result.response_summary
+        if _should_retry_for_incomplete_no_text(initial_summary):
+            retry_max_output_tokens = _retry_max_output_tokens(self.agent.max_output_tokens)
+            _LOGGER.warning(
+                "Non-structured agent returned incomplete response without text. "
+                "Retrying with higher max_output_tokens. agent=%s previous_max_output_tokens=%s retry_max_output_tokens=%s response_summary=%s",
+                self.agent.name,
+                self.agent.max_output_tokens,
+                retry_max_output_tokens,
+                initial_summary,
+            )
+            retry_result = self.run_with_tools(
+                user_input=user_input,
+                tools=None,
+                max_output_tokens_override=retry_max_output_tokens,
+            )
+            retry_output = retry_result.output_text
+            if retry_output.strip() != "":
+                return retry_output
+            _LOGGER.warning(
+                "Non-structured agent retry also produced no text output. agent=%s response_summary=%s",
+                self.agent.name,
+                retry_result.response_summary,
+            )
+            raise AgentExecutionError(
+                "Non-structured agent response did not include text output after retry. "
+                f"initial_response_summary={initial_summary}; retry_response_summary={retry_result.response_summary}"
+            )
+
         if output_text.strip() == "":
             _LOGGER.warning(
                 "Non-structured agent produced no text output. agent=%s response_summary=%s",
                 self.agent.name,
-                run_result.response_summary,
+                initial_summary,
             )
             raise AgentExecutionError(
                 "Non-structured agent response did not include text output. "
-                f"response_summary={run_result.response_summary}"
+                f"response_summary={initial_summary}"
             )
         return output_text
 
@@ -65,6 +97,7 @@ class NonStructuredAgent:
         *,
         user_input: str,
         tools: list[FunctionToolDefinition] | None,
+        max_output_tokens_override: int | None = None,
     ) -> NonStructuredRunResult:
         client = _build_client(self.openai_config)
         request_kwargs: dict[str, object] = {
@@ -73,7 +106,7 @@ class NonStructuredAgent:
                 {"role": "system", "content": self.agent.prompt},
                 {"role": "user", "content": user_input},
             ],
-            "max_output_tokens": self.agent.max_output_tokens,
+            "max_output_tokens": max_output_tokens_override or self.agent.max_output_tokens,
         }
         if tools:
             request_kwargs["tools"] = [
@@ -144,7 +177,10 @@ def _build_response_summary(response: object) -> dict[str, object]:
         "id": _value_from(response, "id"),
         "status": _value_from(response, "status"),
         "model": _value_from(response, "model"),
+        "incomplete_details": _value_from(response, "incomplete_details"),
         "output_text_len": len((_value_from(response, "output_text") or "")),
+        "usage_output_tokens": _usage_value(response, "output_tokens"),
+        "usage_total_tokens": _usage_value(response, "total_tokens"),
         "output_item_count": len(output_items),
         "output_item_types": output_types,
         "message_content_types": content_types,
@@ -155,6 +191,22 @@ def _value_from(obj: object, name: str) -> object | None:
     if isinstance(obj, dict):
         return obj.get(name)
     return getattr(obj, name, None)
+
+
+def _usage_value(response: object, key: str) -> object | None:
+    usage = _value_from(response, "usage")
+    if usage is None:
+        return None
+    return _value_from(usage, key)
+
+
+def _should_retry_for_incomplete_no_text(response_summary: dict[str, object]) -> bool:
+    status = response_summary.get("status")
+    return status == "incomplete"
+
+
+def _retry_max_output_tokens(base_max_output_tokens: int) -> int:
+    return min(base_max_output_tokens * 2, 6000)
 
 
 def _parse_tool_calls(response: object) -> list[ToolCall]:
