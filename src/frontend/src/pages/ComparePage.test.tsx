@@ -118,7 +118,8 @@ describe("ComparePage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Atlas" }));
 
     expect(await screen.findByText("All Other Entries")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save Comparison" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Generate Comparison" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Notes")).not.toBeInTheDocument();
   });
 
   it("loads saved comparison detail, hides builder row, and keeps saved row visible", async () => {
@@ -243,6 +244,7 @@ describe("ComparePage", () => {
     expect(await screen.findByText("AI Summary")).toBeInTheDocument();
     expect(screen.getByText("Tradeoff one")).toBeInTheDocument();
     expect(screen.getByText("Tradeoff two")).toBeInTheDocument();
+    expect(screen.getByLabelText("Notes")).toBeInTheDocument();
   });
 
   it("saves generated code, ai summary, and note together", async () => {
@@ -257,6 +259,7 @@ describe("ComparePage", () => {
     fireEvent.change(screen.getByLabelText("Notes"), {
       target: { value: "Keep this in final save." }
     });
+    expect(await screen.findByRole("button", { name: "Save Comparison" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Save Comparison" }));
 
     await waitFor(() => {

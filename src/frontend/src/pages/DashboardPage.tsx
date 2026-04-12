@@ -25,6 +25,7 @@ import {
   getPath,
   isPresent
 } from "../utils/offerDisplay";
+import { emphasizeNumericText } from "../utils/textEmphasis";
 
 interface SortOption {
   label: string;
@@ -566,8 +567,8 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
                   handleCardKeyDown(event, offer.id);
                 }}
               >
-                <h2 className="dashboard-card-company">{companyName}</h2>
-                <p className="dashboard-card-role">{roleAndLocation}</p>
+                <h2 className="dashboard-card-company">{emphasizeNumericText(companyName)}</h2>
+                <p className="dashboard-card-role">{emphasizeNumericText(roleAndLocation)}</p>
 
                 {derivedMonetary.annualBenefits !== null || derivedMonetary.monthlyTakeHome !== null ? (
                   <section className="dashboard-card-section dashboard-card-derived-section">
@@ -580,10 +581,10 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
                       ) : null}
                     </h3>
                     {derivedMonetary.annualBenefits !== null ? (
-                      <p>{`Total Annual Monetary Benefits: ${formatUsd(derivedMonetary.annualBenefits)}`}</p>
+                      <p>{emphasizeNumericText(`Total Annual Monetary Benefits: ${formatUsd(derivedMonetary.annualBenefits)}`)}</p>
                     ) : null}
                     {derivedMonetary.monthlyTakeHome !== null ? (
-                      <p>{`Monthly Take-Home: ${formatUsd(derivedMonetary.monthlyTakeHome)}`}</p>
+                      <p>{emphasizeNumericText(`Monthly Take-Home: ${formatUsd(derivedMonetary.monthlyTakeHome)}`)}</p>
                     ) : null}
                   </section>
                 ) : null}
@@ -607,7 +608,7 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
                         return (
                           <ul key={`${offer.id}-${field.id}`}>
                             {items.map((item) => (
-                              <li key={`${offer.id}-${field.id}-${item}`}>{item}</li>
+                              <li key={`${offer.id}-${field.id}-${item}`}>{emphasizeNumericText(item)}</li>
                             ))}
                           </ul>
                         );
@@ -619,10 +620,10 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
                       }
 
                       if (field.card.style === "value") {
-                        return <p key={`${offer.id}-${field.id}`}>{formatted}</p>;
+                        return <p key={`${offer.id}-${field.id}`}>{emphasizeNumericText(formatted)}</p>;
                       }
 
-                      return <p key={`${offer.id}-${field.id}`}>{`${field.label}: ${formatted}`}</p>;
+                      return <p key={`${offer.id}-${field.id}`}>{emphasizeNumericText(`${field.label}: ${formatted}`)}</p>;
                     })
                     .filter((node): node is JSX.Element => node !== null);
 

@@ -312,6 +312,34 @@ body {
   justify-content: center;
 }
 
+.compare-stage8-generate-hint {
+  margin-bottom: 1.25rem;
+}
+
+.compare-canvas-middle-stage8-pregenerate .compare-summary-content-stage8 {
+  min-height: 100%;
+}
+
+.compare-canvas-middle-stage8-pregenerate .compare-stage8-actions {
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+}
+
+.compare-primary-action {
+  transition: width 220ms ease, min-height 220ms ease, border-radius 220ms ease, padding 220ms ease,
+    font-size 220ms ease, background-color 220ms ease, color 220ms ease, border-color 220ms ease;
+}
+
+.compare-primary-action-generate {
+  width: clamp(120px, 18vw, 170px);
+  height: clamp(120px, 18vw, 170px);
+}
+
+.compare-primary-action-save {
+  height: auto;
+}
+
 .compare-canvas-middle h3,
 .compare-canvas-right-placeholder h3 {
   margin: 0 0 0.45rem;
@@ -1073,6 +1101,7 @@ body {
 .processing-label-char {
   display: inline-block;
   opacity: 0.2;
+  font-weight: 700;
   animation-name: shared-processing-char-fade;
   animation-duration: 1150ms;
   animation-timing-function: ease-in-out;

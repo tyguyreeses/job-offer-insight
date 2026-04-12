@@ -12,6 +12,7 @@ import { fetchOfferSchema, fetchOffers } from "../services/offersApi";
 import type { ComparisonPayload } from "../types/comparisons";
 import type { OfferSchemaPayload, OfferSummaryPayload } from "../types/offers";
 import { asStringList, asText, formatFieldValue, formatUsd, getDerivedMonetary, getPath, isPresent } from "../utils/offerDisplay";
+import { emphasizeNumericText } from "../utils/textEmphasis";
 
 interface ComparePageProps {
   prefillSelectedOfferIds?: string[];
@@ -173,6 +174,7 @@ export function ComparePage({
   const [generatedDraftId, setGeneratedDraftId] = useState<string | null>(null);
   const [generatedCodeSection, setGeneratedCodeSection] = useState<Record<string, unknown> | null>(null);
   const [generatedAISection, setGeneratedAISection] = useState<unknown | null>(null);
+  const [hasStartedGeneration, setHasStartedGeneration] = useState(false);
   const [isGeneratingCode, setIsGeneratingCode] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -358,6 +360,7 @@ export function ComparePage({
     setGeneratedDraftId(null);
     setGeneratedCodeSection(null);
     setGeneratedAISection(null);
+    setHasStartedGeneration(false);
     setSaveError(null);
   };
 
@@ -415,6 +418,7 @@ export function ComparePage({
     if (draftSelectedOfferIds.length === 0) {
       return;
     }
+    setHasStartedGeneration(true);
     setIsGeneratingCode(true);
     setGeneratedAISection(null);
     setSaveError(null);
@@ -500,8 +504,8 @@ export function ComparePage({
 
     return (
       <article className={`dashboard-card compare-static-card compare-canvas-panel-${side}`} data-testid={`compare-panel-${side}`}>
-        <h2 className="dashboard-card-company">{companyName}</h2>
-        <p className="dashboard-card-role">{roleAndLocation}</p>
+        <h2 className="dashboard-card-company">{emphasizeNumericText(companyName)}</h2>
+        <p className="dashboard-card-role">{emphasizeNumericText(roleAndLocation)}</p>
 
         {derivedMonetary.annualBenefits !== null || derivedMonetary.monthlyTakeHome !== null ? (
           <section className="dashboard-card-section dashboard-card-derived-section">
@@ -514,10 +518,10 @@ export function ComparePage({
               ) : null}
             </h3>
             {derivedMonetary.annualBenefits !== null ? (
-              <p>{`Total Annual Monetary Benefits: ${formatUsd(derivedMonetary.annualBenefits)}`}</p>
+              <p>{emphasizeNumericText(`Total Annual Monetary Benefits: ${formatUsd(derivedMonetary.annualBenefits)}`)}</p>
             ) : null}
             {derivedMonetary.monthlyTakeHome !== null ? (
-              <p>{`Monthly Take-Home: ${formatUsd(derivedMonetary.monthlyTakeHome)}`}</p>
+              <p>{emphasizeNumericText(`Monthly Take-Home: ${formatUsd(derivedMonetary.monthlyTakeHome)}`)}</p>
             ) : null}
           </section>
         ) : null}
@@ -541,7 +545,7 @@ export function ComparePage({
                 return (
                   <ul key={`${offer.id}-${field.id}`}>
                     {items.map((item) => (
-                      <li key={`${offer.id}-${field.id}-${item}`}>{item}</li>
+                      <li key={`${offer.id}-${field.id}-${item}`}>{emphasizeNumericText(item)}</li>
                     ))}
                   </ul>
                 );
@@ -553,10 +557,10 @@ export function ComparePage({
               }
 
               if (field.card.style === "value") {
-                return <p key={`${offer.id}-${field.id}`}>{formatted}</p>;
+                return <p key={`${offer.id}-${field.id}`}>{emphasizeNumericText(formatted)}</p>;
               }
 
-              return <p key={`${offer.id}-${field.id}`}>{`${field.label}: ${formatted}`}</p>;
+              return <p key={`${offer.id}-${field.id}`}>{emphasizeNumericText(`${field.label}: ${formatted}`)}</p>;
             })
             .filter((node): node is JSX.Element => node !== null);
 
@@ -701,41 +705,51 @@ export function ComparePage({
         <>
           <section className="compare-canvas-grid">
             {renderOfferPanel(draftSelectedOfferIds[0], "left")}
-            <article className="compare-canvas-middle compare-canvas-middle-stage8">
+            <article
+              className={`compare-canvas-middle compare-canvas-middle-stage8 ${
+                generatedDraftId === null ? "compare-canvas-middle-stage8-pregenerate" : ""
+              }`.trim()}
+            >
               <div className="compare-summary-content compare-summary-content-stage8">
                 <h3>Comparison Draft</h3>
                 {renderCodeSection()}
-                {generatedDraftId !== null ? renderAISection() : <p>Generate comparison to populate code and AI sections.</p>}
-                <label className="input-label compare-note-label" htmlFor="compare-note">
-                  Notes
-                </label>
-                <textarea
-                  id="compare-note"
-                  className="job-entry-input compare-note-input"
-                  value={draftNote}
-                  onChange={(event) => setDraftNote(event.target.value)}
-                  placeholder="Add optional notes before saving..."
-                />
+                {generatedDraftId !== null ? (
+                  renderAISection()
+                ) : (
+                  <p className="compare-stage8-generate-hint">
+                    Generate comparison to populate code and AI sections.
+                  </p>
+                )}
+                {hasStartedGeneration ? (
+                  <>
+                    <label className="input-label compare-note-label" htmlFor="compare-note">
+                      Notes
+                    </label>
+                    <textarea
+                      id="compare-note"
+                      className="job-entry-input compare-note-input"
+                      value={draftNote}
+                      onChange={(event) => setDraftNote(event.target.value)}
+                      placeholder="Add optional notes before saving..."
+                    />
+                  </>
+                ) : null}
                 <div className="compare-stage8-actions">
                   <button
                     type="button"
-                    className="action-button selectable"
+                    className={`compare-primary-action selectable ${
+                      generatedDraftId === null ? "mode-button compare-primary-action-generate" : "action-button compare-save-button-inline compare-primary-action-save"
+                    }`.trim()}
                     onClick={() => {
-                      void handleGenerateComparison();
-                    }}
-                    disabled={isGeneratingCode || isGeneratingAI || draftSelectedOfferIds.length === 0}
-                  >
-                    {isGeneratingCode ? "Generating..." : "Generate Comparison"}
-                  </button>
-                  <button
-                    type="button"
-                    className="action-button selectable compare-save-button-inline"
-                    onClick={() => {
+                      if (generatedDraftId === null) {
+                        void handleGenerateComparison();
+                        return;
+                      }
                       void handleSaveDraft();
                     }}
-                    disabled={isSaving || draftSelectedOfferIds.length === 0}
+                    disabled={isGeneratingCode || isGeneratingAI || isSaving || draftSelectedOfferIds.length === 0}
                   >
-                    {isSaving ? "Saving..." : "Save Comparison"}
+                    {isGeneratingCode ? "Generating..." : isSaving ? "Saving..." : generatedDraftId === null ? "Generate Comparison" : "Save Comparison"}
                   </button>
                 </div>
               </div>
@@ -797,7 +811,7 @@ export function ComparePage({
                       }
                     }}
                   >
-                    <h2 className="dashboard-card-company">{offer.company_name}</h2>
+                    <h2 className="dashboard-card-company">{emphasizeNumericText(offer.company_name)}</h2>
                   </article>
                 </div>
               );
