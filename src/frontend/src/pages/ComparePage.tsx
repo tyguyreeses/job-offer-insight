@@ -669,6 +669,20 @@ export function ComparePage({
   };
 
   const renderCanvas = (): JSX.Element => {
+    const renderAnimatedButtonLabel = (label: string): JSX.Element => (
+      <span className="audio-main-label-processing">
+        {label.split("").map((character, index) => (
+          <span
+            key={`compare-button-char-${label}-${index}-${character === " " ? "space" : character}`}
+            className="processing-label-char"
+            style={{ ["--processing-index" as string]: index } as CSSProperties}
+          >
+            {character}
+          </span>
+        ))}
+      </span>
+    );
+
     const activeComparison = activeSavedComparison;
     if (activeComparison !== null) {
       const ids = activeComparison.selected_offer_ids;
@@ -769,7 +783,13 @@ export function ComparePage({
                     }}
                     disabled={isGeneratingCode || isGeneratingAI || isSaving || draftSelectedOfferIds.length === 0}
                   >
-                    {isGeneratingCode ? "Generating..." : isSaving ? "Saving..." : generatedDraftId === null ? "Generate Comparison" : "Save Comparison"}
+                    {isGeneratingCode
+                      ? renderAnimatedButtonLabel("Generating...")
+                      : isSaving
+                        ? renderAnimatedButtonLabel("Saving...")
+                        : generatedDraftId === null
+                          ? "Generate Comparison"
+                          : "Save Comparison"}
                   </button>
                 </div>
               </div>

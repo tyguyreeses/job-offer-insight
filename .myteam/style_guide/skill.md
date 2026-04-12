@@ -22,6 +22,10 @@ Keep styling high-quality, give the user a cohesive experience, and minimize dup
 5. Minimize duplicated code:
    do not copy similar style blocks across files unless there is a documented,
    intentional difference.
+6. Define color values exactly once as shared tokens:
+   every color (including alpha variants used in gradients, borders, shadows, and overlays)
+   must be declared in the shared token file and referenced via `var(...)`.
+   Do not introduce raw hex/rgb/rgba/hsl literals in component or page styles.
 
 ### Routine duplication check
 
