@@ -6,6 +6,8 @@ export interface ComparisonPayload {
   base_offer_id: string;
   selected_offer_ids: string[];
   summary_text: string;
+  code_section: Record<string, unknown> | null;
+  ai_section: unknown | null;
   note: string | null;
   created_at: string;
   updated_at: string;
@@ -15,6 +17,9 @@ export interface ComparisonCreateRequest {
   mode: ComparisonMode;
   selected_offer_ids: string[];
   base_offer_id?: string;
+  summary_text?: string | null;
+  code_section?: Record<string, unknown> | null;
+  ai_section?: unknown | null;
   note?: string | null;
 }
 

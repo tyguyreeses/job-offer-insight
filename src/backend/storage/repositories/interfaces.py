@@ -61,6 +61,8 @@ class ComparisonRepository(Protocol):
         base_offer_id: str,
         selected_offer_ids: Sequence[str],
         summary_text: str,
+        code_section: Mapping[str, Any] | None = None,
+        ai_section: Any | None = None,
         note: str | None = None,
         comparison_id: str | None = None,
     ) -> ComparisonRecord:
@@ -80,6 +82,8 @@ class ComparisonRepository(Protocol):
         base_offer_id: str | None = None,
         selected_offer_ids: Sequence[str] | None = None,
         summary_text: str | None = None,
+        code_section: Mapping[str, Any] | None = None,
+        ai_section: Any | None = None,
         note: str | None = None,
     ) -> ComparisonRecord | None:
         """Update and return one comparison record if it exists."""

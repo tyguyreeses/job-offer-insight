@@ -393,10 +393,14 @@ export function ComparePage({
     setSaveError(null);
     try {
       const mode = draftSelectedOfferIds.length === 1 ? "one_to_all" : "one_to_one";
+      const generatedSummary = generatedAISection ? aiSectionToMarkdown(generatedAISection).trim() : "";
       const result = await createComparison({
         mode,
         selected_offer_ids: draftSelectedOfferIds,
         base_offer_id: draftSelectedOfferIds[0],
+        summary_text: generatedSummary || null,
+        code_section: generatedCodeSection,
+        ai_section: generatedAISection,
         note: draftNote || null
       });
       if (result.status !== "saved") {
@@ -563,17 +567,59 @@ export function ComparePage({
     );
   };
 
+  const renderSavedCodeSection = (codeSection: Record<string, unknown>): JSX.Element => {
+    const metricsRaw = codeSection.metrics;
+    const metrics = Array.isArray(metricsRaw) ? metricsRaw : [];
+    return (
+      <section className="compare-generated-section compare-generated-code">
+        <h3>Saved Calculations</h3>
+        <p>{asText(codeSection.notes)}</p>
+        {metrics.length > 0 ? (
+          <ul className="compare-generated-metrics-list">
+            {metrics.map((item, index) => {
+              if (!item || typeof item !== "object" || Array.isArray(item)) {
+                return null;
+              }
+              const row = item as Record<string, unknown>;
+              const label = asText(row.metric_label);
+              const percent = row.percentage_difference ?? row.percentage_difference_to_highest;
+              const percentText = typeof percent === "number" ? `${percent.toFixed(2)}%` : "N/A";
+              return <li key={`${label}-${index}`}>{`${label}: ${percentText}`}</li>;
+            })}
+          </ul>
+        ) : (
+          <p>No deterministic metric rows were available for this selection.</p>
+        )}
+      </section>
+    );
+  };
+
   const renderCanvas = (): JSX.Element => {
     const activeComparison = activeSavedComparison;
     if (activeComparison !== null) {
       const ids = activeComparison.selected_offer_ids;
+      const savedAIText = activeComparison.ai_section ? aiSectionToMarkdown(activeComparison.ai_section) : "";
       return (
         <section className="compare-canvas-grid">
           {renderOfferPanel(activeComparison.base_offer_id, "left")}
           <article className="compare-canvas-middle">
             <div className="compare-summary-content">
-              <h3>Comparison Summary</h3>
-              <p>{activeComparison.summary_text}</p>
+              <h3>Saved Comparison</h3>
+              {activeComparison.code_section ? renderSavedCodeSection(activeComparison.code_section) : null}
+              {savedAIText ? (
+                <section className="compare-generated-section compare-generated-ai">
+                  <h3>Saved AI Summary</h3>
+                  {renderMarkdownText(savedAIText)}
+                </section>
+              ) : (
+                <p>{activeComparison.summary_text}</p>
+              )}
+              {activeComparison.note ? (
+                <section className="compare-generated-section">
+                  <h3>Saved Notes</h3>
+                  <p>{activeComparison.note}</p>
+                </section>
+              ) : null}
             </div>
           </article>
           {activeComparison.comparison_mode === "one_to_one" ? (

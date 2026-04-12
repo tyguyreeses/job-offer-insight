@@ -83,6 +83,9 @@ class ComparisonService(Protocol):
         mode: ComparisonMode,
         selected_offer_ids: list[str],
         base_offer_id: str | None,
+        summary_text: str | None,
+        code_section: dict[str, Any] | None,
+        ai_section: Any | None,
         note: str | None,
     ) -> ComparisonCreateResult:
         """Create and return one saved comparison."""

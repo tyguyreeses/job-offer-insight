@@ -101,6 +101,25 @@ def _normalize_note(note: str | None) -> str | None:
     return cleaned if cleaned != "" else None
 
 
+def _normalize_summary_text(summary_text: str | None, ai_section: Any | None) -> str:
+    if summary_text is not None:
+        cleaned = summary_text.strip()
+        if cleaned != "":
+            return cleaned
+    if isinstance(ai_section, str):
+        cleaned = ai_section.strip()
+        if cleaned != "":
+            return cleaned
+    if isinstance(ai_section, dict):
+        for key in ("markdown", "text", "content"):
+            value = ai_section.get(key)
+            if isinstance(value, str):
+                cleaned = value.strip()
+                if cleaned != "":
+                    return cleaned
+    return _PLACEHOLDER_SUMMARY_TEXT
+
+
 @dataclass
 class Stage8ComparisonService:
     comparison_repository: ComparisonRepository
@@ -124,6 +143,9 @@ class Stage8ComparisonService:
         mode: ComparisonMode,
         selected_offer_ids: list[str],
         base_offer_id: str | None,
+        summary_text: str | None,
+        code_section: dict[str, Any] | None,
+        ai_section: Any | None,
         note: str | None,
     ) -> ComparisonCreateResult:
         normalized_selected_offer_ids = _normalize_selected_offer_ids(selected_offer_ids)
@@ -135,9 +157,18 @@ class Stage8ComparisonService:
             return self._create_one_to_one(
                 selected_offer_ids=normalized_selected_offer_ids,
                 base_offer_id=resolved_base_offer_id,
+                summary_text=summary_text,
+                code_section=code_section,
+                ai_section=ai_section,
                 note=note,
             )
-        return self._create_one_to_all(base_offer_id=resolved_base_offer_id, note=note)
+        return self._create_one_to_all(
+            base_offer_id=resolved_base_offer_id,
+            summary_text=summary_text,
+            code_section=code_section,
+            ai_section=ai_section,
+            note=note,
+        )
 
     def generate_comparison_draft(
         self,
@@ -278,6 +309,9 @@ class Stage8ComparisonService:
         *,
         selected_offer_ids: list[str],
         base_offer_id: str,
+        summary_text: str | None,
+        code_section: dict[str, Any] | None,
+        ai_section: Any | None,
         note: str | None,
     ) -> ComparisonCreateResult:
         if len(selected_offer_ids) != 2:
@@ -308,6 +342,7 @@ class Stage8ComparisonService:
             )
 
         note_value = _normalize_note(note)
+        summary_value = _normalize_summary_text(summary_text, ai_section)
         existing_match = self._find_existing_one_to_one(selected_offer_ids)
         if existing_match is not None:
             updated = self.comparison_repository.update(
@@ -315,7 +350,9 @@ class Stage8ComparisonService:
                 comparison_mode="one_to_one",
                 base_offer_id=base_offer_id,
                 selected_offer_ids=selected_offer_ids,
-                summary_text=_PLACEHOLDER_SUMMARY_TEXT,
+                summary_text=summary_value,
+                code_section=code_section,
+                ai_section=ai_section,
                 note=note_value,
             )
             if updated is not None:
@@ -329,7 +366,9 @@ class Stage8ComparisonService:
             comparison_mode="one_to_one",
             base_offer_id=base_offer_id,
             selected_offer_ids=selected_offer_ids,
-            summary_text=_PLACEHOLDER_SUMMARY_TEXT,
+            summary_text=summary_value,
+            code_section=code_section,
+            ai_section=ai_section,
             note=note_value,
         )
         return ComparisonCreateResult(status="saved", errors=[], comparison=created)
@@ -338,6 +377,9 @@ class Stage8ComparisonService:
         self,
         *,
         base_offer_id: str,
+        summary_text: str | None,
+        code_section: dict[str, Any] | None,
+        ai_section: Any | None,
         note: str | None,
     ) -> ComparisonCreateResult:
         if base_offer_id == "":
@@ -365,6 +407,7 @@ class Stage8ComparisonService:
 
         snapshot_ids = [base_offer_id, *compared_offer_ids]
         note_value = _normalize_note(note)
+        summary_value = _normalize_summary_text(summary_text, ai_section)
         existing_match = self._find_existing_one_to_all(base_offer_id)
         if existing_match is not None:
             updated = self.comparison_repository.update(
@@ -372,7 +415,9 @@ class Stage8ComparisonService:
                 comparison_mode="one_to_all",
                 base_offer_id=base_offer_id,
                 selected_offer_ids=snapshot_ids,
-                summary_text=_PLACEHOLDER_SUMMARY_TEXT,
+                summary_text=summary_value,
+                code_section=code_section,
+                ai_section=ai_section,
                 note=note_value,
             )
             if updated is not None:
@@ -386,7 +431,9 @@ class Stage8ComparisonService:
             comparison_mode="one_to_all",
             base_offer_id=base_offer_id,
             selected_offer_ids=snapshot_ids,
-            summary_text=_PLACEHOLDER_SUMMARY_TEXT,
+            summary_text=summary_value,
+            code_section=code_section,
+            ai_section=ai_section,
             note=note_value,
         )
         return ComparisonCreateResult(status="saved", errors=[], comparison=created)
@@ -465,7 +512,7 @@ class Stage8ComparisonService:
             "base_offer_id": base_offer.id,
             "other_offer_id": other_offer.id,
             "metrics": metric_rows,
-            "notes": "Optional numeric fields are compared only when present in both offers.",
+            "notes": "Numeric fields are compared only when present in both offers.",
         }
 
     def _build_one_to_all_code_section(

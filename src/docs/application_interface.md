@@ -65,10 +65,10 @@ When a field is missing during intake:
 A saved comparison record includes:
 
 1. Selected offer IDs
-2. Summary text (placeholder content for now)
-3. Optional user note
-
-Optional note may be stored with the comparison record. The current compare page does not render note text.
+2. Summary text (AI markdown/text when provided, placeholder fallback otherwise)
+3. Optional deterministic code-generated comparison section (metrics + notes)
+4. Optional AI comparison section
+5. Optional user note
 
 ## UI Contract
 
@@ -173,6 +173,7 @@ Optional note may be stored with the comparison record. The current compare page
 5. When a saved comparison card is selected:
    - top builder row is hidden
    - center canvas switches to the saved comparison detail
+   - saved detail displays all persisted comparison content (code-generated calculations, AI summary text, and note when present)
    - bottom saved row stays visible for quick switching
 6. One-to-one canvas layout:
    - Left: selected/base offer card
@@ -241,7 +242,9 @@ Endpoint paths may evolve, but external behavior must remain equivalent.
    - backend snapshots base + all other current offers as saved selected IDs
 4. Save response includes:
    - comparison `id`, `comparison_mode`, `base_offer_id`, `selected_offer_ids`
-   - placeholder `summary_text`
+   - `summary_text` (AI text when provided, placeholder fallback otherwise)
+   - optional `code_section` (saved deterministic calculations payload)
+   - optional `ai_section` (saved AI narrative payload)
    - optional `note`
 5. List saved comparisons via `GET /api/v1/comparisons`.
 6. Retrieve saved comparison detail via `GET /api/v1/comparisons/{comparison_id}`.

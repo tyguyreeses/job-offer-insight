@@ -18,6 +18,9 @@ class ComparisonCreateRequest(BaseModel):
     mode: Literal["one_to_one", "one_to_all"]
     selected_offer_ids: list[str]
     base_offer_id: str | None = None
+    summary_text: str | None = None
+    code_section: dict[str, Any] | None = None
+    ai_section: Any | None = None
     note: str | None = None
 
 
@@ -27,6 +30,8 @@ class ComparisonResponse(BaseModel):
     base_offer_id: str
     selected_offer_ids: list[str]
     summary_text: str
+    code_section: dict[str, Any] | None
+    ai_section: Any | None
     note: str | None
     created_at: str
     updated_at: str
@@ -67,6 +72,8 @@ def _to_response(record: ComparisonRecord) -> ComparisonResponse:
         base_offer_id=record.base_offer_id,
         selected_offer_ids=record.selected_offer_ids,
         summary_text=record.summary_text,
+        code_section=record.code_section,
+        ai_section=record.ai_section,
         note=record.note,
         created_at=record.created_at,
         updated_at=record.updated_at,
@@ -82,6 +89,9 @@ def create_comparison(
         mode=request.mode,
         selected_offer_ids=request.selected_offer_ids,
         base_offer_id=request.base_offer_id,
+        summary_text=request.summary_text,
+        code_section=request.code_section,
+        ai_section=request.ai_section,
         note=request.note,
     )
     return ComparisonCreateResponse(

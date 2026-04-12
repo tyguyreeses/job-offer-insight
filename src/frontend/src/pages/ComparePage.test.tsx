@@ -130,6 +130,12 @@ describe("ComparePage", () => {
           base_offer_id: "offer-1",
           selected_offer_ids: ["offer-1", "offer-2"],
           summary_text: "Comparison summary placeholder.",
+          code_section: {
+            mode: "one_to_one",
+            metrics: [{ metric_label: "Annual base salary", percentage_difference: 10.5 }],
+            notes: "Saved deterministic notes"
+          },
+          ai_section: "### Saved AI\n- Atlas wins on total cash",
           note: "Saved detail note",
           created_at: "2026-04-11T00:00:00Z",
           updated_at: "2026-04-11T00:00:00Z"
@@ -142,6 +148,12 @@ describe("ComparePage", () => {
       base_offer_id: "offer-1",
       selected_offer_ids: ["offer-1", "offer-2"],
       summary_text: "Comparison summary placeholder.",
+      code_section: {
+        mode: "one_to_one",
+        metrics: [{ metric_label: "Annual base salary", percentage_difference: 10.5 }],
+        notes: "Saved deterministic notes"
+      },
+      ai_section: "### Saved AI\n- Atlas wins on total cash",
       note: "Saved detail note",
       created_at: "2026-04-11T00:00:00Z",
       updated_at: "2026-04-11T00:00:00Z"
@@ -156,7 +168,10 @@ describe("ComparePage", () => {
       expect(mockedFetchComparisonById).toHaveBeenCalledWith("comparison-1");
     });
 
-    expect(screen.queryByText("Saved detail note")).not.toBeInTheDocument();
+    expect(screen.getByText("Saved detail note")).toBeInTheDocument();
+    expect(screen.getByText("Saved AI")).toBeInTheDocument();
+    expect(screen.getByText("Atlas wins on total cash")).toBeInTheDocument();
+    expect(screen.getByText("Annual base salary: 10.50%")).toBeInTheDocument();
     expect(screen.queryByLabelText("Available offers")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Saved comparisons")).toBeInTheDocument();
   });
@@ -170,6 +185,8 @@ describe("ComparePage", () => {
           base_offer_id: "offer-1",
           selected_offer_ids: ["offer-1", "offer-2"],
           summary_text: "Comparison summary placeholder.",
+          code_section: null,
+          ai_section: null,
           note: null,
           created_at: "2026-04-11T00:00:00Z",
           updated_at: "2026-04-11T00:00:00Z"
@@ -182,6 +199,8 @@ describe("ComparePage", () => {
       base_offer_id: "offer-1",
       selected_offer_ids: ["offer-1", "offer-2"],
       summary_text: "Comparison summary placeholder.",
+      code_section: null,
+      ai_section: null,
       note: null,
       created_at: "2026-04-11T00:00:00Z",
       updated_at: "2026-04-11T00:00:00Z"
@@ -216,5 +235,31 @@ describe("ComparePage", () => {
     expect(await screen.findByText("AI Summary")).toBeInTheDocument();
     expect(screen.getByText("Tradeoff one")).toBeInTheDocument();
     expect(screen.getByText("Tradeoff two")).toBeInTheDocument();
+  });
+
+  it("saves generated code, ai summary, and note together", async () => {
+    render(<ComparePage />);
+    await screen.findByText("Atlas");
+
+    fireEvent.click(screen.getByRole("button", { name: "Atlas" }));
+    fireEvent.click(screen.getByRole("button", { name: "Beacon" }));
+    fireEvent.click(screen.getByRole("button", { name: "Generate Comparison" }));
+    await screen.findByText("AI Summary");
+
+    fireEvent.change(screen.getByLabelText("Notes"), {
+      target: { value: "Keep this in final save." }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save Comparison" }));
+
+    await waitFor(() => {
+      expect(mockedCreateComparison).toHaveBeenCalledWith(
+        expect.objectContaining({
+          note: "Keep this in final save.",
+          code_section: expect.any(Object),
+          ai_section: expect.any(String),
+          summary_text: expect.stringContaining("AI Summary")
+        })
+      );
+    });
   });
 });

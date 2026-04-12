@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS comparisons (
     base_offer_id TEXT NOT NULL,
     selected_offer_ids_json TEXT NOT NULL,
     summary_text TEXT NOT NULL,
+    code_section_json TEXT,
+    ai_section_json TEXT,
     note TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
