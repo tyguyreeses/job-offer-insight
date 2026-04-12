@@ -247,7 +247,30 @@ describe("ComparePage", () => {
     expect(screen.getByLabelText("Notes")).toBeInTheDocument();
   });
 
-  it("saves generated code, ai summary, and note together", async () => {
+  it("saves generated code, ai summary, and note together then opens saved view", async () => {
+    mockedCreateComparison.mockResolvedValue({
+      status: "saved",
+      errors: [],
+      comparison: {
+        id: "comparison-2",
+        comparison_mode: "one_to_one",
+        base_offer_id: "offer-1",
+        selected_offer_ids: ["offer-1", "offer-2"],
+        summary_text: "### AI Summary\n- Tradeoff one\n- Tradeoff two",
+        code_section: {
+          mode: "one_to_one",
+          base_offer_id: "offer-1",
+          other_offer_id: "offer-2",
+          metrics: [{ metric_label: "Annual base salary", percentage_difference: 10.5 }],
+          notes: "Saved deterministic notes"
+        },
+        ai_section: "### AI Summary\n- Tradeoff one\n- Tradeoff two",
+        note: "Keep this in final save.",
+        created_at: "2026-04-12T00:00:00Z",
+        updated_at: "2026-04-12T00:00:00Z"
+      }
+    } as never);
+
     render(<ComparePage />);
     await screen.findByText("Atlas");
 
@@ -272,5 +295,10 @@ describe("ComparePage", () => {
         })
       );
     });
+
+    expect(await screen.findByText("Saved Comparison")).toBeInTheDocument();
+    expect(screen.getByText("Saved Notes")).toBeInTheDocument();
+    expect(screen.getByText("Keep this in final save.")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Available offers")).not.toBeInTheDocument();
   });
 });

@@ -309,9 +309,10 @@ export function ComparePage({
     };
   }, []);
 
-  const refreshComparisons = async (): Promise<void> => {
+  const refreshComparisons = async (): Promise<ComparisonPayload[]> => {
     const response = await fetchComparisons();
     setComparisons(response.comparisons);
+    return response.comparisons;
   };
 
   useEffect(() => {
@@ -474,8 +475,16 @@ export function ComparePage({
         setSaveError(result.errors[0] ?? "Unable to save comparison.");
         return;
       }
+      const savedComparisonId = result.comparison?.id ?? null;
       clearGeneratedDraft();
-      await refreshComparisons();
+      const refreshedComparisons = await refreshComparisons();
+      const fallbackComparisonId = refreshedComparisons[0]?.id ?? null;
+      const targetComparisonId = savedComparisonId ?? fallbackComparisonId;
+      if (targetComparisonId !== null) {
+        setActiveSavedComparisonId(targetComparisonId);
+        const detail = result.comparison ?? (await fetchComparisonById(targetComparisonId));
+        setActiveSavedComparison(detail);
+      }
     } catch (error: unknown) {
       setSaveError(error instanceof Error ? error.message : "Unable to save comparison.");
     } finally {
@@ -609,7 +618,7 @@ export function ComparePage({
 
   const renderAISection = (): JSX.Element => {
     const aiText = generatedAISection ? aiSectionToMarkdown(generatedAISection) : "";
-    const generatingLabel = "generating...";
+    const generatingLabel = "Generating...";
     return (
       <section className="compare-generated-section compare-generated-ai">
         <h3>AI-Generated Comparison</h3>
