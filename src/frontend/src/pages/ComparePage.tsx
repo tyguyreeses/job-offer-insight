@@ -443,7 +443,7 @@ export function ComparePage({
         {derivedMonetary.annualBenefits !== null || derivedMonetary.monthlyTakeHome !== null ? (
           <section className="dashboard-card-section dashboard-card-derived-section">
             <h3>
-              Monetary Snapshot{" "}
+              Estimated Monetary Snapshot{" "}
               {derivedMonetary.explanation ? (
                 <span className="info-pill" title={derivedMonetary.explanation} aria-label="Monetary calculation details">
                   i
@@ -451,7 +451,7 @@ export function ComparePage({
               ) : null}
             </h3>
             {derivedMonetary.annualBenefits !== null ? (
-              <p>{`Estimated Total Annual Monetary Benefits: ${formatUsd(derivedMonetary.annualBenefits)}`}</p>
+              <p>{`Total Annual Monetary Benefits: ${formatUsd(derivedMonetary.annualBenefits)}`}</p>
             ) : null}
             {derivedMonetary.monthlyTakeHome !== null ? (
               <p>{`Monthly Take-Home: ${formatUsd(derivedMonetary.monthlyTakeHome)}`}</p>
