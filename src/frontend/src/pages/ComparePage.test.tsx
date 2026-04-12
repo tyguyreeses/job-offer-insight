@@ -132,6 +132,8 @@ describe("ComparePage", () => {
           summary_text: "Comparison summary placeholder.",
           code_section: {
             mode: "one_to_one",
+            base_offer_id: "offer-1",
+            other_offer_id: "offer-2",
             metrics: [{ metric_label: "Annual base salary", percentage_difference: 10.5 }],
             notes: "Saved deterministic notes"
           },
@@ -150,6 +152,8 @@ describe("ComparePage", () => {
       summary_text: "Comparison summary placeholder.",
       code_section: {
         mode: "one_to_one",
+        base_offer_id: "offer-1",
+        other_offer_id: "offer-2",
         metrics: [{ metric_label: "Annual base salary", percentage_difference: 10.5 }],
         notes: "Saved deterministic notes"
       },
@@ -171,7 +175,11 @@ describe("ComparePage", () => {
     expect(screen.getByText("Saved detail note")).toBeInTheDocument();
     expect(screen.getByText("Saved AI")).toBeInTheDocument();
     expect(screen.getByText("Atlas wins on total cash")).toBeInTheDocument();
-    expect(screen.getByText("Annual base salary: 10.50%")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_, element) => element?.tagName === "LI" && element.textContent === "← Annual base salary: 10.50% lower"
+      )
+    ).toBeInTheDocument();
     expect(screen.queryByLabelText("Available offers")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Saved comparisons")).toBeInTheDocument();
   });

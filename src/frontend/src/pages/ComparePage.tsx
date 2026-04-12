@@ -145,6 +145,14 @@ function aiSectionToMarkdown(aiSection: unknown): string {
   return "";
 }
 
+function normalizeMetricLabel(metricLabel: string): string {
+  const withoutUnits = metricLabel.replace(/\s*\(USD\)\s*/gi, " ").trim();
+  if (withoutUnits === "") {
+    return "Value";
+  }
+  return withoutUnits;
+}
+
 export function ComparePage({
   prefillSelectedOfferIds = [],
   onPrefillConsumed,
@@ -175,6 +183,61 @@ export function ComparePage({
   const offersById = useMemo(() => {
     return new Map(offers.map((offer) => [offer.id, offer]));
   }, [offers]);
+
+  const metricSentence = (codeSection: Record<string, unknown>, row: Record<string, unknown>): JSX.Element => {
+    const metric = normalizeMetricLabel(asText(row.metric_label));
+    const mode = asText(codeSection.mode);
+
+    if (mode === "one_to_one") {
+      const percent = row.percentage_difference;
+      if (typeof percent === "number") {
+        if (percent > 0) {
+          return (
+            <>
+              {`← ${metric}: `}
+              <strong>{`${percent.toFixed(2)}%`}</strong>
+              {" lower"}
+            </>
+          );
+        }
+        if (percent < 0) {
+          return (
+            <>
+              {`← ${metric}: `}
+              <strong>{`${Math.abs(percent).toFixed(2)}%`}</strong>
+              {" higher"}
+            </>
+          );
+        }
+        return <>{`↔ ${metric}: equal`}</>;
+      }
+      return <>{`↔ ${metric}: unavailable`}</>;
+    }
+
+    const percent = row.percentage_difference_to_highest;
+    if (typeof percent === "number") {
+      if (percent > 0) {
+        return (
+          <>
+            {`← ${metric}: `}
+            <strong>{`${percent.toFixed(2)}%`}</strong>
+            {" lower"}
+          </>
+        );
+      }
+      if (percent < 0) {
+        return (
+          <>
+            {`← ${metric}: `}
+            <strong>{`${Math.abs(percent).toFixed(2)}%`}</strong>
+            {" higher"}
+          </>
+        );
+      }
+      return <>{`↔ ${metric}: equal`}</>;
+    }
+    return <>{`↔ ${metric}: unavailable`}</>;
+  };
 
   useEffect(() => {
     onUnsavedDraftStateChange?.(hasUnsavedGenerated);
@@ -530,9 +593,7 @@ export function ComparePage({
               }
               const row = item as Record<string, unknown>;
               const label = asText(row.metric_label);
-              const percent = row.percentage_difference ?? row.percentage_difference_to_highest;
-              const percentText = typeof percent === "number" ? `${percent.toFixed(2)}%` : "N/A";
-              return <li key={`${label}-${index}`}>{`${label}: ${percentText}`}</li>;
+              return <li key={`${label}-${index}`}>{metricSentence(generatedCodeSection, row)}</li>;
             })}
           </ul>
         ) : (
@@ -582,9 +643,7 @@ export function ComparePage({
               }
               const row = item as Record<string, unknown>;
               const label = asText(row.metric_label);
-              const percent = row.percentage_difference ?? row.percentage_difference_to_highest;
-              const percentText = typeof percent === "number" ? `${percent.toFixed(2)}%` : "N/A";
-              return <li key={`${label}-${index}`}>{`${label}: ${percentText}`}</li>;
+              return <li key={`${label}-${index}`}>{metricSentence(codeSection, row)}</li>;
             })}
           </ul>
         ) : (
