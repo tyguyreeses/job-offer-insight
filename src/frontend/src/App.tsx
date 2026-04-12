@@ -11,7 +11,8 @@ type NavItem = "Dashboard" | "Add Entry" | "Compare";
 export default function App(): JSX.Element {
   const [activeItem, setActiveItem] = useState<NavItem>("Add Entry");
   const [comparePrefillSelectedOfferIds, setComparePrefillSelectedOfferIds] = useState<string[]>([]);
-  const [compareHasUnsavedDraft, setCompareHasUnsavedDraft] = useState(false);
+  const [isAddEntryProcessing, setIsAddEntryProcessing] = useState(false);
+  const [isCompareProcessing, setIsCompareProcessing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,47 +33,48 @@ export default function App(): JSX.Element {
     };
   }, []);
 
+  const processingItems: NavItem[] = [
+    ...(isAddEntryProcessing ? (["Add Entry"] as const) : []),
+    ...(isCompareProcessing ? (["Compare"] as const) : [])
+  ];
+
   return (
     <div className="app-shell">
       <Navbar
         activeItem={activeItem}
+        processingItems={processingItems}
         onNavigate={(item) => {
           if (item === activeItem) {
             return;
           }
-          if (activeItem === "Compare" && compareHasUnsavedDraft) {
-            const shouldDiscard = window.confirm("Discard unsaved generated comparison?");
-            if (!shouldDiscard) {
-              return;
-            }
-          }
           setActiveItem(item);
         }}
       />
-      {activeItem === "Dashboard" ? (
+      <section className={activeItem === "Dashboard" ? "app-page app-page-visible" : "app-page app-page-hidden"}>
         <DashboardPage
           onCompareSelected={(selectedOfferIds) => {
             setComparePrefillSelectedOfferIds(selectedOfferIds);
             setActiveItem("Compare");
           }}
         />
-      ) : null}
-      {activeItem === "Add Entry" ? (
+      </section>
+      <section className={activeItem === "Add Entry" ? "app-page app-page-visible" : "app-page app-page-hidden"}>
         <AddEntryPage
+          onProcessingStateChange={setIsAddEntryProcessing}
           onOfferSaved={() => {
             setActiveItem("Dashboard");
           }}
         />
-      ) : null}
-      {activeItem === "Compare" ? (
+      </section>
+      <section className={activeItem === "Compare" ? "app-page app-page-visible" : "app-page app-page-hidden"}>
         <ComparePage
           prefillSelectedOfferIds={comparePrefillSelectedOfferIds}
           onPrefillConsumed={() => {
             setComparePrefillSelectedOfferIds([]);
           }}
-          onUnsavedDraftStateChange={setCompareHasUnsavedDraft}
+          onProcessingStateChange={setIsCompareProcessing}
         />
-      ) : null}
+      </section>
     </div>
   );
 }

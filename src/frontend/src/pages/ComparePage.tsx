@@ -17,7 +17,7 @@ import { emphasizeNumericText } from "../utils/textEmphasis";
 interface ComparePageProps {
   prefillSelectedOfferIds?: string[];
   onPrefillConsumed?: () => void;
-  onUnsavedDraftStateChange?: (hasUnsaved: boolean) => void;
+  onProcessingStateChange?: (isProcessing: boolean) => void;
 }
 
 function offerName(offer: OfferSummaryPayload | undefined, fallbackId: string): string {
@@ -157,7 +157,7 @@ function normalizeMetricLabel(metricLabel: string): string {
 export function ComparePage({
   prefillSelectedOfferIds = [],
   onPrefillConsumed,
-  onUnsavedDraftStateChange
+  onProcessingStateChange
 }: ComparePageProps): JSX.Element {
   const [offerSchema, setOfferSchema] = useState<OfferSchemaPayload | null>(null);
   const [isSchemaLoading, setIsSchemaLoading] = useState(true);
@@ -242,8 +242,11 @@ export function ComparePage({
   };
 
   useEffect(() => {
-    onUnsavedDraftStateChange?.(hasUnsavedGenerated);
-  }, [hasUnsavedGenerated, onUnsavedDraftStateChange]);
+    onProcessingStateChange?.(isGeneratingCode || isGeneratingAI);
+    return () => {
+      onProcessingStateChange?.(false);
+    };
+  }, [isGeneratingAI, isGeneratingCode, onProcessingStateChange]);
 
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent): void => {

@@ -32,9 +32,10 @@ function AssistantMessagePanel({ message }: { message: string }): JSX.Element | 
 
 interface AddEntryPageProps {
   onOfferSaved?: () => void;
+  onProcessingStateChange?: (isProcessing: boolean) => void;
 }
 
-export function AddEntryPage({ onOfferSaved }: AddEntryPageProps): JSX.Element {
+export function AddEntryPage({ onOfferSaved, onProcessingStateChange }: AddEntryPageProps): JSX.Element {
   const [mode, setMode] = useState<ModeState>("chooser");
   const [inputText, setInputText] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -272,6 +273,13 @@ export function AddEntryPage({ onOfferSaved }: AddEntryPageProps): JSX.Element {
   useEffect(() => {
     transitionAudioLabel(desiredAudioLabel);
   }, [desiredAudioLabel]);
+
+  useEffect(() => {
+    onProcessingStateChange?.(isSubmitting);
+    return () => {
+      onProcessingStateChange?.(false);
+    };
+  }, [isSubmitting, onProcessingStateChange]);
 
   const isProcessingLabel = audioButtonLabel === "Processing...";
 

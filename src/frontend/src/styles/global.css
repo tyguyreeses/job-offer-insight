@@ -25,6 +25,15 @@ body {
   flex-direction: column;
 }
 
+.app-page {
+  flex: 1;
+  min-height: 0;
+}
+
+.app-page-hidden {
+  display: none;
+}
+
 .app-navbar {
   display: flex;
   align-items: center;
@@ -63,6 +72,10 @@ body {
 .nav-link-active {
   border-color: var(--color-border);
   background: var(--color-primary-a08);
+}
+
+.nav-link-processing {
+  color: var(--color-primary);
 }
 
 .main-panel {
