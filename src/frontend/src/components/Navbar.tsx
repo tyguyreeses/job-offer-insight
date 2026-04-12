@@ -1,4 +1,4 @@
-const NAV_ITEMS = ["Dashboard", "Add Entry", "Compare"] as const;
+const NAV_ITEMS = ["Add Entry", "Dashboard", "Compare"] as const;
 type NavItem = (typeof NAV_ITEMS)[number];
 
 interface NavbarProps {
