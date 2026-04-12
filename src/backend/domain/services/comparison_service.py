@@ -614,8 +614,21 @@ class Stage8ComparisonService:
             if cleaned == "":
                 _LOGGER.debug("Comparison AI agent output was empty after trim for draft_id=%s.", draft.draft_id)
             return cleaned if cleaned != "" else None
-        except (AgentExecutionError, KeyError):
-            _LOGGER.debug(
+        except AgentExecutionError as exc:
+            _LOGGER.warning(
+                "Comparison AI generation failed for draft_id=%s mode=%s agent=%s "
+                "selected_offer_count=%s user_input_chars=%s error=%s",
+                draft.draft_id,
+                draft.mode,
+                agent_name,
+                len(draft.selected_offer_ids),
+                len(user_input),
+                str(exc),
+                exc_info=True,
+            )
+            return None
+        except KeyError:
+            _LOGGER.warning(
                 "Comparison AI generation failed for draft_id=%s mode=%s agent=%s.",
                 draft.draft_id,
                 draft.mode,

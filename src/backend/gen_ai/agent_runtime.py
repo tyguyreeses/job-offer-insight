@@ -9,10 +9,12 @@ from typing import TypeVar
 from pydantic import BaseModel
 
 from ..utils.config_types import OpenAISection
+from ..utils.logging import get_logger
 from .agent_registry import AgentDefinition
 from .client import OpenAIClientConfigError, build_openai_client
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
+_LOGGER = get_logger(__name__)
 
 
 class AgentExecutionError(RuntimeError):
@@ -35,6 +37,7 @@ class ToolCall:
 class NonStructuredRunResult:
     output_text: str
     tool_calls: list[ToolCall]
+    response_summary: dict[str, object]
 
 
 @dataclass(frozen=True)
@@ -46,7 +49,15 @@ class NonStructuredAgent:
         run_result = self.run_with_tools(user_input=user_input, tools=None)
         output_text = run_result.output_text
         if output_text.strip() == "":
-            raise AgentExecutionError("Non-structured agent response did not include text output.")
+            _LOGGER.warning(
+                "Non-structured agent produced no text output. agent=%s response_summary=%s",
+                self.agent.name,
+                run_result.response_summary,
+            )
+            raise AgentExecutionError(
+                "Non-structured agent response did not include text output. "
+                f"response_summary={run_result.response_summary}"
+            )
         return output_text
 
     def run_with_tools(
@@ -77,12 +88,73 @@ class NonStructuredAgent:
             request_kwargs["tool_choice"] = "auto"
 
         response = client.responses.create(**request_kwargs)
-        output_text = getattr(response, "output_text", None)
-        parsed_output_text = output_text if isinstance(output_text, str) else ""
+        parsed_output_text = _extract_response_text(response)
+        response_summary = _build_response_summary(response)
         return NonStructuredRunResult(
             output_text=parsed_output_text,
             tool_calls=_parse_tool_calls(response),
+            response_summary=response_summary,
         )
+
+
+def _extract_response_text(response: object) -> str:
+    output_text = _value_from(response, "output_text")
+    if isinstance(output_text, str) and output_text.strip() != "":
+        return output_text
+
+    output = _value_from(response, "output")
+    if not isinstance(output, list):
+        return output_text if isinstance(output_text, str) else ""
+
+    chunks: list[str] = []
+    for item in output:
+        if _value_from(item, "type") != "message":
+            continue
+        content = _value_from(item, "content")
+        if not isinstance(content, list):
+            continue
+        for content_item in content:
+            if _value_from(content_item, "type") != "output_text":
+                continue
+            text_value = _value_from(content_item, "text")
+            if isinstance(text_value, str) and text_value.strip() != "":
+                chunks.append(text_value)
+    return "\n".join(chunks)
+
+
+def _build_response_summary(response: object) -> dict[str, object]:
+    output = _value_from(response, "output")
+    output_items = output if isinstance(output, list) else []
+
+    output_types: list[str] = []
+    content_types: list[str] = []
+    for item in output_items:
+        output_type = _value_from(item, "type")
+        if isinstance(output_type, str):
+            output_types.append(output_type)
+        content = _value_from(item, "content")
+        if not isinstance(content, list):
+            continue
+        for content_item in content:
+            content_type = _value_from(content_item, "type")
+            if isinstance(content_type, str):
+                content_types.append(content_type)
+
+    return {
+        "id": _value_from(response, "id"),
+        "status": _value_from(response, "status"),
+        "model": _value_from(response, "model"),
+        "output_text_len": len((_value_from(response, "output_text") or "")),
+        "output_item_count": len(output_items),
+        "output_item_types": output_types,
+        "message_content_types": content_types,
+    }
+
+
+def _value_from(obj: object, name: str) -> object | None:
+    if isinstance(obj, dict):
+        return obj.get(name)
+    return getattr(obj, name, None)
 
 
 def _parse_tool_calls(response: object) -> list[ToolCall]:
