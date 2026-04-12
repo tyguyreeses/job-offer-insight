@@ -18,6 +18,7 @@ class AgentDefinition:
     prompt: str
     max_output_tokens: int
     tools: list["AgentToolDefinition"]
+    reasoning: dict[str, object] | None = None
 
 
 @dataclass(frozen=True)
@@ -52,6 +53,7 @@ def build_agent_registry(config: AgentsSection) -> AgentRegistry:
                 prompt=entry_creation_prompt,
                 max_output_tokens=config.entry_creation.max_output_tokens,
                 tools=_resolve_tools(config.entry_creation.tools),
+                reasoning=_resolve_reasoning(config.entry_creation.reasoning),
             ),
             "parse_entry": AgentDefinition(
                 name="parse_entry",
@@ -61,6 +63,7 @@ def build_agent_registry(config: AgentsSection) -> AgentRegistry:
                 prompt=parse_entry_prompt,
                 max_output_tokens=config.parse_entry.max_output_tokens,
                 tools=_resolve_tools(config.parse_entry.tools),
+                reasoning=_resolve_reasoning(config.parse_entry.reasoning),
             ),
             "comparison_one_to_one": AgentDefinition(
                 name="comparison_one_to_one",
@@ -70,6 +73,7 @@ def build_agent_registry(config: AgentsSection) -> AgentRegistry:
                 prompt=comparison_one_to_one_prompt,
                 max_output_tokens=config.comparison_one_to_one.max_output_tokens,
                 tools=_resolve_tools(config.comparison_one_to_one.tools),
+                reasoning=_resolve_reasoning(config.comparison_one_to_one.reasoning),
             ),
             "comparison_one_to_all": AgentDefinition(
                 name="comparison_one_to_all",
@@ -79,6 +83,7 @@ def build_agent_registry(config: AgentsSection) -> AgentRegistry:
                 prompt=comparison_one_to_all_prompt,
                 max_output_tokens=config.comparison_one_to_all.max_output_tokens,
                 tools=_resolve_tools(config.comparison_one_to_all.tools),
+                reasoning=_resolve_reasoning(config.comparison_one_to_all.reasoning),
             ),
         }
     )
@@ -112,3 +117,13 @@ def _resolve_tools(config_tools: list[AgentToolConfig]) -> list[AgentToolDefinit
         )
         for tool in config_tools
     ]
+
+
+def _resolve_reasoning(reasoning: object) -> dict[str, object] | None:
+    if reasoning is None:
+        return None
+    dumped = getattr(reasoning, "model_dump", None)
+    if callable(dumped):
+        value = dumped(exclude_none=True)
+        return value if isinstance(value, dict) and len(value) > 0 else None
+    return None

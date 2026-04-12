@@ -108,6 +108,8 @@ class NonStructuredAgent:
             ],
             "max_output_tokens": max_output_tokens_override or self.agent.max_output_tokens,
         }
+        if self.agent.reasoning is not None:
+            request_kwargs["reasoning"] = self.agent.reasoning
         if tools:
             request_kwargs["tools"] = [
                 {
@@ -253,15 +255,19 @@ class StructuredOutputAgent:
 
     def run(self, user_input: str, output_model: type[ModelT]) -> ModelT:
         client = _build_client(self.openai_config)
-        parsed = client.responses.parse(
-            model=self.agent.model,
-            input=[
+        request_kwargs: dict[str, object] = {
+            "model": self.agent.model,
+            "input": [
                 {"role": "system", "content": self.agent.prompt},
                 {"role": "user", "content": user_input},
             ],
-            max_output_tokens=self.agent.max_output_tokens,
-            text_format=output_model,
-        )
+            "max_output_tokens": self.agent.max_output_tokens,
+            "text_format": output_model,
+        }
+        if self.agent.reasoning is not None:
+            request_kwargs["reasoning"] = self.agent.reasoning
+
+        parsed = client.responses.parse(**request_kwargs)
         output_parsed = parsed.output_parsed
         if output_parsed is None:
             raise AgentExecutionError("Structured agent did not return parsed output.")

@@ -129,3 +129,39 @@ def test_non_structured_agent_retries_incomplete_response_with_higher_output_tok
     assert len(calls) == 2
     assert calls[0]["max_output_tokens"] == 300
     assert calls[1]["max_output_tokens"] == 600
+
+
+def test_non_structured_agent_includes_reasoning_when_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[dict[str, object]] = []
+    response = {
+        "id": "resp_reasoning",
+        "status": "completed",
+        "output_text": "ok",
+        "output": [],
+    }
+    fake_client = _FakeClient(queued_responses=[response], calls=calls)
+    monkeypatch.setattr(
+        agent_runtime_module,
+        "_build_client",
+        lambda _config: fake_client,
+    )
+    agent = NonStructuredAgent(
+        agent=AgentDefinition(
+            name="comparison_one_to_one",
+            type="non-structured",
+            enabled=True,
+            model="gpt-5.2",
+            prompt="prompt",
+            max_output_tokens=300,
+            tools=[],
+            reasoning={"effort": "medium"},
+        ),
+        openai_config=OpenAISection(),
+    )
+
+    result = agent.run("input")
+
+    assert result == "ok"
+    assert calls[0]["reasoning"] == {"effort": "medium"}

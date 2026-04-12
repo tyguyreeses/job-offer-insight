@@ -92,6 +92,14 @@ class AgentConfig(BaseModel):
     prompt: str = Field(min_length=1)
     max_output_tokens: int = Field(default=1200, ge=1)
     tools: list["AgentToolConfig"] = Field(default_factory=list)
+    reasoning: "AgentReasoningConfig | None" = None
+
+
+class AgentReasoningConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    effort: Literal["low", "medium", "high"] | None = None
+    summary: Literal["auto", "concise", "detailed"] | None = None
 
 
 class AgentToolConfig(BaseModel):
