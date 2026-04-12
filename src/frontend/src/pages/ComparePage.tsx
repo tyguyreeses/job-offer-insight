@@ -596,7 +596,7 @@ export function ComparePage({
     const metrics = Array.isArray(metricsRaw) ? metricsRaw : [];
     return (
       <section className="compare-generated-section compare-generated-code">
-        <h3>Code-Generated Comparison</h3>
+        <h3>Monetary Comparison</h3>
         <p>{asText(generatedCodeSection.notes)}</p>
         {metrics.length > 0 ? (
           <ul className="compare-generated-metrics-list">
