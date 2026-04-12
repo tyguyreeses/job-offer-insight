@@ -214,6 +214,11 @@ body {
   align-items: stretch;
 }
 
+.compare-canvas-middle .compare-summary-content {
+  width: 100%;
+  align-items: stretch;
+}
+
 .compare-canvas-middle-stage8 {
   min-height: 520px;
 }
@@ -224,6 +229,10 @@ body {
   padding: 0.7rem;
   background: rgba(255, 255, 255, 0.9);
   margin-bottom: 0.6rem;
+}
+
+.compare-canvas-middle .compare-generated-section {
+  width: 100%;
 }
 
 .compare-generated-section h3 {
