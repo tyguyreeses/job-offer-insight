@@ -190,7 +190,7 @@ offer_schema:
         widget: "text"
 
     - id: "annual-base-salary-usd"
-      label: "Annual base salary (USD)"
+      label: "Annual base salary"
       storage_path: "compensation.annual_base_salary_usd"
       data_type: "number"
       group: "compensation"
@@ -205,7 +205,7 @@ offer_schema:
         order: 1
         widget: "number"
     - id: "hourly-rate-usd"
-      label: "Hourly rate (USD)"
+      label: "Hourly rate"
       storage_path: "compensation.hourly_rate_usd"
       data_type: "number"
       group: "compensation"
@@ -235,7 +235,7 @@ offer_schema:
         order: 3
         widget: "number"
     - id: "annualized-total-cash-usd"
-      label: "Annualized total cash (USD)"
+      label: "Annualized total cash"
       storage_path: "compensation.annualized_total_cash_usd"
       data_type: "number"
       group: "compensation"
@@ -250,7 +250,7 @@ offer_schema:
         order: 4
         widget: "number"
     - id: "signing-bonus-usd"
-      label: "Signing bonus (USD)"
+      label: "Signing bonus"
       storage_path: "compensation.signing_bonus_usd"
       data_type: "number"
       group: "compensation"
@@ -265,7 +265,7 @@ offer_schema:
         order: 5
         widget: "number"
     - id: "target-bonus-percent"
-      label: "Target bonus (%)"
+      label: "Target bonus"
       storage_path: "compensation.target_bonus_percent"
       data_type: "number"
       group: "compensation"
@@ -281,7 +281,7 @@ offer_schema:
         widget: "number"
 
     - id: "retirement-match-percent"
-      label: "Retirement match (%)"
+      label: "Retirement match"
       storage_path: "monetary_benefits.retirement_match_percent"
       data_type: "number"
       group: "monetary"
@@ -296,7 +296,7 @@ offer_schema:
         order: 1
         widget: "number"
     - id: "retirement-match-cap-usd"
-      label: "Retirement match cap (USD)"
+      label: "Retirement match cap"
       storage_path: "monetary_benefits.retirement_match_cap_usd"
       data_type: "number"
       group: "monetary"
@@ -311,7 +311,7 @@ offer_schema:
         order: 2
         widget: "number"
     - id: "health-insurance-employer-monthly-usd"
-      label: "Health insurance employer monthly (USD)"
+      label: "Health insurance employer monthly"
       storage_path: "monetary_benefits.health_insurance_employer_monthly_usd"
       data_type: "number"
       group: "monetary"
@@ -326,7 +326,7 @@ offer_schema:
         order: 3
         widget: "number"
     - id: "dental-insurance-employer-monthly-usd"
-      label: "Dental insurance employer monthly (USD)"
+      label: "Dental insurance employer monthly"
       storage_path: "monetary_benefits.dental_insurance_employer_monthly_usd"
       data_type: "number"
       group: "monetary"
@@ -341,7 +341,7 @@ offer_schema:
         order: 4
         widget: "number"
     - id: "hsa-employer-annual-usd"
-      label: "HSA employer annual (USD)"
+      label: "HSA employer annual"
       storage_path: "monetary_benefits.hsa_employer_annual_usd"
       data_type: "number"
       group: "monetary"
@@ -356,7 +356,7 @@ offer_schema:
         order: 5
         widget: "number"
     - id: "equity-grant-usd"
-      label: "Equity grant value (USD)"
+      label: "Equity grant value"
       storage_path: "monetary_benefits.equity_grant_usd"
       data_type: "number"
       group: "monetary"
@@ -453,7 +453,7 @@ offer_schema:
         order: 2
         widget: "text"
     - id: "tax-override-pre-tax-percent"
-      label: "Tax override pre-tax deduction (%)"
+      label: "Tax override pre-tax deduction"
       storage_path: "tax_overrides.pre_tax_deduction_percent"
       data_type: "number"
       group: "meta"
