@@ -635,7 +635,9 @@ export function ComparePage({
             ))}
           </p>
         ) : null}
-        {!isGeneratingAI && generatedAISection ? renderMarkdownText(aiText) : null}
+        {!isGeneratingAI && generatedAISection ? (
+          <div className="compare-ai-scroll-body">{renderMarkdownText(aiText)}</div>
+        ) : null}
         {!isGeneratingAI && !generatedAISection ? <p className="compare-generated-pending">Pending...</p> : null}
       </section>
     );
@@ -671,6 +673,7 @@ export function ComparePage({
     if (activeComparison !== null) {
       const ids = activeComparison.selected_offer_ids;
       const savedAIText = activeComparison.ai_section ? aiSectionToMarkdown(activeComparison.ai_section) : "";
+      const isOneToAll = activeComparison.comparison_mode === "one_to_all";
       return (
         <section className="compare-canvas-grid">
           {renderOfferPanel(activeComparison.base_offer_id, "left")}
@@ -678,14 +681,16 @@ export function ComparePage({
             <div className="compare-summary-content">
               <h3>Saved Comparison</h3>
               {activeComparison.code_section ? renderSavedCodeSection(activeComparison.code_section) : null}
-              {savedAIText ? (
-                <section className="compare-generated-section compare-generated-ai">
-                  <h3>Saved AI Summary</h3>
-                  {renderMarkdownText(savedAIText)}
-                </section>
-              ) : (
-                <p>{activeComparison.summary_text}</p>
-              )}
+              {!isOneToAll
+                ? savedAIText
+                  ? (
+                    <section className="compare-generated-section compare-generated-ai">
+                      <h3>Saved AI Summary</h3>
+                      <div className="compare-ai-scroll-body">{renderMarkdownText(savedAIText)}</div>
+                    </section>
+                  )
+                  : <p>{activeComparison.summary_text}</p>
+                : null}
               {activeComparison.note ? (
                 <section className="compare-generated-section">
                   <h3>Saved Notes</h3>
@@ -697,10 +702,16 @@ export function ComparePage({
           {activeComparison.comparison_mode === "one_to_one" ? (
             renderOfferPanel(ids[1], "right")
           ) : (
-            <article className="compare-canvas-right-placeholder">
+            <article className="compare-canvas-right-placeholder compare-canvas-right-summary">
               <div className="compare-summary-content">
-                <h3>All Other Entries</h3>
-                <p>{`Snapshot includes ${Math.max(ids.length - 1, 0)} other offers.`}</p>
+                <h3>Saved AI Summary</h3>
+                {savedAIText ? (
+                  <section className="compare-generated-section compare-generated-ai">
+                    <div className="compare-ai-scroll-body">{renderMarkdownText(savedAIText)}</div>
+                  </section>
+                ) : (
+                  <p>{activeComparison.summary_text}</p>
+                )}
               </div>
             </article>
           )}
@@ -722,7 +733,7 @@ export function ComparePage({
               <div className="compare-summary-content compare-summary-content-stage8">
                 <h3>Comparison Draft</h3>
                 {renderCodeSection()}
-                {generatedDraftId !== null ? (
+                {generatedDraftId !== null && mode === "one_to_one" ? (
                   renderAISection()
                 ) : (
                   <p className="compare-stage8-generate-hint">
@@ -766,10 +777,16 @@ export function ComparePage({
             {mode === "one_to_one" ? (
               renderOfferPanel(draftSelectedOfferIds[1], "right")
             ) : (
-              <article className="compare-canvas-right-placeholder">
+              <article className="compare-canvas-right-placeholder compare-canvas-right-summary">
                 <div className="compare-summary-content">
-                  <h3>All Other Entries</h3>
-                  <p>One-to-all compares selected base against all other saved offers.</p>
+                  {generatedDraftId !== null ? (
+                    renderAISection()
+                  ) : (
+                    <>
+                      <h3>All Other Entries</h3>
+                      <p>One-to-all compares selected base against all other saved offers.</p>
+                    </>
+                  )}
                 </div>
               </article>
             )}
