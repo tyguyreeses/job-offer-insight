@@ -10,3 +10,4 @@ src/frontend/dist/
 *.tsbuildinfo
 
 homework/
+src/tax_information
