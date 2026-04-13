@@ -190,6 +190,13 @@ function normalizeMetricLabel(metricLabel: string): string {
 }
 
 type MetricArrowDirection = "left" | "right" | "none";
+type MetricTextAlign = "center" | "left";
+interface MetricRenderData {
+  direction: MetricArrowDirection;
+  showArrows: boolean;
+  textAlign: MetricTextAlign;
+  text: JSX.Element;
+}
 
 export function ComparePage({
   isActive = true,
@@ -227,7 +234,7 @@ export function ComparePage({
   const metricSentence = (
     codeSection: Record<string, unknown>,
     row: Record<string, unknown>
-  ): { direction: MetricArrowDirection; text: JSX.Element } => {
+  ): MetricRenderData => {
     const metric = normalizeMetricLabel(asText(row.metric_label));
     const mode = asText(codeSection.mode);
 
@@ -237,6 +244,8 @@ export function ComparePage({
         if (percent > 0) {
           return {
             direction: "right",
+            showArrows: true,
+            textAlign: "center",
             text: (
               <>
                 {`${metric}: `}
@@ -249,6 +258,8 @@ export function ComparePage({
         if (percent < 0) {
           return {
             direction: "left",
+            showArrows: true,
+            textAlign: "center",
             text: (
               <>
                 {`${metric}: `}
@@ -258,59 +269,80 @@ export function ComparePage({
             )
           };
         }
-        return { direction: "none", text: <>{`${metric}: equal`}</> };
+        return { direction: "none", showArrows: false, textAlign: "center", text: <>{`${metric}: equal`}</> };
       }
-      return { direction: "none", text: <>{`${metric}: unavailable`}</> };
+      return { direction: "none", showArrows: false, textAlign: "center", text: <>{`${metric}: unavailable`}</> };
     }
 
     const percent = row.percentage_difference_to_highest;
     if (typeof percent === "number") {
       if (percent > 0) {
         return {
-          direction: "left",
+          direction: "none",
+          showArrows: false,
+          textAlign: "left",
           text: (
             <>
               {`${metric}: `}
               <strong>{`${percent.toFixed(2)}%`}</strong>
-              {" higher"}
+              {" below highest"}
             </>
           )
         };
       }
       if (percent < 0) {
         return {
-          direction: "right",
+          direction: "none",
+          showArrows: false,
+          textAlign: "left",
           text: (
             <>
               {`${metric}: `}
-              <strong>{`${Math.abs(percent).toFixed(2)}%`}</strong>
-              {" higher"}
+              <strong>{`highest by ${Math.abs(percent).toFixed(2)}%`}</strong>
             </>
           )
         };
       }
-      return { direction: "none", text: <>{`${metric}: equal`}</> };
+      return {
+        direction: "none",
+        showArrows: false,
+        textAlign: "left",
+        text: (
+          <>
+            {`${metric}: `}
+            <strong>tied for highest among saved offers</strong>
+          </>
+        )
+      };
     }
-    return { direction: "none", text: <>{`${metric}: unavailable`}</> };
+    return { direction: "none", showArrows: false, textAlign: "left", text: <>{`${metric}: unavailable`}</> };
   };
 
   const renderMetricRow = (codeSection: Record<string, unknown>, row: Record<string, unknown>): JSX.Element => {
     const metric = metricSentence(codeSection, row);
     return (
-      <div className="compare-generated-metric-row">
-        <span
-          className={`compare-generated-metric-arrow compare-generated-metric-arrow-left ${
-            metric.direction === "left" ? "compare-generated-metric-arrow-active" : ""
-          }`}
-          aria-hidden="true"
-        />
+      <div
+        className={`compare-generated-metric-row ${
+          metric.showArrows ? "" : "compare-generated-metric-row-no-arrows"
+        } ${metric.textAlign === "left" ? "compare-generated-metric-row-left-text" : ""}`.trim()}
+      >
+        {metric.showArrows ? (
+          <span
+            className={`compare-generated-metric-arrow compare-generated-metric-arrow-left ${
+              metric.direction === "left" ? "compare-generated-metric-arrow-active" : ""
+            }`}
+            aria-hidden="true"
+          />
+        ) : null}
         <span className="compare-generated-metric-text">{metric.text}</span>
-        <span
-          className={`compare-generated-metric-arrow compare-generated-metric-arrow-right ${
-            metric.direction === "right" ? "compare-generated-metric-arrow-active" : ""
-          }`}
-          aria-hidden="true"
-        />
+        {metric.showArrows ? (
+          <span
+            className={`compare-generated-metric-arrow compare-generated-metric-arrow-right ${
+              metric.direction === "right" ? "compare-generated-metric-arrow-active" : ""
+            }`}
+            aria-hidden="true"
+          />
+        ) : null}
       </div>
     );
   };

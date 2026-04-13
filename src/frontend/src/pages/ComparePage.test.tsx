@@ -234,6 +234,77 @@ describe("ComparePage", () => {
     expect(await screen.findByLabelText("Available offers")).toBeInTheDocument();
   });
 
+  it("hides arrows and left-aligns one-to-all metric text while indicating highest", async () => {
+    mockedFetchComparisons.mockResolvedValue({
+      comparisons: [
+        {
+          id: "comparison-oa-1",
+          comparison_mode: "one_to_all",
+          base_offer_id: "offer-1",
+          selected_offer_ids: ["offer-1", "offer-2"],
+          summary_text: "One to all summary",
+          code_section: {
+            mode: "one_to_all",
+            base_offer_id: "offer-1",
+            metrics: [
+              {
+                metric_label: "Annual base salary",
+                percentage_difference_to_highest: -5.25
+              }
+            ],
+            notes: "Saved deterministic notes"
+          },
+          ai_section: "### Saved AI\n- Atlas leads this metric",
+          note: null,
+          created_at: "2026-04-13T00:00:00Z",
+          updated_at: "2026-04-13T00:00:00Z"
+        }
+      ]
+    } as never);
+    mockedFetchComparisonById.mockResolvedValue({
+      id: "comparison-oa-1",
+      comparison_mode: "one_to_all",
+      base_offer_id: "offer-1",
+      selected_offer_ids: ["offer-1", "offer-2"],
+      summary_text: "One to all summary",
+      code_section: {
+        mode: "one_to_all",
+        base_offer_id: "offer-1",
+        metrics: [
+          {
+            metric_label: "Annual base salary",
+            percentage_difference_to_highest: -5.25
+          }
+        ],
+        notes: "Saved deterministic notes"
+      },
+      ai_section: "### Saved AI\n- Atlas leads this metric",
+      note: null,
+      created_at: "2026-04-13T00:00:00Z",
+      updated_at: "2026-04-13T00:00:00Z"
+    } as never);
+
+    render(<ComparePage />);
+    await screen.findByRole("button", { name: "Atlas • all 1 other entries" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Atlas • all 1 other entries" }));
+    await waitFor(() => {
+      expect(mockedFetchComparisonById).toHaveBeenCalledWith("comparison-oa-1");
+    });
+
+    const metricText = screen.getByText(
+      (_, element) =>
+        element?.tagName === "SPAN" &&
+        element.classList.contains("compare-generated-metric-text") &&
+        element.textContent === "Annual base salary: highest by 5.25%"
+    );
+    const metricRow = metricText.closest(".compare-generated-metric-row");
+    expect(metricRow).not.toBeNull();
+    expect(metricRow).toHaveClass("compare-generated-metric-row-no-arrows");
+    expect(metricRow).toHaveClass("compare-generated-metric-row-left-text");
+    expect(metricRow?.querySelector(".compare-generated-metric-arrow")).toBeNull();
+  });
+
   it("renders generated AI section as markdown", async () => {
     render(<ComparePage />);
     await screen.findByText("Atlas");

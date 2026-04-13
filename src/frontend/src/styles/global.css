@@ -344,6 +344,14 @@ body {
   text-align: center;
 }
 
+.compare-generated-metric-row-no-arrows {
+  display: block;
+}
+
+.compare-generated-metric-row-left-text .compare-generated-metric-text {
+  text-align: left;
+}
+
 .compare-generated-metric-arrow {
   position: relative;
   display: block;
