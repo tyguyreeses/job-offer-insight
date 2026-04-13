@@ -966,6 +966,11 @@ body {
   resize: vertical;
 }
 
+.edit-offer-autosize-textarea {
+  resize: none;
+  overflow-y: hidden;
+}
+
 .edit-offer-field-error input {
   border-color: var(--color-danger-outline);
 }

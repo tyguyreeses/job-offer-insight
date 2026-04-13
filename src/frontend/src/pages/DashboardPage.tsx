@@ -95,6 +95,11 @@ function parseFormValue(field: OfferSchemaField, value: string): unknown {
   return trimmed;
 }
 
+function resizeEditTextarea(element: HTMLTextAreaElement): void {
+  element.style.height = "auto";
+  element.style.height = `${element.scrollHeight}px`;
+}
+
 export function DashboardPage({ isActive = true, onCompareSelected }: DashboardPageProps): JSX.Element {
   const DELETE_FADE_DURATION_MS = 280;
   const DELETE_COLLAPSE_DURATION_MS = 460;
@@ -824,8 +829,17 @@ export function DashboardPage({ isActive = true, onCompareSelected }: DashboardP
                                 {labelText}
                                 <textarea
                                   name={field.id}
+                                  className="edit-offer-autosize-textarea"
                                   value={editForm[field.id] ?? ""}
                                   onChange={handleEditInputChange}
+                                  onInput={(event) => {
+                                    resizeEditTextarea(event.currentTarget);
+                                  }}
+                                  ref={(element) => {
+                                    if (element !== null) {
+                                      resizeEditTextarea(element);
+                                    }
+                                  }}
                                 />
                               </label>
                             );
