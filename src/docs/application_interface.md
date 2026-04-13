@@ -48,7 +48,7 @@ When a field is missing during intake:
 
 1. `offer_meta.source_input_type` reflects intake origin.
 2. Text intake saves `offer_meta.source_input_type = "text"`.
-3. Audio intake (Stage 5) may reuse text parsing internally but must persist `offer_meta.source_input_type = "audio"` for audio-origin offers.
+3. Audio intake may reuse text parsing internally but must persist `offer_meta.source_input_type = "audio"` for audio-origin offers.
 
 ### Validation Behavior
 
