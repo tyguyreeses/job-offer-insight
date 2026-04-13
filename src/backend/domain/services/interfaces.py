@@ -6,7 +6,12 @@ from typing import Any, Literal, Protocol
 
 from .offer_service import IntakeResult, TextConversationResult
 from ..models import ComparisonRecord, OfferRecord
-from .comparison_service import ComparisonCreateResult, ComparisonMode
+from .comparison_service import (
+    ComparisonCreateResult,
+    ComparisonGenerateAIResult,
+    ComparisonGenerateCodeResult,
+    ComparisonMode,
+)
 
 OfferSortBy = Literal["created_at", "company_name", "role_title"]
 SortDirection = Literal["asc", "desc"]
@@ -78,9 +83,25 @@ class ComparisonService(Protocol):
         mode: ComparisonMode,
         selected_offer_ids: list[str],
         base_offer_id: str | None,
+        summary_text: str | None,
+        code_section: dict[str, Any] | None,
+        ai_section: Any | None,
         note: str | None,
     ) -> ComparisonCreateResult:
         """Create and return one saved comparison."""
+
+    def generate_comparison_draft(
+        self,
+        *,
+        mode: ComparisonMode,
+        selected_offer_ids: list[str],
+        base_offer_id: str | None,
+        note: str | None,
+    ) -> ComparisonGenerateCodeResult:
+        """Generate deterministic draft comparison output (non-persisted)."""
+
+    def generate_comparison_ai_section(self, *, draft_id: str) -> ComparisonGenerateAIResult:
+        """Generate AI comparison text for an existing draft id."""
 
     def list_comparisons(self) -> list[ComparisonRecord]:
         """Return all saved comparisons."""

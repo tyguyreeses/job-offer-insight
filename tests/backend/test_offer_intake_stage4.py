@@ -90,6 +90,7 @@ def _build_client_with_tooling(
         text_parser_agent=parser,
         audio_transcriber=container.audio_transcriber,
         offer_schema=build_configured_offer_schema(config.offer_schema),
+        tax_config=config.tax_profile,
         entry_creation_agent=chat_agent,
     )
     app = create_app(replace(container, offer_service=service))

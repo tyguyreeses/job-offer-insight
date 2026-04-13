@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from fastapi import Depends, Request
 
 from .domain.offer_schema import build_configured_offer_schema
-from .domain.services.comparison_service import Stage7ComparisonService
+from .domain.services.comparison_service import Stage8ComparisonService
 from .domain.services.interfaces import ComparisonService, OfferService
 from .domain.services.offer_service import Stage4OfferService
 from .gen_ai.agent_registry import AgentRegistry, build_agent_registry
@@ -77,10 +77,15 @@ def build_runtime_container(config: RuntimeConfig, logger: logging.Logger) -> Ru
             entry_creation_agent=entry_creation_agent,
             audio_transcriber=audio_transcriber,
             offer_schema=offer_schema,
+            tax_config=config.tax_profile,
         ),
-        comparison_service=Stage7ComparisonService(
+        comparison_service=Stage8ComparisonService(
             comparison_repository=comparison_repository,
             offer_repository=offer_repository,
+            offer_schema=offer_schema,
+            tax_config=config.tax_profile,
+            agent_registry=agent_registry,
+            openai_config=config.openai,
         ),
     )
 

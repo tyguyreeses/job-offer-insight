@@ -130,11 +130,17 @@ class UnimplementedComparisonService:
         mode: Literal["one_to_one", "one_to_all"],
         selected_offer_ids: list[str],
         base_offer_id: str | None,
+        summary_text: str | None,
+        code_section: dict[str, Any] | None,
+        ai_section: Any | None,
         note: str | None,
     ) -> ComparisonCreateResult:
         _ = mode
         _ = selected_offer_ids
         _ = base_offer_id
+        _ = summary_text
+        _ = code_section
+        _ = ai_section
         _ = note
         return ComparisonCreateResult(
             status="not_implemented",

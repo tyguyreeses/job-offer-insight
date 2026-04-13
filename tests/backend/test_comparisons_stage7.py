@@ -76,6 +76,8 @@ def test_create_one_to_one_comparison_and_retrieve_detail(tmp_path: Path) -> Non
     assert detail_payload["id"] == created["id"]
     assert detail_payload["selected_offer_ids"] == [left_id, right_id]
     assert detail_payload["summary_text"] == "Comparison summary placeholder."
+    assert detail_payload["code_section"] is None
+    assert detail_payload["ai_section"] is None
 
 
 def test_create_one_to_all_comparison_snapshots_all_other_offers(tmp_path: Path) -> None:
@@ -243,3 +245,32 @@ def test_delete_saved_comparison_removes_it(tmp_path: Path) -> None:
 
     detail_response = client.get(f"/api/v1/comparisons/{comparison_id}")
     assert detail_response.status_code == 404
+
+
+def test_create_comparison_persists_generated_sections_when_provided(tmp_path: Path) -> None:
+    client, offers = _build_client_and_repo(tmp_path)
+    left_id = _seed_offer(offers, company_name="Atlas", role_title="Engineer")
+    right_id = _seed_offer(offers, company_name="Beacon", role_title="Engineer")
+
+    create_response = client.post(
+        "/api/v1/comparisons",
+        json={
+            "mode": "one_to_one",
+            "base_offer_id": left_id,
+            "selected_offer_ids": [left_id, right_id],
+            "summary_text": "### AI Summary\n- Atlas has stronger mission fit",
+            "code_section": {
+                "mode": "one_to_one",
+                "metrics": [{"metric_label": "Annual base salary", "percentage_difference": 12.0}],
+                "notes": "Draft calculations",
+            },
+            "ai_section": "### AI Summary\n- Atlas has stronger mission fit",
+            "note": "User note",
+        },
+    )
+    assert create_response.status_code == 200
+    comparison = create_response.json()["comparison"]
+    assert comparison["summary_text"].startswith("### AI Summary")
+    assert comparison["code_section"]["mode"] == "one_to_one"
+    assert comparison["ai_section"].startswith("### AI Summary")
+    assert comparison["note"] == "User note"

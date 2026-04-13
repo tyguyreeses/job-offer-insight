@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 
 @dataclass(frozen=True)
@@ -13,6 +13,8 @@ class ComparisonRecord:
     base_offer_id: str
     selected_offer_ids: list[str]
     summary_text: str
+    code_section: dict[str, Any] | None
+    ai_section: Any | None
     note: str | None
     created_at: str
     updated_at: str

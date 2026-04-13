@@ -111,6 +111,35 @@ describe("AddEntryPage", () => {
     );
   });
 
+  it("shows text processing indicator and disables textarea while submit is in flight", async () => {
+    const resolveRequestRef: { current: ((value: typeof inProgressResponse) => void) | null } = {
+      current: null
+    };
+    mockedSendTextTurn.mockImplementation(
+      () =>
+        new Promise<typeof inProgressResponse>((resolve) => {
+          resolveRequestRef.current = resolve;
+        })
+    );
+
+    render(<AddEntryPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Text" }));
+
+    const input = await screen.findByLabelText("Add details");
+    fireEvent.change(input, { target: { value: "Role title and salary" } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Processing your input...");
+    expect(input).toBeDisabled();
+
+    if (resolveRequestRef.current !== null) {
+      resolveRequestRef.current(inProgressResponse);
+    }
+    await waitFor(() => {
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    });
+  });
+
   it("fades text button, centers audio button, and relabels it to Record", async () => {
     render(<AddEntryPage />);
 
