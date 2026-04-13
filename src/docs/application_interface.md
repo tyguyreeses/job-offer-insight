@@ -98,6 +98,8 @@ A saved comparison record includes:
    - Text input
 3. Main entry controls appear as two large, centered round buttons.
 4. On text-mode selection, mode buttons fade out and text input fades in.
+5. While text intake is processing, the text input shows a visible processing indicator
+   and the input is disabled to prevent duplicate submissions.
 5. On audio-mode selection:
    - Text button fades away.
    - Audio button smoothly slides to the centered position.
@@ -197,6 +199,12 @@ A saved comparison record includes:
    - AI section remains pending until completed
    - generated result remains unsaved draft until `Save Comparison`
    - context switches/navigation from unsaved generated draft prompt discard confirmation
+
+## Diagnostics and Logging
+
+1. Backend logs include text-intake lifecycle markers: request received, parsing started,
+   parsing completed, and response sent.
+2. Each log line includes the intake action, session id (when available), and response status.
 
 ## API Contract (External Behavior)
 
