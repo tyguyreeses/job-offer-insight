@@ -1144,6 +1144,11 @@ body {
   white-space: pre;
 }
 
+.processing-label {
+  display: inline-block;
+  white-space: pre;
+}
+
 .processing-label-char {
   display: inline-block;
   opacity: 0.2;
@@ -1153,6 +1158,13 @@ body {
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
   animation-delay: calc(var(--processing-index) * 80ms);
+}
+
+.text-processing-indicator {
+  margin: 0;
+  align-self: center;
+  color: var(--color-muted);
+  font-size: 0.92rem;
 }
 
 .audio-main-label-fade-out {

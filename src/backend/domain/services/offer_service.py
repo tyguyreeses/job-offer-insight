@@ -566,6 +566,14 @@ class Stage4OfferService:
 
         message = (message_text or "").strip()
         current_prompt_key = _current_prompt_key_for_step(session.step)
+        logger.debug(
+            "Text intake turn action=%s session_id=%s step=%s source=%s message_length=%s",
+            action,
+            session.session_id,
+            session.step,
+            source_input_type,
+            len(message),
+        )
 
         if action == "submit":
             _append_message(session, "user", message)
@@ -580,6 +588,11 @@ class Stage4OfferService:
                 _advance_on_skip(session)
             elif message:
                 if len(_missing_required_fields(session.payload, self.offer_schema)) > 0:
+                    logger.debug(
+                        "Parsing submit text for session_id=%s missing_required=%s",
+                        session.session_id,
+                        len(_missing_required_fields(session.payload, self.offer_schema)),
+                    )
                     try:
                         extracted_payload = self.text_parser_agent.parse(message)
                     except TextParserError as exc:
@@ -588,6 +601,11 @@ class Stage4OfferService:
                     else:
                         session.payload = _merge_payloads(session.payload, extracted_payload)
                         _normalize_payload(session.payload, self.offer_schema)
+                        logger.debug(
+                            "Merged parsed submit text for session_id=%s payload_keys=%s",
+                            session.session_id,
+                            len(session.payload.keys()),
+                        )
                 if session.step == _STEP_COLLECT_REQUIRED:
                     if len(_missing_required_fields(session.payload, self.offer_schema)) == 0:
                         session.step = _STEP_COLLECT_MONETARY
@@ -623,6 +641,12 @@ class Stage4OfferService:
                 )
                 assistant_message = assistant_reply.message
                 _append_message(session, "assistant", assistant_message)
+                logger.debug(
+                    "Text intake blocked finish session_id=%s missing_required=%s warnings=%s",
+                    session.session_id,
+                    len(missing_required_fields),
+                    len(warnings),
+                )
                 return TextConversationResult(
                     session_id=session.session_id,
                     status="blocked_required_fields",
@@ -662,6 +686,12 @@ class Stage4OfferService:
                 )
                 assistant_message = assistant_reply.message
                 _append_message(session, "assistant", assistant_message)
+                logger.debug(
+                    "Text intake blocked by validation session_id=%s missing_required=%s warnings=%s",
+                    session.session_id,
+                    len(missing_required_fields),
+                    len(warnings),
+                )
                 return TextConversationResult(
                     session_id=session.session_id,
                     status="blocked_required_fields",
@@ -699,6 +729,12 @@ class Stage4OfferService:
             _append_message(session, "assistant", assistant_message)
             messages = list(session.messages)
             del self.text_conversation_sessions[session.session_id]
+            logger.debug(
+                "Text intake saved offer session_id=%s offer_id=%s warnings=%s",
+                session.session_id,
+                record.id,
+                len(warnings),
+            )
             return TextConversationResult(
                 session_id=session.session_id,
                 status="saved",
@@ -730,6 +766,15 @@ class Stage4OfferService:
             )
         assistant_message = assistant_reply.message
         _append_message(session, "assistant", assistant_message)
+        logger.debug(
+            "Text intake in progress session_id=%s step=%s can_finish=%s missing_required=%s errors=%s warnings=%s",
+            session.session_id,
+            session.step,
+            session.step == _STEP_ANYTHING_ELSE and len(missing_required_fields) == 0,
+            len(missing_required_fields),
+            len(errors),
+            len(warnings),
+        )
         return TextConversationResult(
             session_id=session.session_id,
             status="in_progress",

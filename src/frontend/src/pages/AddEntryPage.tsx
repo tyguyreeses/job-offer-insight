@@ -8,6 +8,22 @@ import type { IntakeAction, TextTurnResponse } from "../types/intake";
 type ModeState = "chooser" | "chooser-exit" | "text" | "audio";
 type AudioLabelPhase = "steady" | "fade-out" | "fade-in";
 
+function ProcessingLabel({ label }: { label: string }): JSX.Element {
+  return (
+    <span className="processing-label">
+      {label.split("").map((character, index) => (
+        <span
+          key={`processing-char-${index}-${character === " " ? "space" : character}`}
+          className="processing-label-char"
+          style={{ ["--processing-index" as string]: index } as CSSProperties}
+        >
+          {character}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function AssistantMessagePanel({ message }: { message: string }): JSX.Element | null {
   if (!message) {
     return null;
@@ -332,17 +348,7 @@ export function AddEntryPage({ onOfferSaved, onProcessingStateChange }: AddEntry
                   isProcessingLabel ? "audio-main-label-processing" : ""
                 }`}
               >
-                {isProcessingLabel
-                  ? audioButtonLabel.split("").map((character, index) => (
-                      <span
-                        key={`processing-char-${index}-${character === " " ? "space" : character}`}
-                        className="processing-label-char"
-                        style={{ ["--processing-index" as string]: index } as CSSProperties}
-                      >
-                        {character}
-                      </span>
-                    ))
-                  : audioButtonLabel}
+                {isProcessingLabel ? <ProcessingLabel label={audioButtonLabel} /> : audioButtonLabel}
               </span>
             </button>
           </section>
@@ -363,7 +369,14 @@ export function AddEntryPage({ onOfferSaved, onProcessingStateChange }: AddEntry
               onChange={(event) => setInputText(event.target.value)}
               placeholder="Paste or type offer details here..."
               rows={6}
+              disabled={isSubmitting}
             />
+
+            {isSubmitting ? (
+              <p className="text-processing-indicator motion-fade-enter" role="status" aria-live="polite">
+                <ProcessingLabel label="Processing your input..." />
+              </p>
+            ) : null}
 
             {errorText ? <p className="error-text">{errorText}</p> : null}
 
