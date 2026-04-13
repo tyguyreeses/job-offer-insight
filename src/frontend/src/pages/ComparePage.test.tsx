@@ -176,11 +176,17 @@ describe("ComparePage", () => {
     expect(screen.getByText("Saved detail note")).toBeInTheDocument();
     expect(screen.getByText("Saved AI")).toBeInTheDocument();
     expect(screen.getByText("Atlas wins on total cash")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        (_, element) => element?.tagName === "LI" && element.textContent === "← Annual base salary: 10.50% lower"
+    const metricRow = screen
+      .getByText(
+        (_, element) =>
+          element?.tagName === "SPAN" &&
+          element.classList.contains("compare-generated-metric-text") &&
+          element.textContent === "Annual base salary: 10.50% higher"
       )
-    ).toBeInTheDocument();
+      .closest("li");
+    expect(metricRow).not.toBeNull();
+    expect(metricRow?.querySelector(".compare-generated-metric-arrow-left.compare-generated-metric-arrow-active")).toBeNull();
+    expect(metricRow?.querySelector(".compare-generated-metric-arrow-right.compare-generated-metric-arrow-active")).not.toBeNull();
     expect(screen.queryByLabelText("Available offers")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Saved comparisons")).toBeInTheDocument();
   });

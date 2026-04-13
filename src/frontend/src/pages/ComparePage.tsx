@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   createComparison,
@@ -128,6 +128,40 @@ function renderMarkdownText(markdown: string): JSX.Element {
   return <div className="compare-markdown">{nodes.length > 0 ? nodes : <p>{markdown}</p>}</div>;
 }
 
+function AIScrollBody({ markdown }: { markdown: string }): JSX.Element {
+  const [showBottomFade, setShowBottomFade] = useState(false);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  const evaluateBottomFade = (): void => {
+    const element = scrollRef.current;
+    if (!element) {
+      return;
+    }
+    const tolerance = 2;
+    const hasOverflow = element.scrollHeight - element.clientHeight > tolerance;
+    const atBottom = element.scrollTop + element.clientHeight >= element.scrollHeight - tolerance;
+    setShowBottomFade(hasOverflow && !atBottom);
+  };
+
+  useEffect(() => {
+    evaluateBottomFade();
+    window.addEventListener("resize", evaluateBottomFade);
+    return () => {
+      window.removeEventListener("resize", evaluateBottomFade);
+    };
+  }, [markdown]);
+
+  return (
+    <div
+      ref={scrollRef}
+      className={`compare-ai-scroll-body ${showBottomFade ? "compare-ai-scroll-body-fade" : ""}`.trim()}
+      onScroll={evaluateBottomFade}
+    >
+      {renderMarkdownText(markdown)}
+    </div>
+  );
+}
+
 function aiSectionToMarkdown(aiSection: unknown): string {
   if (typeof aiSection === "string") {
     return aiSection;
@@ -153,6 +187,8 @@ function normalizeMetricLabel(metricLabel: string): string {
   }
   return withoutUnits;
 }
+
+type MetricArrowDirection = "left" | "right" | "none";
 
 export function ComparePage({
   prefillSelectedOfferIds = [],
@@ -186,7 +222,10 @@ export function ComparePage({
     return new Map(offers.map((offer) => [offer.id, offer]));
   }, [offers]);
 
-  const metricSentence = (codeSection: Record<string, unknown>, row: Record<string, unknown>): JSX.Element => {
+  const metricSentence = (
+    codeSection: Record<string, unknown>,
+    row: Record<string, unknown>
+  ): { direction: MetricArrowDirection; text: JSX.Element } => {
     const metric = normalizeMetricLabel(asText(row.metric_label));
     const mode = asText(codeSection.mode);
 
@@ -194,51 +233,84 @@ export function ComparePage({
       const percent = row.percentage_difference;
       if (typeof percent === "number") {
         if (percent > 0) {
-          return (
-            <>
-              {`← ${metric}: `}
-              <strong>{`${percent.toFixed(2)}%`}</strong>
-              {" lower"}
-            </>
-          );
+          return {
+            direction: "right",
+            text: (
+              <>
+                {`${metric}: `}
+                <strong>{`${percent.toFixed(2)}%`}</strong>
+                {" higher"}
+              </>
+            )
+          };
         }
         if (percent < 0) {
-          return (
-            <>
-              {`← ${metric}: `}
-              <strong>{`${Math.abs(percent).toFixed(2)}%`}</strong>
-              {" higher"}
-            </>
-          );
+          return {
+            direction: "left",
+            text: (
+              <>
+                {`${metric}: `}
+                <strong>{`${Math.abs(percent).toFixed(2)}%`}</strong>
+                {" higher"}
+              </>
+            )
+          };
         }
-        return <>{`↔ ${metric}: equal`}</>;
+        return { direction: "none", text: <>{`${metric}: equal`}</> };
       }
-      return <>{`↔ ${metric}: unavailable`}</>;
+      return { direction: "none", text: <>{`${metric}: unavailable`}</> };
     }
 
     const percent = row.percentage_difference_to_highest;
     if (typeof percent === "number") {
       if (percent > 0) {
-        return (
-          <>
-            {`← ${metric}: `}
-            <strong>{`${percent.toFixed(2)}%`}</strong>
-            {" lower"}
-          </>
-        );
+        return {
+          direction: "left",
+          text: (
+            <>
+              {`${metric}: `}
+              <strong>{`${percent.toFixed(2)}%`}</strong>
+              {" higher"}
+            </>
+          )
+        };
       }
       if (percent < 0) {
-        return (
-          <>
-            {`← ${metric}: `}
-            <strong>{`${Math.abs(percent).toFixed(2)}%`}</strong>
-            {" higher"}
-          </>
-        );
+        return {
+          direction: "right",
+          text: (
+            <>
+              {`${metric}: `}
+              <strong>{`${Math.abs(percent).toFixed(2)}%`}</strong>
+              {" higher"}
+            </>
+          )
+        };
       }
-      return <>{`↔ ${metric}: equal`}</>;
+      return { direction: "none", text: <>{`${metric}: equal`}</> };
     }
-    return <>{`↔ ${metric}: unavailable`}</>;
+    return { direction: "none", text: <>{`${metric}: unavailable`}</> };
+  };
+
+  const renderMetricRow = (codeSection: Record<string, unknown>, row: Record<string, unknown>): JSX.Element => {
+    const metric = metricSentence(codeSection, row);
+    return (
+      <div className="compare-generated-metric-row">
+        <span
+          className={`compare-generated-metric-arrow compare-generated-metric-arrow-left ${
+            metric.direction === "left" ? "compare-generated-metric-arrow-active" : ""
+          }`}
+          aria-hidden="true"
+        />
+        <span className="compare-generated-metric-text">{metric.text}</span>
+        <span
+          className={`compare-generated-metric-arrow compare-generated-metric-arrow-right ${
+            metric.direction === "right" ? "compare-generated-metric-arrow-active" : ""
+          }`}
+          aria-hidden="true"
+        />
+      </div>
+    );
   };
 
   useEffect(() => {
@@ -609,7 +681,7 @@ export function ComparePage({
               }
               const row = item as Record<string, unknown>;
               const label = asText(row.metric_label);
-              return <li key={`${label}-${index}`}>{metricSentence(generatedCodeSection, row)}</li>;
+              return <li key={`${label}-${index}`}>{renderMetricRow(generatedCodeSection, row)}</li>;
             })}
           </ul>
         ) : (
@@ -638,9 +710,7 @@ export function ComparePage({
             ))}
           </p>
         ) : null}
-        {!isGeneratingAI && generatedAISection ? (
-          <div className="compare-ai-scroll-body">{renderMarkdownText(aiText)}</div>
-        ) : null}
+        {!isGeneratingAI && generatedAISection ? <AIScrollBody markdown={aiText} /> : null}
         {!isGeneratingAI && !generatedAISection ? <p className="compare-generated-pending">Pending...</p> : null}
       </section>
     );
@@ -661,7 +731,7 @@ export function ComparePage({
               }
               const row = item as Record<string, unknown>;
               const label = asText(row.metric_label);
-              return <li key={`${label}-${index}`}>{metricSentence(codeSection, row)}</li>;
+              return <li key={`${label}-${index}`}>{renderMetricRow(codeSection, row)}</li>;
             })}
           </ul>
         ) : (
@@ -703,7 +773,7 @@ export function ComparePage({
                   ? (
                     <section className="compare-generated-section compare-generated-ai">
                       <h3>Saved AI Summary</h3>
-                      <div className="compare-ai-scroll-body">{renderMarkdownText(savedAIText)}</div>
+                      <AIScrollBody markdown={savedAIText} />
                     </section>
                   )
                   : <p>{activeComparison.summary_text}</p>
@@ -724,7 +794,7 @@ export function ComparePage({
                 <h3>Saved AI Summary</h3>
                 {savedAIText ? (
                   <section className="compare-generated-section compare-generated-ai">
-                    <div className="compare-ai-scroll-body">{renderMarkdownText(savedAIText)}</div>
+                    <AIScrollBody markdown={savedAIText} />
                   </section>
                 ) : (
                   <p>{activeComparison.summary_text}</p>

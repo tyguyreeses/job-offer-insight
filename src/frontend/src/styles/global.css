@@ -284,7 +284,11 @@ body {
   max-height: 470px;
   overflow-y: auto;
   padding-right: 0.2rem;
+}
+
+.compare-ai-scroll-body-fade {
   mask-image: linear-gradient(to bottom, var(--color-black) 88%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, var(--color-black) 88%, transparent 100%);
 }
 
 .compare-markdown {
@@ -327,6 +331,38 @@ body {
 
 .compare-generated-metrics-list li {
   margin: 0.22rem 0;
+}
+
+.compare-generated-metric-row {
+  display: grid;
+  grid-template-columns: 1.1rem minmax(0, 1fr) 1.1rem;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.compare-generated-metric-text {
+  text-align: center;
+}
+
+.compare-generated-metric-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1rem;
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.compare-generated-metric-arrow::before {
+  content: "";
+}
+
+.compare-generated-metric-arrow-left.compare-generated-metric-arrow-active::before {
+  content: "←";
+}
+
+.compare-generated-metric-arrow-right.compare-generated-metric-arrow-active::before {
+  content: "→";
 }
 
 .compare-generated-pending {
