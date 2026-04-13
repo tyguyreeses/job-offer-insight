@@ -15,6 +15,7 @@ import { asStringList, asText, formatFieldValue, formatUsd, getDerivedMonetary, 
 import { emphasizeNumericText } from "../utils/textEmphasis";
 
 interface ComparePageProps {
+  isActive?: boolean;
   prefillSelectedOfferIds?: string[];
   onPrefillConsumed?: () => void;
   onProcessingStateChange?: (isProcessing: boolean) => void;
@@ -191,6 +192,7 @@ function normalizeMetricLabel(metricLabel: string): string {
 type MetricArrowDirection = "left" | "right" | "none";
 
 export function ComparePage({
+  isActive = true,
   prefillSelectedOfferIds = [],
   onPrefillConsumed,
   onProcessingStateChange
@@ -360,6 +362,9 @@ export function ComparePage({
   }, []);
 
   useEffect(() => {
+    if (!isActive) {
+      return;
+    }
     let cancelled = false;
     setIsLoadingOffers(true);
     setErrorText(null);
@@ -382,7 +387,7 @@ export function ComparePage({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isActive]);
 
   const refreshComparisons = async (): Promise<ComparisonPayload[]> => {
     const response = await fetchComparisons();
@@ -391,6 +396,9 @@ export function ComparePage({
   };
 
   useEffect(() => {
+    if (!isActive) {
+      return;
+    }
     let cancelled = false;
     setIsLoadingComparisons(true);
     setErrorText(null);
@@ -413,7 +421,7 @@ export function ComparePage({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isActive]);
 
   useEffect(() => {
     if (prefillSelectedOfferIds.length === 0) {

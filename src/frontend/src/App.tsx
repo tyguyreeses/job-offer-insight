@@ -52,6 +52,7 @@ export default function App(): JSX.Element {
       />
       <section className={activeItem === "Dashboard" ? "app-page app-page-visible" : "app-page app-page-hidden"}>
         <DashboardPage
+          isActive={activeItem === "Dashboard"}
           onCompareSelected={(selectedOfferIds) => {
             setComparePrefillSelectedOfferIds(selectedOfferIds);
             setActiveItem("Compare");
@@ -68,6 +69,7 @@ export default function App(): JSX.Element {
       </section>
       <section className={activeItem === "Compare" ? "app-page app-page-visible" : "app-page app-page-hidden"}>
         <ComparePage
+          isActive={activeItem === "Compare"}
           prefillSelectedOfferIds={comparePrefillSelectedOfferIds}
           onPrefillConsumed={() => {
             setComparePrefillSelectedOfferIds([]);

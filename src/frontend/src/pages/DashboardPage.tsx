@@ -34,6 +34,7 @@ interface SortOption {
 }
 
 interface DashboardPageProps {
+  isActive?: boolean;
   onCompareSelected?: (selectedOfferIds: string[]) => void;
 }
 
@@ -94,7 +95,7 @@ function parseFormValue(field: OfferSchemaField, value: string): unknown {
   return trimmed;
 }
 
-export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.Element {
+export function DashboardPage({ isActive = true, onCompareSelected }: DashboardPageProps): JSX.Element {
   const DELETE_FADE_DURATION_MS = 280;
   const DELETE_COLLAPSE_DURATION_MS = 460;
   const EDIT_PANEL_TRANSITION_MS = 240;
@@ -200,6 +201,9 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
   };
 
   useEffect(() => {
+    if (!isActive) {
+      return;
+    }
     let cancelled = false;
     setIsLoading(true);
     setErrorText(null);
@@ -227,7 +231,7 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
     return () => {
       cancelled = true;
     };
-  }, [selectedSort.sortBy, selectedSort.sortDirection]);
+  }, [isActive, selectedSort.sortBy, selectedSort.sortDirection]);
 
   const handleToggleSelection = (offerId: string): void => {
     if (fadingOfferIds.includes(offerId) || collapsingOfferIds.includes(offerId)) {
