@@ -15,7 +15,17 @@ import type {
   OfferSummaryPayload,
   SortDirection
 } from "../types/offers";
-import { asNumber, asStringList, asText, formatFieldValue, getPath, isPresent } from "../utils/offerDisplay";
+import {
+  asNumber,
+  asStringList,
+  asText,
+  formatFieldValue,
+  formatUsd,
+  getDerivedMonetary,
+  getPath,
+  isPresent
+} from "../utils/offerDisplay";
+import { emphasizeNumericText } from "../utils/textEmphasis";
 
 interface SortOption {
   label: string;
@@ -24,6 +34,7 @@ interface SortOption {
 }
 
 interface DashboardPageProps {
+  isActive?: boolean;
   onCompareSelected?: (selectedOfferIds: string[]) => void;
 }
 
@@ -84,7 +95,12 @@ function parseFormValue(field: OfferSchemaField, value: string): unknown {
   return trimmed;
 }
 
-export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.Element {
+function resizeEditTextarea(element: HTMLTextAreaElement): void {
+  element.style.height = "auto";
+  element.style.height = `${element.scrollHeight}px`;
+}
+
+export function DashboardPage({ isActive = true, onCompareSelected }: DashboardPageProps): JSX.Element {
   const DELETE_FADE_DURATION_MS = 280;
   const DELETE_COLLAPSE_DURATION_MS = 460;
   const EDIT_PANEL_TRANSITION_MS = 240;
@@ -116,6 +132,7 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
   const [editValidationErrors, setEditValidationErrors] = useState<string[]>([]);
   const [editForm, setEditForm] = useState<Record<string, string>>({});
   const [initialEditForm, setInitialEditForm] = useState<Record<string, string>>({});
+  const [revealedOptionalFieldIds, setRevealedOptionalFieldIds] = useState<Set<string>>(new Set());
   const [editOfferBasePayload, setEditOfferBasePayload] = useState<OfferSummaryPayload | null>(null);
 
   const selectedSort = useMemo(() => {
@@ -189,6 +206,9 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
   };
 
   useEffect(() => {
+    if (!isActive) {
+      return;
+    }
     let cancelled = false;
     setIsLoading(true);
     setErrorText(null);
@@ -216,7 +236,7 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
     return () => {
       cancelled = true;
     };
-  }, [selectedSort.sortBy, selectedSort.sortDirection]);
+  }, [isActive, selectedSort.sortBy, selectedSort.sortDirection]);
 
   const handleToggleSelection = (offerId: string): void => {
     if (fadingOfferIds.includes(offerId) || collapsingOfferIds.includes(offerId)) {
@@ -302,6 +322,7 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
       setEditOfferBasePayload(null);
       setEditForm({});
       setInitialEditForm({});
+      setRevealedOptionalFieldIds(new Set());
       setEditErrorText(null);
       setEditValidationErrors([]);
       editCloseTimeoutRef.current = null;
@@ -342,6 +363,14 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
         setEditOfferBasePayload(offer);
         setEditForm(formState);
         setInitialEditForm(formState);
+        const initiallyRevealed = new Set<string>();
+        for (const field of editableFields) {
+          const value = formState[field.id] ?? "";
+          if (!requiredAllFieldIds.has(field.id) && value.trim() !== "") {
+            initiallyRevealed.add(field.id);
+          }
+        }
+        setRevealedOptionalFieldIds(initiallyRevealed);
       })
       .catch((error: unknown) => {
         setEditErrorText(error instanceof Error ? error.message : "Unable to load offer for editing.");
@@ -362,6 +391,17 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
   const hasFieldError = (field: OfferSchemaField): boolean => {
     const normalized = field.storage_path.toLowerCase();
     return editValidationErrors.some((error) => error.toLowerCase().includes(normalized));
+  };
+
+  const formValuePresent = (field: OfferSchemaField): boolean => {
+    const value = editForm[field.id] ?? "";
+    if (field.edit.widget === "textarea_list") {
+      return value
+        .split("\n")
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0).length > 0;
+    }
+    return value.trim() !== "";
   };
 
   const handleSaveEdits = async (): Promise<void> => {
@@ -495,6 +535,7 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
           const roleTitle = offerSchema ? asText(getPath(payload, offerSchema.identity.role_title_path)) : offer.role_title;
           const location = asText(getPath(payload, locationPath)).trim();
           const roleAndLocation = location ? `${roleTitle} • ${location}` : roleTitle;
+          const derivedMonetary = getDerivedMonetary(payload);
 
           const isSelected = selectedOfferIds.includes(offer.id);
           const isDeleteConfirm = deleteConfirmId === offer.id;
@@ -535,8 +576,27 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
                   handleCardKeyDown(event, offer.id);
                 }}
               >
-                <h2 className="dashboard-card-company">{companyName}</h2>
-                <p className="dashboard-card-role">{roleAndLocation}</p>
+                <h2 className="dashboard-card-company">{emphasizeNumericText(companyName)}</h2>
+                <p className="dashboard-card-role">{emphasizeNumericText(roleAndLocation)}</p>
+
+                {derivedMonetary.annualBenefits !== null || derivedMonetary.monthlyTakeHome !== null ? (
+                  <section className="dashboard-card-section dashboard-card-derived-section">
+                    <h3>
+                      Estimated Monetary Snapshot{" "}
+                      {derivedMonetary.explanation ? (
+                        <span className="info-pill" title={derivedMonetary.explanation} aria-label="Monetary calculation details">
+                          i
+                        </span>
+                      ) : null}
+                    </h3>
+                    {derivedMonetary.annualBenefits !== null ? (
+                      <p>{emphasizeNumericText(`Total Annual Monetary Benefits: ${formatUsd(derivedMonetary.annualBenefits)}`)}</p>
+                    ) : null}
+                    {derivedMonetary.monthlyTakeHome !== null ? (
+                      <p>{emphasizeNumericText(`Monthly Take-Home: ${formatUsd(derivedMonetary.monthlyTakeHome)}`)}</p>
+                    ) : null}
+                  </section>
+                ) : null}
 
                 {offerSchema?.card_sections.map((section) => {
                   const fields = offerSchema.fields
@@ -557,7 +617,7 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
                         return (
                           <ul key={`${offer.id}-${field.id}`}>
                             {items.map((item) => (
-                              <li key={`${offer.id}-${field.id}-${item}`}>{item}</li>
+                              <li key={`${offer.id}-${field.id}-${item}`}>{emphasizeNumericText(item)}</li>
                             ))}
                           </ul>
                         );
@@ -569,10 +629,10 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
                       }
 
                       if (field.card.style === "value") {
-                        return <p key={`${offer.id}-${field.id}`}>{formatted}</p>;
+                        return <p key={`${offer.id}-${field.id}`}>{emphasizeNumericText(formatted)}</p>;
                       }
 
-                      return <p key={`${offer.id}-${field.id}`}>{`${field.label}: ${formatted}`}</p>;
+                      return <p key={`${offer.id}-${field.id}`}>{emphasizeNumericText(`${field.label}: ${formatted}`)}</p>;
                     })
                     .filter((node): node is JSX.Element => node !== null);
 
@@ -677,9 +737,52 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
                   void handleSaveEdits();
                 }}
               >
+                {editOfferBasePayload ? (
+                  <section className="edit-offer-derived-summary">
+                    {(() => {
+                      const derived = getDerivedMonetary(editOfferBasePayload as unknown as Record<string, unknown>);
+                      if (derived.annualBenefits === null && derived.monthlyTakeHome === null) {
+                        return <p className="dashboard-status">Derived monetary summary will appear after save.</p>;
+                      }
+                      return (
+                        <>
+                          <h3>
+                            Monetary summary{" "}
+                            {derived.explanation ? (
+                              <span className="info-pill" title={derived.explanation} aria-label="Monetary calculation details">
+                                i
+                              </span>
+                            ) : null}
+                          </h3>
+                          {derived.annualBenefits !== null ? (
+                            <p>{`Estimated Total Annual Monetary Benefits: ${formatUsd(derived.annualBenefits)}`}</p>
+                          ) : null}
+                          {derived.monthlyTakeHome !== null ? (
+                            <p>{`Monthly Take-Home: ${formatUsd(derived.monthlyTakeHome)}`}</p>
+                          ) : null}
+                        </>
+                      );
+                    })()}
+                  </section>
+                ) : null}
                 {offerSchema.edit_sections.map((section) => {
                   const sectionFields = editableFields.filter((field) => field.edit.section_id === section.section_id);
                   if (sectionFields.length === 0) {
+                    return null;
+                  }
+                  const visibleFields = sectionFields.filter((field) => {
+                    if (requiredAllFieldIds.has(field.id)) {
+                      return true;
+                    }
+                    return formValuePresent(field) || revealedOptionalFieldIds.has(field.id);
+                  });
+                  const addableOptionalFields = sectionFields.filter((field) => {
+                    if (requiredAllFieldIds.has(field.id)) {
+                      return false;
+                    }
+                    return !formValuePresent(field) && !revealedOptionalFieldIds.has(field.id);
+                  });
+                  if (visibleFields.length === 0 && addableOptionalFields.length === 0) {
                     return null;
                   }
                   const sectionClassSuffix = section.section_id.replace(/[^a-zA-Z0-9_-]/g, "-");
@@ -688,9 +791,31 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
                       key={section.section_id}
                       className={`edit-offer-section edit-offer-section-${sectionClassSuffix}`}
                     >
-                      <h3>{section.title}</h3>
+                      <div className="edit-offer-section-header-row">
+                        <h3>{section.title}</h3>
+                        {addableOptionalFields.length > 0 ? (
+                          <div className="edit-offer-addables">
+                            {addableOptionalFields.map((field) => (
+                              <button
+                                key={field.id}
+                                type="button"
+                                className="secondary-button selectable edit-add-field-button"
+                                onClick={() => {
+                                  setRevealedOptionalFieldIds((current) => {
+                                    const next = new Set(current);
+                                    next.add(field.id);
+                                    return next;
+                                  });
+                                }}
+                              >
+                                {`+ ${field.label}`}
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
                       <div className="edit-offer-grid">
-                        {sectionFields.map((field) => {
+                        {visibleFields.map((field) => {
                           const requiredMark = requiredAllFieldIds.has(field.id) ? "*" : "";
                           const labelText = `${field.label}${requiredMark}`;
                           const isFieldError = hasFieldError(field);
@@ -704,8 +829,17 @@ export function DashboardPage({ onCompareSelected }: DashboardPageProps): JSX.El
                                 {labelText}
                                 <textarea
                                   name={field.id}
+                                  className="edit-offer-autosize-textarea"
                                   value={editForm[field.id] ?? ""}
                                   onChange={handleEditInputChange}
+                                  onInput={(event) => {
+                                    resizeEditTextarea(event.currentTarget);
+                                  }}
+                                  ref={(element) => {
+                                    if (element !== null) {
+                                      resizeEditTextarea(element);
+                                    }
+                                  }}
                                 />
                               </label>
                             );

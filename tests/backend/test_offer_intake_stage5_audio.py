@@ -89,6 +89,7 @@ def _build_app_with_overrides(
         text_parser_agent=parser,
         audio_transcriber=transcriber,
         offer_schema=build_configured_offer_schema(config.offer_schema),
+        tax_config=config.tax_profile,
     )
     app = create_app(replace(container, offer_service=service))
     return TestClient(app)

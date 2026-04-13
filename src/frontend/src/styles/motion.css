@@ -41,10 +41,10 @@
 @keyframes shared-recording-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(211, 41, 47, 0.26);
+    box-shadow: 0 0 0 0 var(--color-danger-a26);
   }
   50% {
-    box-shadow: 0 0 0 12px rgba(211, 41, 47, 0);
+    box-shadow: 0 0 0 12px var(--color-danger-a00);
   }
 }
 

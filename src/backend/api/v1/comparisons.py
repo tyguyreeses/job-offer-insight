@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel
@@ -18,6 +18,9 @@ class ComparisonCreateRequest(BaseModel):
     mode: Literal["one_to_one", "one_to_all"]
     selected_offer_ids: list[str]
     base_offer_id: str | None = None
+    summary_text: str | None = None
+    code_section: dict[str, Any] | None = None
+    ai_section: Any | None = None
     note: str | None = None
 
 
@@ -27,6 +30,8 @@ class ComparisonResponse(BaseModel):
     base_offer_id: str
     selected_offer_ids: list[str]
     summary_text: str
+    code_section: dict[str, Any] | None
+    ai_section: Any | None
     note: str | None
     created_at: str
     updated_at: str
@@ -36,6 +41,24 @@ class ComparisonCreateResponse(BaseModel):
     status: str
     errors: list[str]
     comparison: ComparisonResponse | None
+
+
+class ComparisonGenerateCodeResponse(BaseModel):
+    status: str
+    errors: list[str]
+    draft_id: str | None
+    mode: Literal["one_to_one", "one_to_all"] | None
+    base_offer_id: str | None
+    selected_offer_ids: list[str]
+    code_section: dict[str, Any] | None
+    ai_section_pending: bool
+
+
+class ComparisonGenerateAIResponse(BaseModel):
+    status: str
+    errors: list[str]
+    draft_id: str | None
+    ai_section: Any | None
 
 
 class ComparisonListResponse(BaseModel):
@@ -49,6 +72,8 @@ def _to_response(record: ComparisonRecord) -> ComparisonResponse:
         base_offer_id=record.base_offer_id,
         selected_offer_ids=record.selected_offer_ids,
         summary_text=record.summary_text,
+        code_section=record.code_section,
+        ai_section=record.ai_section,
         note=record.note,
         created_at=record.created_at,
         updated_at=record.updated_at,
@@ -64,12 +89,52 @@ def create_comparison(
         mode=request.mode,
         selected_offer_ids=request.selected_offer_ids,
         base_offer_id=request.base_offer_id,
+        summary_text=request.summary_text,
+        code_section=request.code_section,
+        ai_section=request.ai_section,
         note=request.note,
     )
     return ComparisonCreateResponse(
         status=result.status,
         errors=result.errors,
         comparison=_to_response(result.comparison) if result.comparison is not None else None,
+    )
+
+
+@router.post("/generate", response_model=ComparisonGenerateCodeResponse)
+def generate_comparison_draft(
+    request: ComparisonCreateRequest,
+    comparison_service: ComparisonService = Depends(get_comparison_service),
+) -> ComparisonGenerateCodeResponse:
+    result = comparison_service.generate_comparison_draft(
+        mode=request.mode,
+        selected_offer_ids=request.selected_offer_ids,
+        base_offer_id=request.base_offer_id,
+        note=request.note,
+    )
+    return ComparisonGenerateCodeResponse(
+        status=result.status,
+        errors=result.errors,
+        draft_id=result.draft_id,
+        mode=result.mode,
+        base_offer_id=result.base_offer_id,
+        selected_offer_ids=result.selected_offer_ids,
+        code_section=result.code_section,
+        ai_section_pending=result.ai_section_pending,
+    )
+
+
+@router.post("/generate/{draft_id}/ai", response_model=ComparisonGenerateAIResponse)
+def generate_comparison_ai_section(
+    draft_id: str,
+    comparison_service: ComparisonService = Depends(get_comparison_service),
+) -> ComparisonGenerateAIResponse:
+    result = comparison_service.generate_comparison_ai_section(draft_id=draft_id)
+    return ComparisonGenerateAIResponse(
+        status=result.status,
+        errors=result.errors,
+        draft_id=result.draft_id,
+        ai_section=result.ai_section,
     )
 
 

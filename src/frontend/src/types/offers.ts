@@ -6,6 +6,13 @@ export interface OfferMeta {
   updated_at?: string;
 }
 
+export interface DerivedMonetaryPayload {
+  estimated_total_annual_monetary_benefits_usd?: number;
+  estimated_monthly_take_home_usd?: number;
+  tax_profile_used?: Record<string, unknown>;
+  explanation?: string;
+}
+
 export interface OfferSummaryPayload {
   id: string;
   company_name: string;
@@ -15,6 +22,7 @@ export interface OfferSummaryPayload {
   monetary_benefits?: Record<string, unknown>;
   non_monetary_benefits?: Record<string, unknown>;
   non_monetary_summary_bullets?: string[];
+  derived_monetary?: DerivedMonetaryPayload;
   offer_meta?: OfferMeta;
   [key: string]: unknown;
 }

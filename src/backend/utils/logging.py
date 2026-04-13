@@ -14,6 +14,13 @@ BOOTSTRAP_FORMAT = "%(levelname)s %(name)s: %(message)s"
 ERROR_FORMAT = "%(levelname)s: %(message)s"
 
 
+class _AppOnlyFilter(logging.Filter):
+    """Allow only application-owned logger records to be emitted."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return record.name == APP_LOGGER_NAME or record.name.startswith(f"{APP_LOGGER_NAME}.")
+
+
 class _JsonFormatter(logging.Formatter):
     """Small JSON formatter for structured logs when enabled."""
 
@@ -58,17 +65,16 @@ def configure_logging(
 ) -> None:
     """Configure global logging behavior used by all module loggers."""
     effective_level = _resolve_level(debug=debug, configured_level=configured_level)
-    root_level = logging.INFO if debug else effective_level
+    root_level = effective_level
     handler = logging.StreamHandler()
+    handler.addFilter(_AppOnlyFilter())
     handler.setFormatter(
         _build_formatter(include_timestamps=include_timestamps, json_logs=json_logs)
     )
     logging.basicConfig(level=root_level, handlers=[handler], force=True)
 
-    # Keep local app logs fully controllable while suppressing dependency debug chatter.
+    # Keep local app logs fully controllable.
     logging.getLogger(APP_LOGGER_NAME).setLevel(effective_level)
-    for noisy_logger in ("python_multipart", "uvicorn.access", "httpx", "openai"):
-        logging.getLogger(noisy_logger).setLevel(logging.WARNING)
 
 
 def get_logger(component: str | None = None) -> logging.Logger:

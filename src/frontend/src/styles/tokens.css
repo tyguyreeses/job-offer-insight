@@ -4,15 +4,83 @@
   --font-display: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
   --font-body: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
 
-  --color-bg-top: #f6fbff;
-  --color-bg-bottom: #eef5ff;
-  --color-surface: rgba(255, 255, 255, 0.82);
-  --color-border: rgba(40, 98, 168, 0.16);
-  --color-text: #10243d;
-  --color-muted: #557290;
-  --color-primary: #2364c9;
-  --color-primary-soft: #2f76e0;
+  --color-black: #000;
+  --color-white: #ffffff;
+
+  --color-blue-050: #f6fbff;
+  --color-blue-075: #eef5ff;
+  --color-blue-100: #eef7ff;
+  --color-blue-110: #f5faff;
+  --color-blue-120: #f4f6f8;
+  --color-blue-200: #d3292f;
+  --color-blue-220: #bfdfff;
+  --color-blue-240: #cdd5dd;
+  --color-blue-260: #9fb3c8;
+  --color-blue-300: #6b7c91;
+  --color-blue-320: #557290;
+  --color-blue-350: #4a6787;
+  --color-blue-370: #2e4a68;
+  --color-blue-380: #2b4f75;
+  --color-blue-450: #2f76e0;
+  --color-blue-500: #2364c9;
+  --color-blue-520: #2563eb;
+  --color-blue-700: #1b4f9f;
+  --color-blue-750: #163e7c;
+  --color-navy-900: #10243d;
+  --color-error-600: #a3252c;
+
+  --color-white-a00: rgba(255, 255, 255, 0);
+  --color-white-a42: rgba(255, 255, 255, 0.42);
+  --color-white-a45: rgba(255, 255, 255, 0.45);
+  --color-white-a82: rgba(255, 255, 255, 0.82);
+  --color-white-a85: rgba(255, 255, 255, 0.85);
+  --color-white-a86: rgba(255, 255, 255, 0.86);
+  --color-white-a88: rgba(255, 255, 255, 0.88);
+  --color-white-a90: rgba(255, 255, 255, 0.9);
+  --color-white-a92: rgba(255, 255, 255, 0.92);
+  --color-white-a94: rgba(255, 255, 255, 0.94);
+  --color-white-a95: rgba(255, 255, 255, 0.95);
+  --color-white-a96: rgba(255, 255, 255, 0.96);
+
+  --color-blue-orb-left: rgba(102, 189, 255, 0.16);
+  --color-blue-orb-right: rgba(92, 153, 255, 0.12);
+  --color-primary-a08: rgba(35, 100, 201, 0.08);
+  --color-primary-a14: rgba(35, 100, 201, 0.14);
+  --color-primary-border-soft: rgba(34, 103, 191, 0.28);
+  --color-primary-border-a16: rgba(40, 98, 168, 0.16);
+  --color-primary-focus-ring: rgba(37, 99, 235, 0.2);
   --color-hover-glow: rgba(54, 135, 252, 0.45);
+
+  --color-glass-border-strong: rgba(149, 176, 206, 0.68);
+  --color-glass-border-soft: rgba(132, 166, 202, 0.42);
+  --color-glass-shadow: rgba(18, 42, 71, 0.08);
+  --color-overlay-navy-a22: rgba(18, 37, 64, 0.22);
+  --color-overlay-navy-a24: rgba(14, 39, 74, 0.24);
+  --color-overlay-slate-a35: rgba(99, 125, 158, 0.35);
+  --color-overlay-blue-a30: rgba(159, 206, 255, 0.3);
+  --color-overlay-blue-a86: rgba(234, 245, 255, 0.86);
+  --color-overlay-blue-a70: rgba(244, 250, 255, 0.7);
+  --color-border-blue-a35: rgba(124, 154, 190, 0.35);
+  --color-border-blue-a45: rgba(125, 146, 175, 0.45);
+  --color-border-blue-a65: rgba(111, 140, 171, 0.65);
+
+  --color-danger: #d3292f;
+  --color-danger-border: rgba(160, 23, 30, 0.5);
+  --color-danger-border-strong: rgba(160, 23, 30, 0.68);
+  --color-danger-a26: rgba(211, 41, 47, 0.26);
+  --color-danger-a00: rgba(211, 41, 47, 0);
+  --color-danger-outline: rgba(163, 37, 44, 0.55);
+  --color-success: #0a8f57;
+  --color-success-border: rgba(8, 108, 67, 0.6);
+
+  --color-bg-top: var(--color-blue-050);
+  --color-bg-bottom: var(--color-blue-075);
+  --color-surface: var(--color-white-a82);
+  --color-border: var(--color-primary-border-a16);
+  --color-text: var(--color-navy-900);
+  --color-muted: var(--color-blue-320);
+  --color-primary: var(--color-blue-500);
+  --color-primary-soft: var(--color-blue-450);
 
   --radius-pill: 999px;
   --radius-card: 18px;

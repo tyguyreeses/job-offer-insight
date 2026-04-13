@@ -1,7 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 
-import { createComparison, fetchComparisonById, fetchComparisons } from "../services/comparisonsApi";
+import {
+  createComparison,
+  fetchComparisonById,
+  fetchComparisons,
+  generateComparisonAISection,
+  generateComparisonDraft
+} from "../services/comparisonsApi";
 import { fetchOfferSchema, fetchOffers } from "../services/offersApi";
 import { ComparePage } from "./ComparePage";
 
@@ -13,7 +19,10 @@ vi.mock("../services/offersApi", () => ({
 vi.mock("../services/comparisonsApi", () => ({
   fetchComparisons: vi.fn(),
   fetchComparisonById: vi.fn(),
-  createComparison: vi.fn()
+  createComparison: vi.fn(),
+  generateComparisonDraft: vi.fn(),
+  generateComparisonAISection: vi.fn(),
+  deleteComparison: vi.fn()
 }));
 
 const mockedFetchOffers = vi.mocked(fetchOffers);
@@ -21,6 +30,8 @@ const mockedFetchOfferSchema = vi.mocked(fetchOfferSchema);
 const mockedFetchComparisons = vi.mocked(fetchComparisons);
 const mockedFetchComparisonById = vi.mocked(fetchComparisonById);
 const mockedCreateComparison = vi.mocked(createComparison);
+const mockedGenerateComparisonDraft = vi.mocked(generateComparisonDraft);
+const mockedGenerateComparisonAISection = vi.mocked(generateComparisonAISection);
 
 const offers = [
   { id: "offer-1", company_name: "Atlas", role_title: "Engineer" },
@@ -65,6 +76,8 @@ describe("ComparePage", () => {
     mockedFetchComparisons.mockReset();
     mockedFetchComparisonById.mockReset();
     mockedCreateComparison.mockReset();
+    mockedGenerateComparisonDraft.mockReset();
+    mockedGenerateComparisonAISection.mockReset();
     mockedFetchOffers.mockResolvedValue({ offers } as never);
     mockedFetchOfferSchema.mockResolvedValue(defaultSchema as never);
     mockedFetchComparisons.mockResolvedValue({ comparisons: [] } as never);
@@ -72,6 +85,22 @@ describe("ComparePage", () => {
       status: "saved",
       errors: [],
       comparison: null
+    } as never);
+    mockedGenerateComparisonDraft.mockResolvedValue({
+      status: "draft_ready",
+      errors: [],
+      draft_id: "draft-1",
+      mode: "one_to_one",
+      base_offer_id: "offer-1",
+      selected_offer_ids: ["offer-1", "offer-2"],
+      code_section: { metrics: [] },
+      ai_section_pending: true
+    } as never);
+    mockedGenerateComparisonAISection.mockResolvedValue({
+      status: "completed",
+      errors: [],
+      draft_id: "draft-1",
+      ai_section: "### AI Summary\n- Tradeoff one\n- Tradeoff two"
     } as never);
   });
 
@@ -89,7 +118,8 @@ describe("ComparePage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Atlas" }));
 
     expect(await screen.findByText("All Other Entries")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save Comparison" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Generate Comparison" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Notes")).not.toBeInTheDocument();
   });
 
   it("loads saved comparison detail, hides builder row, and keeps saved row visible", async () => {
@@ -101,6 +131,14 @@ describe("ComparePage", () => {
           base_offer_id: "offer-1",
           selected_offer_ids: ["offer-1", "offer-2"],
           summary_text: "Comparison summary placeholder.",
+          code_section: {
+            mode: "one_to_one",
+            base_offer_id: "offer-1",
+            other_offer_id: "offer-2",
+            metrics: [{ metric_label: "Annual base salary", percentage_difference: 10.5 }],
+            notes: "Saved deterministic notes"
+          },
+          ai_section: "### Saved AI\n- Atlas wins on total cash",
           note: "Saved detail note",
           created_at: "2026-04-11T00:00:00Z",
           updated_at: "2026-04-11T00:00:00Z"
@@ -113,6 +151,14 @@ describe("ComparePage", () => {
       base_offer_id: "offer-1",
       selected_offer_ids: ["offer-1", "offer-2"],
       summary_text: "Comparison summary placeholder.",
+      code_section: {
+        mode: "one_to_one",
+        base_offer_id: "offer-1",
+        other_offer_id: "offer-2",
+        metrics: [{ metric_label: "Annual base salary", percentage_difference: 10.5 }],
+        notes: "Saved deterministic notes"
+      },
+      ai_section: "### Saved AI\n- Atlas wins on total cash",
       note: "Saved detail note",
       created_at: "2026-04-11T00:00:00Z",
       updated_at: "2026-04-11T00:00:00Z"
@@ -127,7 +173,20 @@ describe("ComparePage", () => {
       expect(mockedFetchComparisonById).toHaveBeenCalledWith("comparison-1");
     });
 
-    expect(screen.queryByText("Saved detail note")).not.toBeInTheDocument();
+    expect(screen.getByText("Saved detail note")).toBeInTheDocument();
+    expect(screen.getByText("Saved AI")).toBeInTheDocument();
+    expect(screen.getByText("Atlas wins on total cash")).toBeInTheDocument();
+    const metricRow = screen
+      .getByText(
+        (_, element) =>
+          element?.tagName === "SPAN" &&
+          element.classList.contains("compare-generated-metric-text") &&
+          element.textContent === "Annual base salary: 10.50% higher"
+      )
+      .closest("li");
+    expect(metricRow).not.toBeNull();
+    expect(metricRow?.querySelector(".compare-generated-metric-arrow-left.compare-generated-metric-arrow-active")).toBeNull();
+    expect(metricRow?.querySelector(".compare-generated-metric-arrow-right.compare-generated-metric-arrow-active")).not.toBeNull();
     expect(screen.queryByLabelText("Available offers")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Saved comparisons")).toBeInTheDocument();
   });
@@ -141,6 +200,8 @@ describe("ComparePage", () => {
           base_offer_id: "offer-1",
           selected_offer_ids: ["offer-1", "offer-2"],
           summary_text: "Comparison summary placeholder.",
+          code_section: null,
+          ai_section: null,
           note: null,
           created_at: "2026-04-11T00:00:00Z",
           updated_at: "2026-04-11T00:00:00Z"
@@ -153,6 +214,8 @@ describe("ComparePage", () => {
       base_offer_id: "offer-1",
       selected_offer_ids: ["offer-1", "offer-2"],
       summary_text: "Comparison summary placeholder.",
+      code_section: null,
+      ai_section: null,
       note: null,
       created_at: "2026-04-11T00:00:00Z",
       updated_at: "2026-04-11T00:00:00Z"
@@ -169,5 +232,150 @@ describe("ComparePage", () => {
 
     fireEvent.click(savedButton);
     expect(await screen.findByLabelText("Available offers")).toBeInTheDocument();
+  });
+
+  it("hides arrows and left-aligns one-to-all metric text while indicating highest", async () => {
+    mockedFetchComparisons.mockResolvedValue({
+      comparisons: [
+        {
+          id: "comparison-oa-1",
+          comparison_mode: "one_to_all",
+          base_offer_id: "offer-1",
+          selected_offer_ids: ["offer-1", "offer-2"],
+          summary_text: "One to all summary",
+          code_section: {
+            mode: "one_to_all",
+            base_offer_id: "offer-1",
+            metrics: [
+              {
+                metric_label: "Annual base salary",
+                percentage_difference_to_highest: -5.25
+              }
+            ],
+            notes: "Saved deterministic notes"
+          },
+          ai_section: "### Saved AI\n- Atlas leads this metric",
+          note: null,
+          created_at: "2026-04-13T00:00:00Z",
+          updated_at: "2026-04-13T00:00:00Z"
+        }
+      ]
+    } as never);
+    mockedFetchComparisonById.mockResolvedValue({
+      id: "comparison-oa-1",
+      comparison_mode: "one_to_all",
+      base_offer_id: "offer-1",
+      selected_offer_ids: ["offer-1", "offer-2"],
+      summary_text: "One to all summary",
+      code_section: {
+        mode: "one_to_all",
+        base_offer_id: "offer-1",
+        metrics: [
+          {
+            metric_label: "Annual base salary",
+            percentage_difference_to_highest: -5.25
+          }
+        ],
+        notes: "Saved deterministic notes"
+      },
+      ai_section: "### Saved AI\n- Atlas leads this metric",
+      note: null,
+      created_at: "2026-04-13T00:00:00Z",
+      updated_at: "2026-04-13T00:00:00Z"
+    } as never);
+
+    render(<ComparePage />);
+    await screen.findByRole("button", { name: "Atlas • all 1 other entries" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Atlas • all 1 other entries" }));
+    await waitFor(() => {
+      expect(mockedFetchComparisonById).toHaveBeenCalledWith("comparison-oa-1");
+    });
+
+    const metricText = screen.getByText(
+      (_, element) =>
+        element?.tagName === "SPAN" &&
+        element.classList.contains("compare-generated-metric-text") &&
+        element.textContent === "Annual base salary: highest by 5.25%"
+    );
+    const metricRow = metricText.closest(".compare-generated-metric-row");
+    expect(metricRow).not.toBeNull();
+    expect(metricRow).toHaveClass("compare-generated-metric-row-no-arrows");
+    expect(metricRow).toHaveClass("compare-generated-metric-row-left-text");
+    expect(metricRow?.querySelector(".compare-generated-metric-arrow")).toBeNull();
+  });
+
+  it("renders generated AI section as markdown", async () => {
+    render(<ComparePage />);
+    await screen.findByText("Atlas");
+
+    fireEvent.click(screen.getByRole("button", { name: "Atlas" }));
+    fireEvent.click(screen.getByRole("button", { name: "Beacon" }));
+    fireEvent.click(screen.getByRole("button", { name: "Generate Comparison" }));
+
+    await waitFor(() => {
+      expect(mockedGenerateComparisonDraft).toHaveBeenCalled();
+      expect(mockedGenerateComparisonAISection).toHaveBeenCalledWith("draft-1");
+    });
+
+    expect(await screen.findByText("AI Summary")).toBeInTheDocument();
+    expect(screen.getByText("Tradeoff one")).toBeInTheDocument();
+    expect(screen.getByText("Tradeoff two")).toBeInTheDocument();
+    expect(screen.getByLabelText("Notes")).toBeInTheDocument();
+  });
+
+  it("saves generated code, ai summary, and note together then opens saved view", async () => {
+    mockedCreateComparison.mockResolvedValue({
+      status: "saved",
+      errors: [],
+      comparison: {
+        id: "comparison-2",
+        comparison_mode: "one_to_one",
+        base_offer_id: "offer-1",
+        selected_offer_ids: ["offer-1", "offer-2"],
+        summary_text: "### AI Summary\n- Tradeoff one\n- Tradeoff two",
+        code_section: {
+          mode: "one_to_one",
+          base_offer_id: "offer-1",
+          other_offer_id: "offer-2",
+          metrics: [{ metric_label: "Annual base salary", percentage_difference: 10.5 }],
+          notes: "Saved deterministic notes"
+        },
+        ai_section: "### AI Summary\n- Tradeoff one\n- Tradeoff two",
+        note: "Keep this in final save.",
+        created_at: "2026-04-12T00:00:00Z",
+        updated_at: "2026-04-12T00:00:00Z"
+      }
+    } as never);
+
+    render(<ComparePage />);
+    await screen.findByText("Atlas");
+
+    fireEvent.click(screen.getByRole("button", { name: "Atlas" }));
+    fireEvent.click(screen.getByRole("button", { name: "Beacon" }));
+    fireEvent.click(screen.getByRole("button", { name: "Generate Comparison" }));
+    await screen.findByText("AI Summary");
+
+    fireEvent.change(screen.getByLabelText("Notes"), {
+      target: { value: "Keep this in final save." }
+    });
+    expect(await screen.findByRole("button", { name: "Save Comparison" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save Comparison" }));
+
+    await waitFor(() => {
+      expect(mockedCreateComparison).toHaveBeenCalledWith(
+        expect.objectContaining({
+          note: "Keep this in final save.",
+          code_section: expect.any(Object),
+          ai_section: expect.any(String),
+          summary_text: expect.stringContaining("AI Summary")
+        })
+      );
+    });
+
+    expect(await screen.findByText("Saved Comparison")).toBeInTheDocument();
+    expect(screen.getByText("Saved Notes")).toBeInTheDocument();
+    expect(screen.getByText("Keep this in final save.")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Available offers")).not.toBeInTheDocument();
   });
 });

@@ -75,7 +75,13 @@ def test_comparison_save_list_and_detail_persistence(tmp_path: Path) -> None:
         comparison_mode="one_to_one",
         base_offer_id=left_offer.id,
         selected_offer_ids=[left_offer.id, right_offer.id],
-        summary_text="Comparison summary placeholder.",
+        summary_text="### AI Summary\n- Better upside",
+        code_section={
+            "mode": "one_to_one",
+            "metrics": [{"metric_label": "Annual base salary", "percentage_difference": 8.0}],
+            "notes": "Deterministic comparison rows",
+        },
+        ai_section="### AI Summary\n- Better upside",
         note="Prefer mission alignment.",
     )
 
@@ -84,7 +90,10 @@ def test_comparison_save_list_and_detail_persistence(tmp_path: Path) -> None:
     assert detail.comparison_mode == "one_to_one"
     assert detail.base_offer_id == left_offer.id
     assert detail.selected_offer_ids == [left_offer.id, right_offer.id]
-    assert detail.summary_text == "Comparison summary placeholder."
+    assert detail.summary_text == "### AI Summary\n- Better upside"
+    assert detail.code_section is not None
+    assert detail.code_section["mode"] == "one_to_one"
+    assert detail.ai_section == "### AI Summary\n- Better upside"
     assert detail.note == "Prefer mission alignment."
 
     listing = comparisons.list_all()

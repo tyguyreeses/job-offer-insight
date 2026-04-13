@@ -58,6 +58,31 @@ class WorkflowSection(BaseModel):
     allow_placeholder_comparisons: bool = True
 
 
+class TaxProfileSection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    default_state: str = Field(default="CO", min_length=2, max_length=2)
+    default_filing_status: Literal["single", "married_joint", "head_of_household"] = "single"
+    federal_tax_rate: float = Field(default=0.22, ge=0, le=1)
+    fica_tax_rate: float = Field(default=0.0765, ge=0, le=1)
+    default_pre_tax_deduction_percent: float = Field(default=0.0, ge=0, le=100)
+    state_tax_rates: dict[str, float] = Field(default_factory=lambda: {"CO": 0.044})
+
+    @model_validator(mode="after")
+    def validate_state_tax_rates(self) -> "TaxProfileSection":
+        normalized: dict[str, float] = {}
+        for state, rate in self.state_tax_rates.items():
+            cleaned_state = state.strip().upper()
+            if len(cleaned_state) != 2:
+                raise ValueError("state_tax_rates keys must be 2-letter state codes")
+            if rate < 0 or rate > 1:
+                raise ValueError("state_tax_rates values must be between 0 and 1")
+            normalized[cleaned_state] = rate
+        self.state_tax_rates = normalized
+        self.default_state = self.default_state.strip().upper()
+        return self
+
+
 class AgentConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -67,6 +92,14 @@ class AgentConfig(BaseModel):
     prompt: str = Field(min_length=1)
     max_output_tokens: int = Field(default=1200, ge=1)
     tools: list["AgentToolConfig"] = Field(default_factory=list)
+    reasoning: "AgentReasoningConfig | None" = None
+
+
+class AgentReasoningConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    effort: Literal["low", "medium", "high"] | None = None
+    summary: Literal["auto", "concise", "detailed"] | None = None
 
 
 class AgentToolConfig(BaseModel):
@@ -82,6 +115,8 @@ class AgentsSection(BaseModel):
 
     entry_creation: AgentConfig
     parse_entry: AgentConfig
+    comparison_one_to_one: AgentConfig
+    comparison_one_to_all: AgentConfig
 
 
 class OfferSchemaIdentitySection(BaseModel):
@@ -231,5 +266,6 @@ class RuntimeConfig(BaseModel):
     database: DatabaseSection
     openai: OpenAISection
     workflow: WorkflowSection
+    tax_profile: TaxProfileSection
     agents: AgentsSection
     offer_schema: OfferSchemaSection

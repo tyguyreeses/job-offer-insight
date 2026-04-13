@@ -31,12 +31,27 @@ workflow:
   enable_non_monetary_summary: true
   allow_placeholder_comparisons: true
 
+tax_profile:
+  default_state: "CO"
+  default_filing_status: "single"
+  federal_tax_rate: 0.22
+  fica_tax_rate: 0.0765
+  default_pre_tax_deduction_percent: 0
+  state_tax_rates:
+    CO: 0.044
+    CA: 0.093
+    TX: 0.0
+    WA: 0.0
+    NY: 0.06
+
 agents:
   entry_creation:
     type: non-structured
     enabled: true
     model: "gpt-5-mini"
     max_output_tokens: 500
+    reasoning:
+      effort: low
     prompt: "entry_creation_chat.md"
     tools:
       - name: "submit_entry"
@@ -46,8 +61,26 @@ agents:
     type: structured-output
     enabled: true
     model: "gpt-5-mini"
-    max_output_tokens: 1200
+    max_output_tokens: 3000
+    reasoning:
+      effort: low
     prompt: "extract_offer.md"
+  comparison_one_to_one:
+    type: non-structured
+    enabled: true
+    model: "gpt-5-mini"
+    max_output_tokens: 3000
+    reasoning:
+      effort: low
+    prompt: "compare_one_to_one.md"
+  comparison_one_to_all:
+    type: non-structured
+    enabled: true
+    model: "gpt-5-mini"
+    max_output_tokens: 4500
+    reasoning:
+      effort: low
+    prompt: "compare_one_to_all.md"
 
 offer_schema:
   version: 1
@@ -77,6 +110,8 @@ offer_schema:
       title: "Monetary benefits"
     - section_id: "non_monetary"
       title: "Non-monetary benefits"
+    - section_id: "tax_overrides"
+      title: "Tax overrides"
   fields:
     - id: "company-name"
       label: "Company name"
@@ -163,7 +198,7 @@ offer_schema:
         widget: "text"
 
     - id: "annual-base-salary-usd"
-      label: "Annual base salary (USD)"
+      label: "Annual base salary"
       storage_path: "compensation.annual_base_salary_usd"
       data_type: "number"
       group: "compensation"
@@ -178,7 +213,7 @@ offer_schema:
         order: 1
         widget: "number"
     - id: "hourly-rate-usd"
-      label: "Hourly rate (USD)"
+      label: "Hourly rate"
       storage_path: "compensation.hourly_rate_usd"
       data_type: "number"
       group: "compensation"
@@ -208,7 +243,7 @@ offer_schema:
         order: 3
         widget: "number"
     - id: "annualized-total-cash-usd"
-      label: "Annualized total cash (USD)"
+      label: "Annualized total cash"
       storage_path: "compensation.annualized_total_cash_usd"
       data_type: "number"
       group: "compensation"
@@ -223,7 +258,7 @@ offer_schema:
         order: 4
         widget: "number"
     - id: "signing-bonus-usd"
-      label: "Signing bonus (USD)"
+      label: "Signing bonus"
       storage_path: "compensation.signing_bonus_usd"
       data_type: "number"
       group: "compensation"
@@ -238,7 +273,7 @@ offer_schema:
         order: 5
         widget: "number"
     - id: "target-bonus-percent"
-      label: "Target bonus (%)"
+      label: "Target bonus"
       storage_path: "compensation.target_bonus_percent"
       data_type: "number"
       group: "compensation"
@@ -254,7 +289,7 @@ offer_schema:
         widget: "number"
 
     - id: "retirement-match-percent"
-      label: "Retirement match (%)"
+      label: "Retirement match"
       storage_path: "monetary_benefits.retirement_match_percent"
       data_type: "number"
       group: "monetary"
@@ -269,7 +304,7 @@ offer_schema:
         order: 1
         widget: "number"
     - id: "retirement-match-cap-usd"
-      label: "Retirement match cap (USD)"
+      label: "Retirement match cap"
       storage_path: "monetary_benefits.retirement_match_cap_usd"
       data_type: "number"
       group: "monetary"
@@ -284,7 +319,7 @@ offer_schema:
         order: 2
         widget: "number"
     - id: "health-insurance-employer-monthly-usd"
-      label: "Health insurance employer monthly (USD)"
+      label: "Health insurance employer monthly"
       storage_path: "monetary_benefits.health_insurance_employer_monthly_usd"
       data_type: "number"
       group: "monetary"
@@ -299,7 +334,7 @@ offer_schema:
         order: 3
         widget: "number"
     - id: "dental-insurance-employer-monthly-usd"
-      label: "Dental insurance employer monthly (USD)"
+      label: "Dental insurance employer monthly"
       storage_path: "monetary_benefits.dental_insurance_employer_monthly_usd"
       data_type: "number"
       group: "monetary"
@@ -314,7 +349,7 @@ offer_schema:
         order: 4
         widget: "number"
     - id: "hsa-employer-annual-usd"
-      label: "HSA employer annual (USD)"
+      label: "HSA employer annual"
       storage_path: "monetary_benefits.hsa_employer_annual_usd"
       data_type: "number"
       group: "monetary"
@@ -329,7 +364,7 @@ offer_schema:
         order: 5
         widget: "number"
     - id: "equity-grant-usd"
-      label: "Equity grant value (USD)"
+      label: "Equity grant value"
       storage_path: "monetary_benefits.equity_grant_usd"
       data_type: "number"
       group: "monetary"
@@ -392,6 +427,54 @@ offer_schema:
         section_id: "non_monetary"
         order: 1
         widget: "textarea_list"
+
+    - id: "tax-override-state"
+      label: "Tax override state"
+      storage_path: "tax_overrides.state"
+      data_type: "string"
+      group: "meta"
+      default_when_omitted: ""
+      card:
+        visible: false
+        section_id: "meta"
+        order: 2
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "tax_overrides"
+        order: 1
+        widget: "text"
+    - id: "tax-override-filing-status"
+      label: "Tax override filing status"
+      storage_path: "tax_overrides.filing_status"
+      data_type: "string"
+      group: "meta"
+      default_when_omitted: ""
+      card:
+        visible: false
+        section_id: "meta"
+        order: 3
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "tax_overrides"
+        order: 2
+        widget: "text"
+    - id: "tax-override-pre-tax-percent"
+      label: "Tax override pre-tax deduction"
+      storage_path: "tax_overrides.pre_tax_deduction_percent"
+      data_type: "number"
+      group: "meta"
+      card:
+        visible: false
+        section_id: "meta"
+        order: 4
+        style: "labeled_value"
+      edit:
+        visible: true
+        section_id: "tax_overrides"
+        order: 3
+        widget: "number"
 
     - id: "created-at"
       label: "Date created"

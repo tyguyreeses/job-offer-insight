@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from time import perf_counter
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
@@ -82,6 +83,15 @@ def intake_offer_from_text(
     request: TextIntakeRequest,
     offer_service: OfferService = Depends(get_offer_service),
 ) -> TextConversationResponse:
+    request_start = perf_counter()
+    message_text = (request.message_text or "").strip()
+    logger.debug(
+        "Text intake request action=%s session_id=%s has_message=%s message_length=%s",
+        request.action,
+        request.session_id or "<new>",
+        bool(message_text),
+        len(message_text),
+    )
     try:
         result = offer_service.intake_text_offer(
             session_id=request.session_id,
@@ -89,9 +99,26 @@ def intake_offer_from_text(
             message_text=request.message_text,
         )
     except ConversationSessionNotFound as exc:
-        logger.warning("Text intake session not found: %s", request.session_id)
+        elapsed_ms = (perf_counter() - request_start) * 1000
+        logger.warning(
+            "Text intake session not found action=%s session_id=%s elapsed_ms=%.1f",
+            request.action,
+            request.session_id,
+            elapsed_ms,
+        )
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
+    elapsed_ms = (perf_counter() - request_start) * 1000
+    logger.debug(
+        "Text intake response session_id=%s status=%s step=%s can_finish=%s errors=%s warnings=%s elapsed_ms=%.1f",
+        result.session_id,
+        result.status,
+        result.step,
+        result.can_finish,
+        len(result.errors),
+        len(result.warnings),
+        elapsed_ms,
+    )
     offer_payload = (
         offer_service.render_offer_payload(result.offer) if result.offer is not None else None
     )
@@ -121,6 +148,14 @@ def intake_offer_from_audio(
         raise HTTPException(status_code=422, detail="audio_file is required for action=submit.")
 
     audio_bytes = audio_file.file.read() if audio_file is not None else None
+    request_start = perf_counter()
+    logger.debug(
+        "Audio intake request action=%s session_id=%s has_audio=%s byte_length=%s",
+        action,
+        session_id or "<new>",
+        audio_bytes is not None,
+        len(audio_bytes) if audio_bytes is not None else 0,
+    )
     try:
         result = offer_service.intake_audio_offer(
             session_id=session_id,
@@ -130,8 +165,25 @@ def intake_offer_from_audio(
             content_type=audio_file.content_type if audio_file is not None else None,
         )
     except ConversationSessionNotFound as exc:
-        logger.warning("Audio intake session not found: %s", session_id)
+        elapsed_ms = (perf_counter() - request_start) * 1000
+        logger.warning(
+            "Audio intake session not found action=%s session_id=%s elapsed_ms=%.1f",
+            action,
+            session_id,
+            elapsed_ms,
+        )
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    elapsed_ms = (perf_counter() - request_start) * 1000
+    logger.debug(
+        "Audio intake response session_id=%s status=%s step=%s can_finish=%s errors=%s warnings=%s elapsed_ms=%.1f",
+        result.session_id,
+        result.status,
+        result.step,
+        result.can_finish,
+        len(result.errors),
+        len(result.warnings),
+        elapsed_ms,
+    )
     offer_payload = offer_service.render_offer_payload(result.offer) if result.offer is not None else None
     return TextConversationResponse(
         session_id=result.session_id,
