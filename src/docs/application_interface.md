@@ -123,6 +123,10 @@ A saved comparison record includes:
 11. System asks clarifying follow-up questions for missing fields.
 12. User can confirm omitted fields as "not part of offer."
 13. After a successful save (from `Finish` button or equivalent agent-tool submit), the UI automatically navigates to `Dashboard`.
+14. `Finish` button behavior:
+    - On click, the UI validates required fields using the Offer required-field rules.
+    - If required fields are missing, the UI blocks the save and surfaces the validation feedback.
+    - If required fields are satisfied, the UI saves the entry directly (no conversational agent pass-through).
 
 ## Edit Offer Flow
 
