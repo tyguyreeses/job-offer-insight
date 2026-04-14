@@ -8,6 +8,9 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, create_model
 
 from ..utils.config_types import OfferSchemaField, OfferSchemaSection
+from ..utils.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 def get_path(payload: dict[str, Any], path: str) -> Any:
@@ -245,6 +248,7 @@ class ConfiguredOfferSchema:
         cached = self._parser_model_cache
         if cached is not None:
             return cached
+        logger.debug("Building offer schema parser model.")
 
         type_by_path: dict[str, Any] = {}
         for field in self.raw.fields:
