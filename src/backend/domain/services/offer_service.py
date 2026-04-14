@@ -6,6 +6,7 @@ import json
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from time import perf_counter
 from typing import Any, Literal
 from uuid import uuid4
 
@@ -507,6 +508,7 @@ class Stage4OfferService:
             "blocked_finish": blocked_finish,
         }
         try:
+            start = perf_counter()
             return self.entry_creation_agent.reply(
                 transcript=session.messages,
                 state=state,
@@ -517,6 +519,14 @@ class Stage4OfferService:
                 missing_required_fields=missing_required_fields,
                 blocked_finish=blocked_finish,
                 offer_schema=self.offer_schema,
+            )
+        finally:
+            elapsed_ms = (perf_counter() - start) * 1000
+            logger.debug(
+                "Entry creation agent reply session_id=%s step=%s elapsed_ms=%.1f",
+                session.session_id,
+                step,
+                elapsed_ms,
             )
 
     def _parse_and_merge_finish_payload(
@@ -531,6 +541,7 @@ class Stage4OfferService:
 
         combined_user_text = "\n\n".join(user_messages)
         try:
+            start = perf_counter()
             extracted_payload = self.text_parser_agent.parse(combined_user_text)
         except TextParserError as combined_exc:
             logger.warning("Failed to parse combined text: %s", combined_exc)
@@ -555,6 +566,13 @@ class Stage4OfferService:
             session.payload = _merge_payloads(session.payload, inline_json_payload)
             _normalize_payload(session.payload, self.offer_schema)
             return
+        finally:
+            elapsed_ms = (perf_counter() - start) * 1000
+            logger.debug(
+                "Text parser combined transcript session_id=%s elapsed_ms=%.1f",
+                session.session_id,
+                elapsed_ms,
+            )
 
         session.payload = _merge_payloads(session.payload, extracted_payload)
         _normalize_payload(session.payload, self.offer_schema)
@@ -602,6 +620,7 @@ class Stage4OfferService:
                         len(_missing_required_fields(session.payload, self.offer_schema)),
                     )
                     try:
+                        start = perf_counter()
                         extracted_payload = self.text_parser_agent.parse(message)
                     except TextParserError as exc:
                         logger.warning("Failed to parse text: %s", exc)
@@ -613,6 +632,13 @@ class Stage4OfferService:
                             "Merged parsed submit text for session_id=%s payload_keys=%s",
                             session.session_id,
                             len(session.payload.keys()),
+                        )
+                    finally:
+                        elapsed_ms = (perf_counter() - start) * 1000
+                        logger.debug(
+                            "Text parser submit session_id=%s elapsed_ms=%.1f",
+                            session.session_id,
+                            elapsed_ms,
                         )
                 if session.step == _STEP_COLLECT_REQUIRED:
                     if len(_missing_required_fields(session.payload, self.offer_schema)) == 0:
