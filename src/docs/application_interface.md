@@ -60,6 +60,13 @@ When a field is missing during intake:
 1. Hard validation blocks save only for required fields.
 2. All non-required fields trigger soft warnings only.
 
+### Text Intake Parsing Output
+
+1. The text parser agent must return only a JSON object that matches the offer schema storage paths.
+2. Nested objects must be used for dotted paths (for example `compensation.annual_base_salary_usd`).
+3. Unknown fields are forbidden; the parser should omit fields it cannot infer.
+4. Parser output token budget is sized to accommodate large user submissions without truncating JSON.
+
 ## Data Contract (Comparison)
 
 A saved comparison record includes:
