@@ -469,6 +469,14 @@ class Stage4OfferService:
             raise ConversationSessionNotFound(f"Conversation session not found: {session_id}")
         return existing
 
+    def _get_existing_session(self, session_id: str | None) -> ConversationSession:
+        if session_id is None:
+            raise ConversationSessionNotFound("Conversation session not found: <missing>")
+        existing = self.text_conversation_sessions.get(session_id)
+        if existing is None:
+            raise ConversationSessionNotFound(f"Conversation session not found: {session_id}")
+        return existing
+
     def _build_assistant_message(
         self,
         *,
@@ -861,6 +869,97 @@ class Stage4OfferService:
             action="submit",
             message_text=transcript,
             source_input_type="audio",
+        )
+
+    def finalize_intake_session(self, *, session_id: str) -> TextConversationResult:
+        session = self._get_existing_session(session_id)
+        errors: list[str] = []
+        warnings: list[str] = []
+
+        missing_required_fields = _missing_required_fields(session.payload, self.offer_schema)
+        if missing_required_fields:
+            session.step = _STEP_COLLECT_REQUIRED
+            logger.debug(
+                "Finalize intake blocked session_id=%s missing_required=%s warnings=%s",
+                session.session_id,
+                len(missing_required_fields),
+                len(warnings),
+            )
+            return TextConversationResult(
+                session_id=session.session_id,
+                status="blocked_required_fields",
+                assistant_message="",
+                step=session.step,
+                can_finish=False,
+                missing_required_fields=missing_required_fields,
+                current_prompt_key=_current_prompt_key_for_step(session.step),
+                errors=errors,
+                warnings=warnings,
+                messages=list(session.messages),
+                offer=None,
+            )
+
+        warnings.extend(_fill_optional_defaults(session.payload, self.offer_schema))
+        now = datetime.now(UTC).isoformat()
+        session.payload.setdefault("offer_meta", {})
+        offer_meta = session.payload["offer_meta"]
+        if isinstance(offer_meta, dict):
+            offer_meta.setdefault("status", "active")
+            offer_meta["source_input_type"] = session.source_input_type
+            offer_meta.setdefault("created_at", now)
+            offer_meta["updated_at"] = now
+            offer_meta["schema_version"] = self.offer_schema.version
+
+        validation_errors = _validate_required(session.payload, self.offer_schema)
+        if validation_errors:
+            session.step = _STEP_COLLECT_REQUIRED
+            missing_required_fields = _missing_required_fields(session.payload, self.offer_schema)
+            logger.debug(
+                "Finalize intake validation blocked session_id=%s missing_required=%s warnings=%s",
+                session.session_id,
+                len(missing_required_fields),
+                len(warnings),
+            )
+            return TextConversationResult(
+                session_id=session.session_id,
+                status="blocked_required_fields",
+                assistant_message="",
+                step=session.step,
+                can_finish=False,
+                missing_required_fields=missing_required_fields,
+                current_prompt_key=_current_prompt_key_for_step(session.step),
+                errors=validation_errors,
+                warnings=warnings,
+                messages=list(session.messages),
+                offer=None,
+            )
+
+        record = self.offer_repository.create(
+            company_name=str(_get_path(session.payload, self.offer_schema.company_name_path)),
+            role_title=str(_get_path(session.payload, self.offer_schema.role_title_path)),
+            payload=session.payload,
+        )
+        session.step = _STEP_COMPLETED
+        messages = list(session.messages)
+        del self.text_conversation_sessions[session.session_id]
+        logger.debug(
+            "Finalize intake saved offer session_id=%s offer_id=%s warnings=%s",
+            session.session_id,
+            record.id,
+            len(warnings),
+        )
+        return TextConversationResult(
+            session_id=session.session_id,
+            status="saved",
+            assistant_message="",
+            step=_STEP_COMPLETED,
+            can_finish=True,
+            missing_required_fields=[],
+            current_prompt_key=None,
+            errors=[],
+            warnings=warnings,
+            messages=messages,
+            offer=record,
         )
 
     def _intake_offer_from_text(

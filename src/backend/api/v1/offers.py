@@ -74,6 +74,10 @@ class TextConversationResponse(BaseModel):
     offer: dict[str, Any] | None
 
 
+class FinalizeIntakeRequest(BaseModel):
+    session_id: str = Field(..., min_length=1)
+
+
 class OfferUpdateRequest(BaseModel):
     payload: dict[str, Any]
 
@@ -185,6 +189,53 @@ def intake_offer_from_audio(
         elapsed_ms,
     )
     offer_payload = offer_service.render_offer_payload(result.offer) if result.offer is not None else None
+    return TextConversationResponse(
+        session_id=result.session_id,
+        status=result.status,
+        assistant_message=result.assistant_message,
+        step=result.step,
+        can_finish=result.can_finish,
+        missing_required_fields=result.missing_required_fields,
+        current_prompt_key=result.current_prompt_key,
+        errors=result.errors,
+        warnings=result.warnings,
+        messages=[TextConversationResponse.ConversationMessageResponse(**message) for message in result.messages],
+        offer=offer_payload,
+    )
+
+
+@router.post("/intake/finalize", response_model=TextConversationResponse)
+def finalize_intake_session(
+    request: FinalizeIntakeRequest,
+    offer_service: OfferService = Depends(get_offer_service),
+) -> TextConversationResponse:
+    request_start = perf_counter()
+    logger.debug("Finalize intake request session_id=%s", request.session_id)
+    try:
+        result = offer_service.finalize_intake_session(session_id=request.session_id)
+    except ConversationSessionNotFound as exc:
+        elapsed_ms = (perf_counter() - request_start) * 1000
+        logger.warning(
+            "Finalize intake session not found session_id=%s elapsed_ms=%.1f",
+            request.session_id,
+            elapsed_ms,
+        )
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    elapsed_ms = (perf_counter() - request_start) * 1000
+    logger.debug(
+        "Finalize intake response session_id=%s status=%s step=%s can_finish=%s errors=%s warnings=%s elapsed_ms=%.1f",
+        result.session_id,
+        result.status,
+        result.step,
+        result.can_finish,
+        len(result.errors),
+        len(result.warnings),
+        elapsed_ms,
+    )
+    offer_payload = (
+        offer_service.render_offer_payload(result.offer) if result.offer is not None else None
+    )
     return TextConversationResponse(
         session_id=result.session_id,
         status=result.status,

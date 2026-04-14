@@ -44,6 +44,9 @@ class OfferService(Protocol):
     ) -> TextConversationResult:
         """Intake conversational audio turns and return stateful outcomes."""
 
+    def finalize_intake_session(self, *, session_id: str) -> TextConversationResult:
+        """Finalize a conversation session directly into a saved offer."""
+
     def list_offers(
         self,
         *,
