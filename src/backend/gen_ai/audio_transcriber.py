@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 from dataclasses import dataclass
+from time import perf_counter
 
 from .client import OpenAIClientConfigError, build_openai_client
 from ..utils.config_types import OpenAISection
@@ -50,6 +51,7 @@ class ConfiguredAudioTranscriber:
         file_handle = io.BytesIO(audio_bytes)
         file_handle.name = lowered_name
 
+        start = perf_counter()
         try:
             client = build_openai_client(self.openai_config)
             response = client.audio.transcriptions.create(
@@ -60,6 +62,9 @@ class ConfiguredAudioTranscriber:
             raise AudioTranscriptionError(str(exc)) from exc
         except Exception as exc:  # pragma: no cover - provider/runtime surface
             raise AudioTranscriptionError(f"Transcription request failed: {exc}") from exc
+
+        elapsed_ms = (perf_counter() - start) * 1000
+        logger.debug("Transcription request completed in %.1fms", elapsed_ms)
 
         if isinstance(response, str):
             transcript = response.strip()

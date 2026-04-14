@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from time import perf_counter
 from typing import TypeVar
 
 from pydantic import BaseModel
@@ -122,9 +123,20 @@ class NonStructuredAgent:
             ]
             request_kwargs["tool_choice"] = "auto"
 
+        start = perf_counter()
         response = client.responses.create(**request_kwargs)
+        elapsed_ms = (perf_counter() - start) * 1000
         parsed_output_text = _extract_response_text(response)
         response_summary = _build_response_summary(response)
+        _LOGGER.debug(
+            "Agent response completed agent=%s model=%s elapsed_ms=%.1f output_text_len=%s usage_total_tokens=%s usage_output_tokens=%s",
+            self.agent.name,
+            self.agent.model,
+            elapsed_ms,
+            response_summary.get("output_text_len"),
+            response_summary.get("usage_total_tokens"),
+            response_summary.get("usage_output_tokens"),
+        )
         return NonStructuredRunResult(
             output_text=parsed_output_text,
             tool_calls=_parse_tool_calls(response),
@@ -267,7 +279,15 @@ class StructuredOutputAgent:
         if self.agent.reasoning is not None:
             request_kwargs["reasoning"] = self.agent.reasoning
 
+        start = perf_counter()
         parsed = client.responses.parse(**request_kwargs)
+        elapsed_ms = (perf_counter() - start) * 1000
+        _LOGGER.debug(
+            "Structured agent response completed agent=%s model=%s elapsed_ms=%.1f",
+            self.agent.name,
+            self.agent.model,
+            elapsed_ms,
+        )
         output_parsed = parsed.output_parsed
         if output_parsed is None:
             raise AgentExecutionError("Structured agent did not return parsed output.")
