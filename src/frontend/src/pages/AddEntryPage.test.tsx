@@ -3,11 +3,12 @@ import { vi } from "vitest";
 
 import { AddEntryPage } from "./AddEntryPage";
 import { createBrowserAudioRecorder } from "../services/audioRecorder";
-import { sendAudioTurn, sendTextTurn } from "../services/offersApi";
+import { finalizeIntakeSession, sendAudioTurn, sendTextTurn } from "../services/offersApi";
 
 vi.mock("../services/offersApi", () => ({
   sendTextTurn: vi.fn(),
-  sendAudioTurn: vi.fn()
+  sendAudioTurn: vi.fn(),
+  finalizeIntakeSession: vi.fn()
 }));
 
 vi.mock("../services/audioRecorder", () => ({
@@ -16,6 +17,7 @@ vi.mock("../services/audioRecorder", () => ({
 
 const mockedSendTextTurn = vi.mocked(sendTextTurn);
 const mockedSendAudioTurn = vi.mocked(sendAudioTurn);
+const mockedFinalizeIntakeSession = vi.mocked(finalizeIntakeSession);
 const mockedCreateBrowserAudioRecorder = vi.mocked(createBrowserAudioRecorder);
 
 const inProgressResponse = {
@@ -63,6 +65,7 @@ describe("AddEntryPage", () => {
   beforeEach(() => {
     mockedSendTextTurn.mockReset();
     mockedSendAudioTurn.mockReset();
+    mockedFinalizeIntakeSession.mockReset();
     mockedCreateBrowserAudioRecorder.mockReset();
   });
 
@@ -307,7 +310,8 @@ describe("AddEntryPage", () => {
 
   it("calls onOfferSaved after successful Finish save", async () => {
     const onOfferSaved = vi.fn();
-    mockedSendTextTurn.mockResolvedValueOnce(readyToFinishResponse).mockResolvedValueOnce(savedResponse);
+    mockedSendTextTurn.mockResolvedValueOnce(readyToFinishResponse);
+    mockedFinalizeIntakeSession.mockResolvedValueOnce(savedResponse);
 
     render(<AddEntryPage onOfferSaved={onOfferSaved} />);
     fireEvent.click(screen.getByRole("button", { name: "Text" }));
@@ -329,6 +333,33 @@ describe("AddEntryPage", () => {
     await waitFor(() => {
       expect(onOfferSaved).toHaveBeenCalledTimes(1);
     });
+    expect(mockedFinalizeIntakeSession).toHaveBeenCalledWith("session-1");
+  });
+
+  it("blocks Finish and shows required field message when required fields are missing", async () => {
+    mockedSendTextTurn.mockResolvedValueOnce(inProgressResponse);
+
+    render(<AddEntryPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Text" }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Add details")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("Add details"), {
+      target: {
+        value: "Partial info"
+      }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+    await screen.findByRole("button", { name: "Finish" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Finish" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Please fill required fields: company_name.")).toBeInTheDocument();
+    });
+    expect(mockedFinalizeIntakeSession).not.toHaveBeenCalled();
   });
 
   it("calls onOfferSaved when submit response is already saved", async () => {

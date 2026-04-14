@@ -39,6 +39,22 @@ export async function sendAudioTurn(request: FormData): Promise<TextTurnResponse
   return (await response.json()) as TextTurnResponse;
 }
 
+export async function finalizeIntakeSession(sessionId: string): Promise<TextTurnResponse> {
+  const response = await fetch("/api/v1/offers/intake/finalize", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ session_id: sessionId })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Finalize intake request failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as TextTurnResponse;
+}
+
 export async function fetchOffers(options?: {
   sortBy?: OfferSortBy;
   sortDirection?: SortDirection;

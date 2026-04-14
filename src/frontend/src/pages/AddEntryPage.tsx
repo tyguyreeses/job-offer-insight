@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { createBrowserAudioRecorder, type AudioRecorderController } from "../services/audioRecorder";
-import { sendAudioTurn, sendTextTurn } from "../services/offersApi";
+import { finalizeIntakeSession, sendAudioTurn, sendTextTurn } from "../services/offersApi";
 import type { IntakeAction, TextTurnResponse } from "../types/intake";
 
 type ModeState = "chooser" | "chooser-exit" | "text" | "audio";
@@ -155,6 +155,35 @@ export function AddEntryPage({ onOfferSaved, onProcessingStateChange }: AddEntry
       }
     } catch (error) {
       setErrorText(error instanceof Error ? error.message : "Unable to process your request.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleFinalize = async (): Promise<void> => {
+    if (!sessionId) {
+      setErrorText("Unable to finish: missing session.");
+      return;
+    }
+    const missingRequiredFields = conversation?.missing_required_fields ?? [];
+    if (missingRequiredFields.length > 0) {
+      setErrorText(`Please fill required fields: ${missingRequiredFields.join(", ")}.`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorText(null);
+    try {
+      const response = await finalizeIntakeSession(sessionId);
+      setConversation(response);
+      setSessionId(response.session_id);
+      if (response.status === "saved") {
+        onOfferSaved?.();
+      } else if (response.status === "blocked_required_fields" && response.missing_required_fields.length > 0) {
+        setErrorText(`Please fill required fields: ${response.missing_required_fields.join(", ")}.`);
+      }
+    } catch (error) {
+      setErrorText(error instanceof Error ? error.message : "Unable to finish your entry.");
     } finally {
       setIsSubmitting(false);
     }
@@ -400,8 +429,8 @@ export function AddEntryPage({ onOfferSaved, onProcessingStateChange }: AddEntry
               <button
                 type="button"
                 className="secondary-button selectable"
-                onClick={() => void handleTextTurn("finish")}
-                disabled={isSubmitting || !conversation?.can_finish}
+                onClick={() => void handleFinalize()}
+                disabled={isSubmitting || !sessionId}
               >
                 Finish
               </button>
@@ -432,8 +461,8 @@ export function AddEntryPage({ onOfferSaved, onProcessingStateChange }: AddEntry
               <button
                 type="button"
                 className="secondary-button selectable"
-                onClick={() => void handleAudioTurn("finish")}
-                disabled={isSubmitting || !conversation?.can_finish}
+                onClick={() => void handleFinalize()}
+                disabled={isSubmitting || !sessionId}
               >
                 Finish
               </button>
