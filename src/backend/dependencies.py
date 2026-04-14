@@ -49,6 +49,8 @@ def build_runtime_container(config: RuntimeConfig, logger: logging.Logger) -> Ru
     comparison_repository = SQLiteComparisonRepository(database=database)
     agent_registry = build_agent_registry(config.agents)
     offer_schema = build_configured_offer_schema(config.offer_schema)
+    # Warm parser model at startup to avoid first-request latency.
+    offer_schema.build_parser_model()
     text_parser_agent = ConfiguredTextParserAgent(
         registry=agent_registry,
         openai_config=config.openai,
