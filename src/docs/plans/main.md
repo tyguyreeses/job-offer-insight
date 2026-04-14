@@ -1,11 +1,11 @@
-# Plan: Improve Parse Entry Prompt And Token Budget
+# Plan: Fix Finish Button Direct Save
 
 ## 1. Framework refactor (feature-neutral prep work)
 
-- No framework refactors required.
+- Add a service method + API endpoint for finalizing an intake session without parsing or agent prompts.
 
 ## 2. Feature addition (behavior implementation)
 
-- Expand `src/backend/prompts/extract_offer.md` with an explicit JSON schema key list and nesting rules.
-- Increase `agents.parse_entry.max_output_tokens` in `src/config.yaml` to reduce JSON truncation for large inputs.
-- Keep structured-output parsing behavior and validation intact.
+- Wire frontend `Finish` to call the new finalize endpoint instead of conversational intake.
+- Validate required fields client-side using `missing_required_fields` before finalize.
+- Update tests to cover finalize flow and missing-required feedback.
