@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, create_model
 
 from ..utils.config_types import OfferSchemaField, OfferSchemaSection
+from ..utils.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 def get_path(payload: dict[str, Any], path: str) -> Any:
@@ -71,6 +74,9 @@ def _coerce_int(value: Any) -> int | None:
 @dataclass(frozen=True)
 class ConfiguredOfferSchema:
     raw: OfferSchemaSection
+    _parser_model_cache: type[BaseModel] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
 
     @property
     def version(self) -> int:
@@ -239,6 +245,10 @@ class ConfiguredOfferSchema:
 
     def build_parser_model(self) -> type[BaseModel]:
         """Build a strict runtime pydantic model matching configured storage paths."""
+        cached = self._parser_model_cache
+        if cached is not None:
+            return cached
+        logger.debug("Building offer schema parser model.")
 
         type_by_path: dict[str, Any] = {}
         for field in self.raw.fields:
@@ -287,7 +297,9 @@ class ConfiguredOfferSchema:
             )
             return created
 
-        return build_node_model("ExtractedOfferPayload", tree)
+        created = build_node_model("ExtractedOfferPayload", tree)
+        object.__setattr__(self, "_parser_model_cache", created)
+        return created
 
 
 def build_configured_offer_schema(schema: OfferSchemaSection) -> ConfiguredOfferSchema:
