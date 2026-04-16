@@ -152,33 +152,35 @@ A saved comparison record includes:
 2. Default ordering is date-based left-to-right (newest first unless changed by user).
 3. Dashboard includes a visible `Sort by` dropdown to change ordering.
 4. Cards can be sorted by changeable option selected from `Sort by`.
-5. Card vertical display order:
+5. Dashboard title uses a smaller heading size than the Add Entry page.
+6. Card vertical display order:
    - Salary
    - Monetary benefits
    - Non-monetary benefits (AI bullet-point summary, generated once then stored)
    - Date created (`mm-dd-yyyy`)
-6. Card styling and formatting should align to end-goal decisions:
+7. Card styling and formatting should align to end-goal decisions:
    - clean/minimal visual style
    - side-by-side cards with horizontal scroll emphasis
    - clear section formatting for salary, monetary, non-monetary, and date blocks
    - soft blue glow on selectable/interactive elements
-7. Optional-field display rule:
+8. Optional-field display rule:
    - optional fields that are blank/omitted are not rendered on the card at all
    - do not display placeholder values such as `None`, `null`, `N/A`, or "missing"
-8. Compare selection rules:
+9. Compare selection rules:
    - Maximum two selected cards
    - On selecting a third card, earliest selected card is automatically deselected
-9. Selected-card quick actions:
+10. Selected-card quick actions:
    - When a card is selected/highlighted, show `Edit` and `Delete` actions on the card
    - `Delete` uses a two-step confirm interaction (`Delete` -> `Confirm`) before removal
    - On confirmed delete, remove the offer from persistence and the dashboard list
-10. Temporary debug seeding:
+11. Temporary debug seeding:
    - Dashboard includes a `Create Demo Offers` button next to `Sort by`
    - Clicking it seeds three preset demo offers and refreshes the list using current sort
 
 ## Compare Page
 
 1. Compare page always includes a large center comparison canvas.
+2. Compare title uses a smaller heading size than the Add Entry page.
 2. Initial empty state (when no draft selection and no saved comparison selected) shows:
    - `Create new comparison or select previously saved comparison`
 3. Direct compare mode builder:

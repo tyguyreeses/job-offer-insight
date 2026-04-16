@@ -1018,6 +1018,10 @@ body {
   line-height: 1.05;
 }
 
+.main-title-compact {
+  font-size: clamp(1.65rem, 3.6vw, 2.9rem);
+}
+
 .mode-switcher {
   display: flex;
   gap: 1.25rem;

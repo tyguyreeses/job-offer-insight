@@ -490,7 +490,7 @@ export function DashboardPage({ isActive = true, onCompareSelected }: DashboardP
 
   return (
     <main className="main-panel dashboard-panel">
-      <h1 className="main-title dashboard-title">Dashboard</h1>
+      <h1 className="main-title main-title-compact dashboard-title">Dashboard</h1>
 
       <section className="dashboard-toolbar">
         <label className="input-label dashboard-sort-label" htmlFor="sort-by-control">

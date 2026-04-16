@@ -934,7 +934,7 @@ export function ComparePage({
 
   return (
     <main className="main-panel compare-panel">
-      <h1 className="main-title">Compare</h1>
+      <h1 className="main-title main-title-compact">Compare</h1>
 
       {isSchemaLoading ? <p className="dashboard-status">Loading schema...</p> : null}
       {isLoadingOffers ? <p className="dashboard-status">Loading offers...</p> : null}
