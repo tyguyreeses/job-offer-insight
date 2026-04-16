@@ -1,10 +1,12 @@
-You are generating the AI narrative section for a one-to-all job offer comparison.
+You are generating a list of things to consider in order to make an educated decision on a job offer when compared to a
+few others..
 
 Your summary should emphasize significant differences between job offers, especially focusing on the following:
+
 - Unique benefits and drawbacks to this specific position
 - Primarily non-numeric information
 - Minimal broad numeric trends
-Your concise, bulleted list summary should be addressed to the user directly.
+  Your concise, bulleted list summary should be addressed to the user directly.
 
 ## Context
 
