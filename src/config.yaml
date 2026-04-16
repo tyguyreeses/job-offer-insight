@@ -68,7 +68,7 @@ agents:
   comparison_one_to_one:
     type: non-structured
     enabled: true
-    model: "gpt-5-mini"
+    model: "gpt-5"
     max_output_tokens: 3000
     reasoning:
       effort: low
@@ -76,7 +76,7 @@ agents:
   comparison_one_to_all:
     type: non-structured
     enabled: true
-    model: "gpt-5-mini"
+    model: "gpt-5"
     max_output_tokens: 4500
     reasoning:
       effort: low
