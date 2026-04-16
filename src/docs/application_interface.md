@@ -127,6 +127,10 @@ A saved comparison record includes:
     - On click, the UI validates required fields using the Offer required-field rules.
     - If required fields are missing, the UI blocks the save and surfaces the validation feedback.
     - If required fields are satisfied, the UI saves the entry directly (no conversational agent pass-through).
+15. Mode switch behavior:
+    - Text mode replaces the `Skip` button with a `Switch to Audio Input` control.
+    - Audio mode replaces the `Skip` button with a `Switch to Text Input` control.
+    - Switching input modes preserves the conversational context (same session id and transcript).
 
 ## Edit Offer Flow
 
