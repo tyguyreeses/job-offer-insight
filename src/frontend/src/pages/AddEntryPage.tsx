@@ -132,6 +132,36 @@ export function AddEntryPage({ onOfferSaved, onProcessingStateChange }: AddEntry
     }, 180);
   };
 
+  const enterAudioMode = (): void => {
+    setMode("audio");
+    setAudioCentered(false);
+    if (audioCenteringTimeoutRef.current !== null) {
+      window.clearTimeout(audioCenteringTimeoutRef.current);
+    }
+    audioCenteringTimeoutRef.current = window.setTimeout(() => {
+      setAudioCentered(true);
+      transitionAudioLabel("Record");
+    }, 20);
+  };
+
+  const handleSwitchToAudio = (): void => {
+    if (isSubmitting || isRecording) {
+      return;
+    }
+    enterAudioMode();
+  };
+
+  const handleSwitchToText = (): void => {
+    if (isSubmitting || isRecording) {
+      return;
+    }
+    setMode("text");
+    setAudioCentered(false);
+    setAudioSubmitFailed(false);
+    setRecordedAudioBlob(null);
+    setRecordingFailureCount(0);
+  };
+
   const handleTextTurn = async (action: IntakeAction): Promise<void> => {
     setIsSubmitting(true);
     setErrorText(null);
@@ -275,30 +305,6 @@ export function AddEntryPage({ onOfferSaved, onProcessingStateChange }: AddEntry
     await beginRecording();
   };
 
-  const handleAudioTurn = async (action: Exclude<IntakeAction, "submit">): Promise<void> => {
-    setIsSubmitting(true);
-    setErrorText(null);
-    try {
-      const requestPayload = new FormData();
-      requestPayload.append("action", action);
-      if (sessionId) {
-        requestPayload.append("session_id", sessionId);
-      }
-
-      const response = await sendAudioTurn(requestPayload);
-      setConversation(response);
-      setSessionId(response.session_id);
-      if (response.status === "saved") {
-        onOfferSaved?.();
-      }
-      setRecordingFailureCount(0);
-    } catch (error) {
-      setErrorText(error instanceof Error ? error.message : "Unable to process your request.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const desiredAudioLabel = useMemo(() => {
     if (mode !== "audio") {
       return "Audio";
@@ -421,10 +427,10 @@ export function AddEntryPage({ onOfferSaved, onProcessingStateChange }: AddEntry
               <button
                 type="button"
                 className="secondary-button selectable"
-                onClick={() => void handleTextTurn("skip_current")}
-                disabled={isSubmitting}
+                onClick={handleSwitchToAudio}
+                disabled={isSubmitting || isRecording}
               >
-                Skip
+                Switch to Audio Input
               </button>
               <button
                 type="button"
@@ -453,10 +459,10 @@ export function AddEntryPage({ onOfferSaved, onProcessingStateChange }: AddEntry
               <button
                 type="button"
                 className="secondary-button selectable"
-                onClick={() => void handleAudioTurn("skip_current")}
-                disabled={isSubmitting}
+                onClick={handleSwitchToText}
+                disabled={isSubmitting || isRecording}
               >
-                Skip
+                Switch to Text Input
               </button>
               <button
                 type="button"
@@ -467,23 +473,6 @@ export function AddEntryPage({ onOfferSaved, onProcessingStateChange }: AddEntry
                 Finish
               </button>
             </div>
-
-            {recordingFailureCount >= 2 ? (
-              <button
-                type="button"
-                className="secondary-button selectable switch-mode-button"
-                onClick={() => {
-                  setMode("text");
-                  setErrorText(null);
-                  setAudioCentered(false);
-                  setAudioSubmitFailed(false);
-                  setAudioButtonLabel("Audio");
-                  setAudioLabelPhase("steady");
-                }}
-              >
-                Switch to Text Input
-              </button>
-            ) : null}
 
             <p className="edit-later-note">You will be able to edit this information later.</p>
           </section>
