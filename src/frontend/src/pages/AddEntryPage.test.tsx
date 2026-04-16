@@ -87,6 +87,40 @@ describe("AddEntryPage", () => {
     });
   });
 
+  it("resets the intake session when Back is clicked", async () => {
+    mockedSendTextTurn.mockResolvedValueOnce(inProgressResponse);
+
+    render(<AddEntryPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Text" }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Add details")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("Add details"), {
+      target: {
+        value: "Role title and salary"
+      }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Please share the remaining required information: company_name.")
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Text" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Audio" })).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText("Please share the remaining required information: company_name.")
+    ).not.toBeInTheDocument();
+  });
+
   it("shows transcript messages above text input after submit", async () => {
     mockedSendTextTurn.mockResolvedValueOnce(inProgressResponse);
 

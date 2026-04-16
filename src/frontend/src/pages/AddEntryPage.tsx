@@ -162,6 +162,49 @@ export function AddEntryPage({ onOfferSaved, onProcessingStateChange }: AddEntry
     setRecordingFailureCount(0);
   };
 
+  const stopRecordingSilently = async (): Promise<void> => {
+    const recorder = audioRecorderRef.current;
+    if (!recorder) {
+      return;
+    }
+    try {
+      await recorder.stop();
+    } catch {
+      // Best-effort cleanup only.
+    } finally {
+      audioRecorderRef.current = null;
+      setIsRecording(false);
+    }
+  };
+
+  const handleResetSession = async (): Promise<void> => {
+    if (isSubmitting) {
+      return;
+    }
+    if (isRecording) {
+      await stopRecordingSilently();
+    }
+    if (audioCenteringTimeoutRef.current !== null) {
+      window.clearTimeout(audioCenteringTimeoutRef.current);
+      audioCenteringTimeoutRef.current = null;
+    }
+    for (const timeoutId of audioLabelTimeoutsRef.current) {
+      window.clearTimeout(timeoutId);
+    }
+    audioLabelTimeoutsRef.current = [];
+    setMode("chooser");
+    setInputText("");
+    setSessionId(null);
+    setConversation(null);
+    setErrorText(null);
+    setRecordedAudioBlob(null);
+    setRecordingFailureCount(0);
+    setAudioCentered(false);
+    setAudioSubmitFailed(false);
+    setAudioButtonLabel("Audio");
+    setAudioLabelPhase("steady");
+  };
+
   const handleTextTurn = async (action: IntakeAction): Promise<void> => {
     setIsSubmitting(true);
     setErrorText(null);
@@ -335,63 +378,74 @@ export function AddEntryPage({ onOfferSaved, onProcessingStateChange }: AddEntry
   const isProcessingLabel = audioButtonLabel === "Processing...";
 
   return (
-    <main className="main-panel">
-        <h1
-          className="main-title motion-fade-enter"
-          style={{ ["--motion-delay" as string]: "0ms", ["--motion-duration" as string]: "220ms" }}
-        >
-          Create a Job Entry
-        </h1>
+    <main className="main-panel entry-panel">
+      <button
+        type="button"
+        className="entry-back-button selectable"
+        onClick={() => void handleResetSession()}
+        disabled={isSubmitting}
+      >
+        <span className="entry-back-icon" aria-hidden="true">
+          {"<"}
+        </span>
+        Back
+      </button>
+      <h1
+        className="main-title motion-fade-enter"
+        style={{ ["--motion-delay" as string]: "0ms", ["--motion-duration" as string]: "220ms" }}
+      >
+        Create a Job Entry
+      </h1>
 
-        {mode === "chooser" || mode === "chooser-exit" || mode === "audio" ? (
-          <section
-            className={`mode-switcher ${mode === "chooser-exit" ? "motion-fade-exit" : "motion-fade-enter"} ${
-              mode === "audio" ? "audio-mode-switcher" : ""
-            }`}
-            style={
-              {
-                ["--motion-delay" as string]: mode === "chooser-exit" ? "0ms" : "80ms",
-                ["--motion-duration" as string]: mode === "chooser-exit" ? "180ms" : "220ms"
-              } as CSSProperties
-            }
+      {mode === "chooser" || mode === "chooser-exit" || mode === "audio" ? (
+        <section
+          className={`mode-switcher ${mode === "chooser-exit" ? "motion-fade-exit" : "motion-fade-enter"} ${
+            mode === "audio" ? "audio-mode-switcher" : ""
+          }`}
+          style={
+            {
+              ["--motion-delay" as string]: mode === "chooser-exit" ? "0ms" : "80ms",
+              ["--motion-duration" as string]: mode === "chooser-exit" ? "180ms" : "220ms"
+            } as CSSProperties
+          }
+        >
+          <button
+            type="button"
+            className={`mode-button selectable ${mode === "audio" ? "audio-text-fade" : ""}`}
+            onClick={() => startMode("text")}
+            disabled={mode === "audio" || isRecording || isSubmitting}
           >
-            <button
-              type="button"
-              className={`mode-button selectable ${mode === "audio" ? "audio-text-fade" : ""}`}
-              onClick={() => startMode("text")}
-              disabled={mode === "audio" || isRecording || isSubmitting}
-            >
-              Text
-            </button>
-            <button
-              type="button"
-              className={`mode-button selectable audio-main-button ${mode === "audio" ? "audio-main-active" : ""} ${
-                audioCentered ? "audio-main-centered" : ""
-              } ${isRecording ? "audio-main-recording" : ""} ${isSubmitting ? "audio-main-processing" : ""}`}
-              onClick={() => {
-                if (mode === "chooser") {
-                  startMode("audio");
-                  return;
-                }
-                void handleAudioControlClick();
-              }}
-              disabled={mode === "audio" && isSubmitting}
-              aria-label={audioButtonLabel}
-            >
-              <span
-                className={`audio-main-label audio-main-label-${audioLabelPhase} ${
-                  isProcessingLabel ? "audio-main-label-processing" : ""
-                }`}
-              >
-                {isProcessingLabel ? <ProcessingLabel label={audioButtonLabel} /> : audioButtonLabel}
-              </span>
-            </button>
-          </section>
-        ) : (
-          <section
-            className="conversation-panel motion-fade-enter"
-            style={{ ["--motion-delay" as string]: "80ms", ["--motion-duration" as string]: "220ms" }}
+            Text
+          </button>
+          <button
+            type="button"
+            className={`mode-button selectable audio-main-button ${mode === "audio" ? "audio-main-active" : ""} ${
+              audioCentered ? "audio-main-centered" : ""
+            } ${isRecording ? "audio-main-recording" : ""} ${isSubmitting ? "audio-main-processing" : ""}`}
+            onClick={() => {
+              if (mode === "chooser") {
+                startMode("audio");
+                return;
+              }
+              void handleAudioControlClick();
+            }}
+            disabled={mode === "audio" && isSubmitting}
+            aria-label={audioButtonLabel}
           >
+            <span
+              className={`audio-main-label audio-main-label-${audioLabelPhase} ${
+                isProcessingLabel ? "audio-main-label-processing" : ""
+              }`}
+            >
+              {isProcessingLabel ? <ProcessingLabel label={audioButtonLabel} /> : audioButtonLabel}
+            </span>
+          </button>
+        </section>
+      ) : (
+        <section
+          className="conversation-panel motion-fade-enter"
+          style={{ ["--motion-delay" as string]: "80ms", ["--motion-duration" as string]: "220ms" }}
+        >
             <AssistantMessagePanel message={latestAssistantMessage} />
 
             <label className="input-label" htmlFor="job-entry-text">
