@@ -244,7 +244,12 @@ def _demo_offer_payloads() -> list[dict[str, Any]]:
                 "health_insurance_employer_monthly_usd": 760,
                 "other_monetary_benefits": ["Annual learning budget"],
             },
-            "non_monetary_summary_bullets": ["Remote-first team", "On-call rotation capped at 1 week/month"],
+            "non_monetary_summary_bullets": [
+                "Remote-first team",
+                "On-call rotation capped at 1 week/month",
+                "Quarterly hack days",
+                "Dedicated mentorship program",
+            ],
             "offer_meta": {"status": "active", "source_input_type": "debug_seed"},
         },
         {
@@ -262,7 +267,12 @@ def _demo_offer_payloads() -> list[dict[str, Any]]:
                 "health_insurance_employer_monthly_usd": 820,
                 "other_monetary_benefits": ["Transit pass reimbursement"],
             },
-            "non_monetary_summary_bullets": ["Product ownership from day one", "Quarterly team offsites"],
+            "non_monetary_summary_bullets": [
+                "Product ownership from day one",
+                "Quarterly team offsites",
+                "Annual volunteering day",
+                "Flexible Fridays during summer",
+            ],
             "offer_meta": {"status": "active", "source_input_type": "debug_seed"},
         },
     ]

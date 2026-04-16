@@ -114,6 +114,18 @@ describe("AddEntryPage", () => {
     );
   });
 
+  it("replaces Skip with switch-to-audio in text mode", async () => {
+    render(<AddEntryPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Text" }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Add details")).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole("button", { name: "Switch to Audio Input" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Skip" })).not.toBeInTheDocument();
+  });
+
   it("shows text processing indicator and disables textarea while submit is in flight", async () => {
     const resolveRequestRef: { current: ((value: typeof inProgressResponse) => void) | null } = {
       current: null
@@ -283,19 +295,39 @@ describe("AddEntryPage", () => {
     });
   });
 
-  it("shows switch-to-text option after repeated recording failures", async () => {
-    mockedCreateBrowserAudioRecorder.mockRejectedValue(new Error("Microphone unavailable"));
+  it("shows switch-to-text option in audio mode and preserves transcript", async () => {
+    mockedSendTextTurn.mockResolvedValueOnce(inProgressResponse);
 
     render(<AddEntryPage />);
-    fireEvent.click(screen.getByRole("button", { name: "Audio" }));
+    fireEvent.click(screen.getByRole("button", { name: "Text" }));
 
-    const recordButton = await screen.findByRole("button", { name: "Record" });
-    fireEvent.click(recordButton);
-    fireEvent.click(recordButton);
+    await waitFor(() => {
+      expect(screen.getByLabelText("Add details")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("Add details"), {
+      target: {
+        value: "Role title and salary"
+      }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Please share the remaining required information: company_name.")
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Switch to Audio Input" }));
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Switch to Text Input" })).toBeInTheDocument();
     });
+
+    expect(
+      screen.getByText("Please share the remaining required information: company_name.")
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Skip" })).not.toBeInTheDocument();
   });
 
   it("uses shared fade utility classes for initial reveal", () => {
